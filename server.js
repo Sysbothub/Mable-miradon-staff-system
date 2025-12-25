@@ -57,19 +57,19 @@ async function setupDefaultAdmin() {
 }
 setupDefaultAdmin();
 
-// --- MIDDLEWARE ---
-app.set('trust proxy', 1); // Fix for Render proxy
+// --- MIDDLEWARE (RENDER COMPATIBILITY) ---
+app.set('trust proxy', 1); 
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: true, 
+    secret: process.env.SESSION_SECRET || 'hq-secret-key',
+    resave: true,
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: { 
-        maxAge: 1000 * 60 * 60 * 24,
-        secure: true, // Required for Render HTTPS
-        sameSite: 'none' // Required for cross-domain cookies
+        maxAge: 1000 * 60 * 60 * 24, 
+        secure: true, 
+        sameSite: 'none' 
     } 
 }));
 
@@ -77,7 +77,7 @@ const isAuth = (req, res, next) => req.session.staffId ? next() : res.status(401
 const isAdmin = (req, res, next) => (req.session.staffId && req.session.isAdmin) ? next() : res.status(403).send("Admin only");
 
 // --- DYNAMIC BOT CLUSTERING ---
-const botTokens = [process.env.BOT_ONE_TOKEN, process.env.BOT_TWO_TOKEN];
+const botTokens = [process.env.BOT_ONE_TOKEN, process.env.BOT_TWO_TOKEN].filter(t => t);
 const clients = [];
 
 async function sendLog(title, description, color = '#3b82f6', files = []) {
@@ -90,7 +90,6 @@ async function sendLog(title, description, color = '#3b82f6', files = []) {
 }
 
 botTokens.forEach(token => {
-    if (!token) return;
     const client = new Client({
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildInvites],
         partials: [Partials.Channel, Partials.Message]
@@ -98,18 +97,15 @@ botTokens.forEach(token => {
 
     client.on('messageCreate', async (message) => {
         if (message.author.bot || message.guild) return; 
-
         let thread = await Thread.findOne({ userId: message.author.id, botId: client.user.id });
         if (!thread) {
             thread = new Thread({ userId: message.author.id, userTag: message.author.tag, botId: client.user.id, botName: client.user.username, messages: [] });
             sendLog("🆕 Ticket Created", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
         }
-        
         const msgData = { authorTag: message.author.tag, content: message.content || "[Media]", attachments: message.attachments.map(a => a.url), fromBot: false };
         thread.messages.push(msgData);
         thread.lastMessageAt = new Date();
         await thread.save();
-
         io.emit('new_message', { threadId: thread._id, ...msgData });
     });
 
@@ -125,10 +121,7 @@ app.post('/api/login', async (req, res) => {
         req.session.staffId = user._id; 
         req.session.isAdmin = user.isAdmin; 
         req.session.username = user.username;
-        req.session.save((err) => {
-            if (err) return res.status(500).send("Session Error");
-            res.json({ success: true, isAdmin: user.isAdmin, username: user.username });
-        });
+        req.session.save(() => res.json({ success: true, isAdmin: user.isAdmin, username: user.username }));
     } else res.status(401).send("Invalid Credentials");
 });
 
@@ -141,22 +134,15 @@ app.post('/api/reply', isAuth, async (req, res) => {
     const { threadId, content } = req.body;
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
-    
     const client = clients.find(c => c.user.id === thread.botId);
     try {
         const user = await client.users.fetch(thread.userId);
-        const embed = new EmbedBuilder()
-            .setColor('#3b82f6')
-            .setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() })
-            .setDescription(content)
-            .setTimestamp();
-
+        const embed = new EmbedBuilder().setColor('#3b82f6').setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() }).setDescription(content).setTimestamp();
         await user.send({ embeds: [embed] });
         const reply = { authorTag: `Staff (${req.session.username})`, content, fromBot: true, attachments: [] };
         thread.messages.push(reply);
         thread.lastMessageAt = new Date();
         await thread.save();
-
         await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { repliesSent: 1 } });
         io.emit('new_message', { threadId: thread._id, ...reply });
         res.json({ success: true });
@@ -167,20 +153,12 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     const { threadId } = req.body;
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
-
-    let transcript = `OFFICIAL TRANSCRIPT: ${thread.userTag}\nBot: ${thread.botName}\nHandled By: ${req.session.username}\n\n`;
-    thread.messages.forEach(m => {
-        transcript += `[${m.timestamp.toISOString()}] ${m.authorTag}: ${m.content}\n`;
-    });
-
-    const fName = `transcript-${thread.userId}.txt`;
-    const fPath = path.join(__dirname, fName);
-
+    let transcript = `OFFICIAL TRANSCRIPT: ${thread.userTag}\nBot: ${thread.botName}\n\n`;
+    thread.messages.forEach(m => { transcript += `[${m.timestamp.toISOString()}] ${m.authorTag}: ${m.content}\n`; });
+    const fPath = path.join(__dirname, `transcript-${thread.userId}.txt`);
     try {
         fs.writeFileSync(fPath, transcript);
-        const attachment = new AttachmentBuilder(fPath);
-        await sendLog("🔒 Archive Logged", `User: ${thread.userTag}\nStaff: ${req.session.username}`, '#ef4444', [attachment]);
-        
+        await sendLog("🔒 Archive Logged", `User: ${thread.userTag}`, '#ef4444', [new AttachmentBuilder(fPath)]);
         await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { ticketsClosed: 1 } });
         await Thread.findByIdAndDelete(threadId);
         fs.unlinkSync(fPath);
@@ -188,6 +166,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     } catch (e) { res.status(500).send("Archive Error"); }
 });
 
+// --- ADMIN API ---
 app.get('/api/admin/stats', isAdmin, async (req, res) => {
     const stats = await Staff.find().sort({ ticketsClosed: -1 });
     res.json(stats);
@@ -202,6 +181,16 @@ app.get('/api/admin/servers', isAdmin, async (req, res) => {
     res.json(servers);
 });
 
+app.post('/api/admin/leave-server', isAdmin, async (req, res) => {
+    const { serverId, botId } = req.body;
+    const client = clients.find(c => c.user.id === botId);
+    try {
+        const guild = await client.guilds.fetch(serverId);
+        await guild.leave();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "Failed to leave" }); }
+});
+
 app.post('/api/admin/create-invite', isAdmin, async (req, res) => {
     const { serverId, botId } = req.body;
     const client = clients.find(c => c.user.id === botId);
@@ -211,6 +200,33 @@ app.post('/api/admin/create-invite', isAdmin, async (req, res) => {
         const inv = await chan.createInvite({ maxAge: 3600, maxUses: 1 });
         res.json({ success: true, url: inv.url });
     } catch (e) { res.status(500).json({ error: "No Permission" }); }
+});
+
+app.post('/api/admin/dm-owner', isAdmin, async (req, res) => {
+    const { serverId, botId, message } = req.body;
+    const client = clients.find(c => c.user.id === botId);
+    try {
+        const guild = await client.guilds.fetch(serverId);
+        const owner = await client.users.fetch(guild.ownerId);
+        await owner.send(`**Notification regarding ${guild.name}:**\n${message}`);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "DM Failed" }); }
+});
+
+app.post('/api/admin/bulk-message', isAdmin, async (req, res) => {
+    const { message } = req.body;
+    let sentCount = 0;
+    for (const client of clients) {
+        if (!client.isReady()) continue;
+        for (const [id, guild] of client.guilds.cache) {
+            try {
+                const owner = await client.users.fetch(guild.ownerId);
+                await owner.send(`**Broadcast:**\n${message}`);
+                sentCount++;
+            } catch (e) { console.error("Bulk Fail on " + guild.name); }
+        }
+    }
+    res.json({ success: true, sentTo: sentCount });
 });
 
 app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
