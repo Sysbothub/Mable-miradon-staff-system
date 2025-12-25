@@ -58,18 +58,18 @@ async function setupDefaultAdmin() {
 setupDefaultAdmin();
 
 // --- MIDDLEWARE ---
-app.set('trust proxy', 1); // FIX 1: Allow Render Proxy
+app.set('trust proxy', 1); // Fix for Render proxy
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
     secret: process.env.SESSION_SECRET,
-    resave: true, // FIX 2: Ensure session is tracked
+    resave: true, 
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: { 
         maxAge: 1000 * 60 * 60 * 24,
-        secure: true, // FIX 3: Required for Render HTTPS
-        sameSite: 'none' // FIX 4: Required for modern browser cookies
+        secure: true, // Required for Render HTTPS
+        sameSite: 'none' // Required for cross-domain cookies
     } 
 }));
 
@@ -122,9 +122,11 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await Staff.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
-        req.session.staffId = user._id; req.session.isAdmin = user.isAdmin; req.session.username = user.username;
-        // Fix 5: Explicitly save before sending response
-        req.session.save(() => {
+        req.session.staffId = user._id; 
+        req.session.isAdmin = user.isAdmin; 
+        req.session.username = user.username;
+        req.session.save((err) => {
+            if (err) return res.status(500).send("Session Error");
             res.json({ success: true, isAdmin: user.isAdmin, username: user.username });
         });
     } else res.status(401).send("Invalid Credentials");
