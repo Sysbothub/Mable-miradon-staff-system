@@ -65,18 +65,31 @@
         <div id="view-admin" class="hidden flex-1 overflow-y-auto p-10 space-y-8">
             <div class="grid grid-cols-2 gap-8">
                 <div class="glass p-6 rounded-xl">
-                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs">Broadcast</h2>
-                    <textarea id="bulk-msg" class="w-full bg-slate-900 p-3 rounded border border-slate-800 h-24 outline-none text-sm mb-4" placeholder="Message to ALL owners..."></textarea>
-                    <button onclick="sendBulk()" class="bg-blue-600 text-[10px] font-bold px-4 py-2 rounded uppercase">Send Global</button>
+                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs">Add Staff Member</h2>
+                    <input type="text" id="add-user" placeholder="Staff Username" class="w-full bg-slate-900 border border-slate-800 p-2 rounded text-sm mb-2 outline-none">
+                    <input type="text" id="add-discord" placeholder="Discord ID" class="w-full bg-slate-900 border border-slate-800 p-2 rounded text-sm mb-2 outline-none">
+                    <label class="flex items-center space-x-2 mb-4 text-[10px] uppercase font-bold text-slate-400">
+                        <input type="checkbox" id="add-is-admin"> <span>Grant Admin Access</span>
+                    </label>
+                    <button onclick="addStaff()" class="bg-blue-600 text-[10px] font-bold px-4 py-2 rounded uppercase">Authorize Staff</button>
                 </div>
+
                 <div class="glass p-6 rounded-xl">
                     <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs">Staff Management</h2>
                     <div id="staff-stats" class="text-sm space-y-2"></div>
                 </div>
             </div>
-            <div class="glass p-6 rounded-xl">
-                <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs font-black">Connected Servers</h2>
-                <div id="srv-list" class="grid grid-cols-3 gap-4"></div>
+
+            <div class="grid grid-cols-2 gap-8">
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs">Broadcast</h2>
+                    <textarea id="bulk-msg" class="w-full bg-slate-900 p-3 rounded border border-slate-800 h-24 outline-none text-sm mb-4" placeholder="Message to ALL owners..."></textarea>
+                    <button onclick="sendBulk()" class="bg-blue-600 text-[10px] font-bold px-4 py-2 rounded uppercase">Send Global</button>
+                </div>
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs font-black">Connected Servers</h2>
+                    <div id="srv-list" class="grid grid-cols-2 gap-4"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -90,7 +103,6 @@
 
         async function req(url, method = 'GET', body = null) {
             const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : null });
-            // Handle session expiry or unauthorized access
             if (res.status === 401 && url !== '/api/login') return location.reload();
             return res.json();
         }
@@ -107,7 +119,6 @@
             }
         }
 
-        // --- NEW: SELF-RESET LOGIC ---
         async function selfReset() {
             if (!confirm("Confirm key reset? You will receive a new key via Discord DM and will need to log in again immediately.")) return;
             const res = await req('/api/staff/self-reset', 'POST');
@@ -195,14 +206,16 @@
             const stats = await req('/api/admin/stats');
             const srvs = await req('/api/admin/servers');
             
-            // NEW: Updated Roster with Reset Key Button
             document.getElementById('staff-stats').innerHTML = stats.map(s => `
                 <div class="flex items-center justify-between border-b border-slate-800 py-2">
                     <div class="flex flex-col">
                         <span class="font-bold text-xs">${s.username} ${s.isAdmin ? '<span class="text-amber-500 font-black">[A]</span>' : ''}</span>
                         <span class="text-[9px] text-slate-500 uppercase">${s.ticketsClosed} closed</span>
                     </div>
-                    <button onclick="adminResetKey('${s._id}')" class="bg-red-900/20 text-red-500 text-[8px] px-2 py-1 rounded border border-red-500/30 hover:bg-red-600 hover:text-white transition font-bold uppercase">Reset Key</button>
+                    <div class="flex space-x-2">
+                        <button onclick="adminResetKey('${s._id}')" class="text-blue-400 text-[8px] px-2 py-1 rounded border border-blue-500/30 hover:bg-blue-600 hover:text-white transition font-bold uppercase">Reset</button>
+                        <button onclick="deleteStaff('${s._id}')" class="text-red-500 text-[8px] px-2 py-1 rounded border border-red-500/30 hover:bg-red-600 hover:text-white transition font-bold uppercase">Delete</button>
+                    </div>
                 </div>
             `).join('');
 
@@ -219,7 +232,27 @@
             `).join('');
         }
 
-        // --- NEW: ADMIN RESET TRIGGER ---
+        async function addStaff() {
+            const username = document.getElementById('add-user').value;
+            const discordId = document.getElementById('add-discord').value;
+            const adminStatus = document.getElementById('add-is-admin').checked;
+            if(!username || !discordId) return alert("All fields required");
+            const res = await req('/api/admin/staff/add', 'POST', { username, discordId, adminStatus });
+            if(res.success) {
+                alert("Staff member authorized. Credentials sent via DM.");
+                document.getElementById('add-user').value = '';
+                document.getElementById('add-discord').value = '';
+                loadAdminData();
+            }
+        }
+
+        async function deleteStaff(staffId) {
+            if(!confirm("Permanently remove this staff member?")) return;
+            const res = await req('/api/admin/staff/delete', 'POST', { staffId });
+            if(res.success) loadAdminData();
+            else alert(res.error || "Failed to delete");
+        }
+
         async function adminResetKey(staffId) {
             if (!confirm("Generate a new security key for this staff member? It will be sent via Discord DM.")) return;
             const res = await req('/api/admin/staff/reset-password', 'POST', { staffId });
