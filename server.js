@@ -309,4 +309,14 @@ app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
+// --- DELETE STAFF ROUTE ---
+app.post('/api/admin/staff/delete', isAdmin, async (req, res) => {
+    const { staffId } = req.body;
+    if (staffId === req.session.staffId.toString()) return res.status(400).json({ error: "Cannot delete yourself" });
+    try {
+        await Staff.findByIdAndDelete(staffId);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "Delete failed" }); }
+});
+
 server.listen(process.env.PORT || 10000, () => console.log("HQ Terminal Ready"));
