@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HQ Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); }
+        .sidebar-item.active { background: #1e293b; border-left: 4px solid #3b82f6; }
+        .unread { border-right: 4px solid #facc15; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body onfocus="stopFlashing()">
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
+
+    <div id="login-view" class="flex items-center justify-center min-h-screen">
+        <div class="glass p-10 rounded-2xl shadow-2xl w-full max-w-md">
+            <h1 class="text-3xl font-black text-center mb-8 text-blue-500 italic tracking-tighter">HQ TERMINAL</h1>
+            <input type="text" id="l-user" placeholder="Staff Identifier" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="password" id="l-pass" placeholder="Security Token" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-8 focus:ring-2 focus:ring-blue-500 outline-none">
+            <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold uppercase tracking-widest transition">Establish Connection</button>
+        </div>
+    </div>
+
+    <div id="panel-view" class="hidden flex flex-col h-screen">
+        <nav class="h-16 glass flex items-center justify-between px-8 shrink-0 z-50">
+            <div class="flex items-center space-x-6">
+                <span class="text-xl font-black text-blue-500 tracking-tighter uppercase">Support HQ</span>
+                <div class="space-x-2">
+                    <button onclick="setView('chat')" class="px-4 py-1.5 rounded-lg text-xs font-bold uppercase hover:bg-slate-800 transition">Active Tickets</button>
+                    <button id="admin-nav" onclick="setView('admin')" class="hidden px-4 py-1.5 rounded-lg text-xs font-bold uppercase hover:bg-slate-800 transition text-blue-400">Management</button>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="display-user" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"></span>
+                <button onclick="location.reload()" class="text-red-500 text-xs font-bold uppercase">Disconnect</button>
+            </div>
+        </nav>
+
+        <div class="flex flex-1 overflow-hidden">
+            <aside class="w-80 glass border-t-0 border-l-0 overflow-y-auto">
+                <div id="thread-list"></div>
+            </aside>
+
+            <main class="flex-1 flex flex-col relative bg-[#010409]">
+                <div id="chat-view" class="flex flex-col h-full">
+                    <div class="h-14 glass border-t-0 border-l-0 border-r-0 flex items-center justify-between px-8">
+                        <span id="chat-header-name" class="text-xs font-black uppercase text-slate-400"></span>
+                        <button onclick="closeTicket()" class="bg-red-900/20 text-red-500 border border-red-900/50 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition">Close & Archive</button>
+                    </div>
+                    <div id="chat-history" class="flex-1 overflow-y-auto p-10 space-y-6"></div>
+                    <form onsubmit="sendReply(event)" class="p-6 glass border-b-0 border-l-0 border-r-0 flex space-x-4">
+                        <input type="text" id="reply-text" placeholder="Draft a response..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none">
+                        <button type="submit" class="bg-blue-600 px-10 rounded-xl font-bold text-sm hover:bg-blue-500 transition">SEND</button>
+                    </form>
+                </div>
+
+                <div id="admin-view" class="hidden p-12 overflow-y-auto h-full space-y-12">
+                    <section>
+                        <h2 class="text-2xl font-black mb-8 text-blue-500 uppercase tracking-tighter">Staff Leaderboard</h2>
+                        <div class="glass rounded-2xl overflow-hidden">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-900/50 text-slate-500 uppercase text-[10px] font-black">
+                                    <tr><th class="p-4">Staff Member</th><th class="p-4">Tickets Closed</th><th class="p-4">Replies Sent</th><th class="p-4">Role</th></tr>
+                                </thead>
+                                <tbody id="staff-table"></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="glass p-8 rounded-2xl">
+                            <h3 class="font-bold text-amber-500 mb-6 uppercase text-xs tracking-widest">Global Broadcast</h3>
+                            <textarea id="bc-text" placeholder="Message all active users..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs mb-4 outline-none focus:border-amber-500" rows="4"></textarea>
+                            <button onclick="sendBroadcast()" class="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs hover:bg-amber-500 transition">BROADCAST ANNOUNCEMENT</button>
+                        </div>
+                        <div class="glass p-8 rounded-2xl">
+                            <h3 class="font-bold text-emerald-500 mb-6 uppercase text-xs tracking-widest">Provision Staff</h3>
+                            <div class="space-y-4">
+                                <input id="new-s-name" placeholder="Name" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs">
+                                <input id="new-s-disc" placeholder="Discord ID" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs">
+                                <label class="flex items-center space-x-2 text-[10px] font-bold text-slate-500 uppercase"><input type="checkbox" id="new-s-admin"> <span>Admin Privileges</span></label>
+                                <button onclick="addStaff()" class="w-full bg-emerald-600 py-3 rounded-xl font-bold text-xs hover:bg-emerald-500">AUTHORIZE</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-2xl font-black mb-8 text-blue-500 uppercase tracking-tighter">Node Infrastructure</h2>
+                        <div id="server-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentThreadId = null;
+        let threads = {};
+        let flashInterval = null;
+
+        async function api(p, m='GET', b=null) {
+            const o = { method: m, headers: {'Content-Type': 'application/json'} };
+            if(b) o.body = JSON.stringify(b);
+            const r = await fetch(p, o);
+            if(r.status === 401) location.reload();
+            return r.json();
+        }
+
+        async function doLogin() {
+            const r = await api('/api/login', 'POST', { username: l_user.value, password: l_pass.value });
+            if(r.success) {
+                login_view.classList.add('hidden');
+                panel_view.classList.remove('hidden');
+                display_user.innerText = r.username;
+                if(r.isAdmin) admin_nav.classList.remove('hidden');
+                loadThreads();
+            } else alert("Access Denied");
+        }
+
+        async function loadThreads() {
+            const data = await api('/api/threads');
+            thread_list.innerHTML = '';
+            data.forEach(t => {
+                threads[t._id] = t;
+                const div = document.createElement('div');
+                div.className = `sidebar-item p-6 cursor-pointer border-b border-slate-800/50 transition ${currentThreadId === t._id ? 'active' : ''}`;
+                div.id = `thread-${t._id}`;
+                div.innerHTML = `<div class="font-bold text-sm text-slate-200">${t.userTag}</div><div class="text-[9px] text-slate-500 uppercase font-black mt-1">${t.botName}</div>`;
+                div.onclick = () => {
+                    currentThreadId = t._id;
+                    document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+                    div.classList.add('active');
+                    div.classList.remove('unread');
+                    chat_header_name.innerText = `Channel: ${t.userTag}`;
+                    renderChat();
+                };
+                thread_list.appendChild(div);
+            });
+        }
+
+        function renderChat() {
+            chat_history.innerHTML = '';
+            if(!currentThreadId) return;
+            threads[currentThreadId].messages.forEach(m => {
+                const isBot = m.fromBot;
+                const div = document.createElement('div');
+                div.className = `flex ${isBot ? 'justify-end' : 'justify-start'}`;
+                div.innerHTML = `
+                    <div class="max-w-[75%] ${isBot ? 'bg-blue-600/10 border border-blue-500/30' : 'bg-slate-900 border border-slate-800'} p-5 rounded-2xl shadow-xl">
+                        <div class="text-[9px] font-black mb-2 uppercase tracking-widest ${isBot ? 'text-blue-400' : 'text-slate-500'}">${m.authorTag}</div>
+                        <div class="text-sm leading-relaxed text-slate-200">${m.content}</div>
+                    </div>`;
+                chat_history.appendChild(div);
+            });
+            chat_history.scrollTop = chat_history.scrollHeight;
+        }
+
+        socket.on('new_message', (d) => {
+            const { threadId, ...msg } = d;
+            if(!msg.fromBot) {
+                document.getElementById('notif-sound').play().catch(()=>{});
+                if(currentThreadId !== threadId) document.getElementById(`thread-${threadId}`)?.classList.add('unread');
+            }
+            if(threads[threadId]) {
+                threads[threadId].messages.push(msg);
+                if(currentThreadId === threadId) renderChat();
+            } else loadThreads();
+        });
+
+        async function sendReply(e) {
+            e.preventDefault();
+            const v = reply_text.value;
+            if(!currentThreadId || !v) return;
+            reply_text.value = '';
+            await api('/api/reply', 'POST', { threadId: currentThreadId, content: v });
+        }
+
+        async function closeTicket() {
+            if(!currentThreadId || !confirm("Archive transcript and purge thread?")) return;
+            await api('/api/close-thread', 'POST', { threadId: currentThreadId });
+            currentThreadId = null; chat_history.innerHTML = ''; loadThreads();
+        }
+
+        async function setView(v) {
+            chat_view.classList.toggle('hidden', v !== 'chat');
+            admin_view.classList.toggle('hidden', v !== 'admin');
+            if(v === 'admin') {
+                const s = await api('/api/admin/stats');
+                staff_table.innerHTML = s.map(u => `<tr class="border-t border-slate-800/50 hover:bg-slate-900/30 transition"><td class="p-4 font-bold">${u.username}</td><td class="p-4 text-emerald-500 font-mono">${u.ticketsClosed}</td><td class="p-4 text-blue-400 font-mono">${u.repliesSent}</td><td class="p-4 text-[10px] uppercase font-black">${u.isAdmin ? 'Admin' : 'Staff'}</td></tr>`).join('');
+                
+                const sv = await api('/api/admin/servers');
+                server_list.innerHTML = sv.servers.map(x => `
+                    <div class="glass p-6 rounded-2xl">
+                        <div class="text-blue-400 font-black truncate uppercase text-xs mb-1">${x.name}</div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase mb-6">${x.members} Members | ${x.botName}</div>
+                        <div class="flex space-x-2">
+                            <button onclick="createInvite('${x.id}','${x.botId}')" class="flex-1 bg-emerald-600/10 text-emerald-500 border border-emerald-900/50 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white transition">Invite</button>
+                            <button class="flex-1 bg-red-900/10 text-red-500 border border-red-900/50 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition">Leave</button>
+                        </div>
+                    </div>`).join('');
+            }
+        }
+
+        async function createInvite(serverId, botId) {
+            const r = await api('/api/admin/create-invite', 'POST', { serverId, botId });
+            if(r.success) prompt("Invite Link (1 Hour/1 Use):", r.url);
+        }
+
+        async function sendBroadcast() {
+            if(!confirm("Broadcast to ALL users?")) return;
+            const r = await api('/api/admin/broadcast', 'POST', { message: bc_text.value });
+            alert(`Reached ${r.count} users.`); bc_text.value = '';
+        }
+
+        async function addStaff() {
+            await api('/api/admin/staff/add', 'POST', { username: new_s_name.value, discordId: new_s_disc.value, adminStatus: new_s_admin.checked });
+            alert("Staff Authorized.");
+        }
+    </script>
+</body>
+</html>
