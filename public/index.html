@@ -113,7 +113,7 @@
         let threadStore = {};
         let selectedFile = null;
 
-        // UI NAVIGATION FOR LOGIN/RECOVERY
+        // --- AUTH & RECOVERY HANDLERS ---
         function toggleRecovery(show) {
             document.getElementById('login-section').classList.toggle('hidden', show);
             document.getElementById('recovery-section').classList.toggle('hidden', !show);
@@ -132,13 +132,21 @@
         }
 
         async function req(url, method = 'GET', body = null) {
-            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : null });
+            const res = await fetch(url, { 
+                method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: body ? JSON.stringify(body) : null 
+            });
+            // Auto-reload on unauthorized unless it's the login or recovery route
             if (res.status === 401 && !url.includes('/api/login') && !url.includes('/api/public/request-reset')) return location.reload();
             return res.json();
         }
 
         async function doLogin() {
-            const data = await req('/api/login', 'POST', { username: document.getElementById('l-user').value, password: document.getElementById('l-pass').value });
+            const data = await req('/api/login', 'POST', { 
+                username: document.getElementById('l-user').value, 
+                password: document.getElementById('l-pass').value 
+            });
             if (data.success) {
                 document.getElementById('login-view').style.display = 'none';
                 document.getElementById('user-tag').innerText = data.username;
@@ -149,6 +157,7 @@
             }
         }
 
+        // --- CHAT & TICKETS LOGIC ---
         async function loadThreads() {
             const data = await req('/api/threads');
             const list = document.getElementById('thread-list');
@@ -212,9 +221,11 @@
             if (!activeId) return;
             await req('/api/close-thread', 'POST', { threadId: activeId });
             activeId = null;
-            loadThreads(); renderChat();
+            loadThreads(); 
+            renderChat();
         }
 
+        // --- ADMIN DASHBOARD LOGIC ---
         function showView(v) {
             document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat');
             document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin');
@@ -266,29 +277,32 @@
         }
 
         async function deleteStaff(staffId) {
-            if(!confirm("Remove staff?")) return;
+            if(!confirm("Remove staff? Access will be revoked immediately.")) return;
             const res = await req('/api/admin/staff/delete', 'POST', { staffId });
             if(res.success) loadAdminData();
         }
 
         async function adminResetKey(staffId) {
-            if (!confirm("Reset key?")) return;
+            if (!confirm("Force security key reset?")) return;
             const res = await req('/api/admin/staff/reset-password', 'POST', { staffId });
-            if (res.success) alert("Sent.");
+            if (res.success) alert("New key dispatched to staff member.");
         }
 
+        // --- SERVER ACTIONS ---
         async function createInv(serverId, botId) {
             const res = await req('/api/admin/create-invite', 'POST', { serverId, botId });
-            if (res.url) window.prompt("Invite:", res.url);
+            if (res.url) window.prompt("Invite Generated:", res.url);
         }
 
         async function leaveSrv(serverId, botId) {
-            if (confirm("Leave?")) await req('/api/admin/leave-server', 'POST', { serverId, botId });
-            loadAdminData();
+            if (confirm("Execute leave command for this server?")) {
+                await req('/api/admin/leave-server', 'POST', { serverId, botId });
+                loadAdminData();
+            }
         }
 
         async function dmOwner(serverId, botId) {
-            const msg = prompt("Message:");
+            const msg = prompt("Message to Server Owner:");
             if (msg) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message: msg });
         }
 
@@ -296,15 +310,27 @@
             const msg = document.getElementById('bulk-msg').value;
             if (!msg) return;
             const res = await req('/api/admin/bulk-message', 'POST', { message: msg });
-            alert(`Sent to ${res.sentTo} owners.`);
+            alert(`Broadcast complete. Sent to ${res.sentTo} owners.`);
         }
 
+        // --- REALTIME UPDATES ---
         socket.on('new_message', (d) => {
             if (threadStore[d.threadId]) {
                 threadStore[d.threadId].messages.push(d);
                 if (activeId === d.threadId) renderChat();
-            } else loadThreads();
+            } else {
+                loadThreads();
+            }
         });
+
+        // AUTO-LOGIN CHECK
+        (async () => {
+            const data = await req('/api/threads');
+            if(!data.error) {
+                document.getElementById('login-view').style.display = 'none';
+                loadThreads();
+            }
+        })();
     </script>
 </body>
 </html>
