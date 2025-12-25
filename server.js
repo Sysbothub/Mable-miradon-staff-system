@@ -59,7 +59,7 @@ setupDefaultAdmin();
 
 // --- MIDDLEWARE (RENDER COMPATIBILITY) ---
 app.set('trust proxy', 1); 
-app.use(express.json({ limit: '10mb' })); // Limit increased for file uploads
+app.use(express.json({ limit: '10mb' })); 
 app.use(express.static('public'));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'hq-secret-key',
@@ -75,6 +75,9 @@ app.use(session({
 
 const isAuth = (req, res, next) => req.session.staffId ? next() : res.status(401).send("Unauthorized");
 const isAdmin = (req, res, next) => (req.session.staffId && req.session.isAdmin) ? next() : res.status(403).send("Admin only");
+
+// --- HELPER: GET PANEL URL ---
+const getPanelUrl = () => process.env.APP_URL || "Panel URL Not Configured";
 
 // --- DYNAMIC BOT CLUSTERING ---
 const botTokens = [process.env.BOT_ONE_TOKEN, process.env.BOT_TWO_TOKEN].filter(t => t);
@@ -103,7 +106,6 @@ botTokens.forEach(token => {
             sendLog("🆕 Ticket Created", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
         }
         
-        // Receiving Attachments
         const attachments = message.attachments.map(a => a.url);
         const msgData = { 
             authorTag: message.author.tag, 
@@ -146,12 +148,10 @@ app.post('/api/reply', isAuth, async (req, res) => {
     const client = clients.find(c => c.user.id === thread.botId);
     try {
         const user = await client.users.fetch(thread.userId);
-        
         let messageOptions = {
             embeds: [new EmbedBuilder().setColor('#3b82f6').setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() }).setDescription(content || "Sent an attachment").setTimestamp()]
         };
 
-        // Sending Attachments (Base64 to Buffer)
         if (fileBase64) {
             const buffer = Buffer.from(fileBase64.split(',')[1], 'base64');
             messageOptions.files = [new AttachmentBuilder(buffer, { name: fileName || 'upload.png' })];
@@ -193,10 +193,50 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     } catch (e) { res.status(500).send("Archive Error"); }
 });
 
+// --- STAFF SELF-SERVE RESET API ---
+app.post('/api/staff/self-reset', isAuth, async (req, res) => {
+    const staff = await Staff.findById(req.session.staffId);
+    if (!staff) return res.status(404).send("Not Found");
+    
+    const newPass = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(newPass, 10);
+    
+    staff.password = hashedPassword;
+    await staff.save();
+    
+    try {
+        const user = await clients[0].users.fetch(staff.discordId);
+        await user.send(`**Terminal Self-Reset Established**\n\n**New Security Key:** ${newPass}\n**Access URL:** ${getPanelUrl()}`);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Failed to DM credentials" });
+    }
+});
+
 // --- ADMIN API ---
 app.get('/api/admin/stats', isAdmin, async (req, res) => {
     const stats = await Staff.find().sort({ ticketsClosed: -1 });
     res.json(stats);
+});
+
+app.post('/api/admin/staff/reset-password', isAdmin, async (req, res) => {
+    const { staffId } = req.body;
+    const staff = await Staff.findById(staffId);
+    if (!staff) return res.status(404).send("Staff not found");
+
+    const newPass = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(newPass, 10);
+    
+    staff.password = hashedPassword;
+    await staff.save();
+    
+    try {
+        const user = await clients[0].users.fetch(staff.discordId);
+        await user.send(`**Terminal Security Alert**\n\nYour security key has been reset by an Administrator.\n**New Key:** ${newPass}\n**Access URL:** ${getPanelUrl()}`);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Password updated in DB but DM failed." });
+    }
 });
 
 app.get('/api/admin/servers', isAdmin, async (req, res) => {
@@ -260,11 +300,12 @@ app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
     const { username, discordId, adminStatus } = req.body;
     const tempPass = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(tempPass, 10);
+    
     await new Staff({ username, discordId, password: hashedPassword, isAdmin: adminStatus }).save();
     try {
         const user = await clients[0].users.fetch(discordId);
-        await user.send(`**Terminal Access**\nUser: ${username}\nPass: ${tempPass}`);
-    } catch(e) {}
+        await user.send(`**Terminal Access Established**\n\n**Identifier:** ${username}\n**Security Key:** ${tempPass}\n**Access URL:** ${getPanelUrl()}`);
+    } catch(e) { console.error("Could not DM staff member credentials."); }
     res.json({ success: true });
 });
 
