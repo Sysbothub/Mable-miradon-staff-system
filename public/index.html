@@ -311,24 +311,308 @@
             if (!msg) return;
             const res = await req('/api/admin/bulk-message', 'POST', { message: msg });
             alert(`Broadcast complete. Sent to ${res.sentTo} owners.`);
+        }<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HQ TERMINAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #020617; color: #f1f5f9; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid #1e293b; }
+        .attachment-preview { max-width: 250px; border-radius: 8px; margin-top: 5px; border: 1px solid #334155; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
+        <div class="glass p-8 rounded-2xl w-full max-w-sm text-center">
+            <h1 class="text-2xl font-black text-blue-500 mb-6 italic">HQ TERMINAL</h1>
+            
+            <div id="login-section">
+                <input type="text" id="l-user" placeholder="Identifier" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-4 outline-none">
+                <input type="password" id="l-pass" placeholder="Security Key" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-2 outline-none">
+                <div class="text-right mb-6">
+                    <button onclick="toggleRecovery(true)" class="text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold transition">Forgot Key?</button>
+                </div>
+                <button onclick="doLogin()" class="w-full bg-blue-600 p-3 rounded-lg font-bold uppercase text-sm">Establish Connection</button>
+            </div>
+
+            <div id="recovery-section" class="hidden">
+                <p class="text-[10px] text-slate-400 mb-4 uppercase font-bold italic">Enter Discord ID for Key Recovery</p>
+                <input type="text" id="r-discord" placeholder="Discord ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-6 outline-none">
+                <button onclick="requestRecovery()" class="w-full bg-amber-600 p-3 rounded-lg font-bold uppercase text-sm mb-4">Send New Key</button>
+                <button onclick="toggleRecovery(false)" class="text-[10px] text-slate-500 hover:text-white uppercase font-bold transition">Return to Login</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="h-16 glass flex items-center justify-between px-8">
+        <div class="flex items-center space-x-6">
+            <span class="font-black text-blue-500 italic">HQ TERMINAL</span>
+            <button onclick="showView('chat')" class="text-xs font-bold uppercase hover:text-blue-400">Tickets</button>
+            <button id="nav-admin" onclick="showView('admin')" class="hidden text-xs font-bold uppercase text-amber-500 hover:text-amber-400">Admin</button>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span id="user-tag" class="text-xs font-mono text-slate-500"></span>
+            <button onclick="doLogout()" class="text-xs text-red-500 border border-red-500/30 px-3 py-1 rounded hover:bg-red-600 hover:text-white transition">DC</button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <div id="view-chat" class="flex flex-1 overflow-hidden">
+            <aside id="thread-list" class="w-80 glass border-t-0 border-l-0 overflow-y-auto"></aside>
+            <main class="flex-1 flex flex-col bg-slate-950">
+                <div class="h-12 glass border-x-0 border-t-0 flex items-center justify-between px-6">
+                    <span id="active-tag" class="text-xs font-bold text-slate-500 uppercase italic">Awaiting Selection</span>
+                    <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold uppercase">Close Ticket</button>
+                </div>
+                <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col"></div>
+                
+                <div class="p-4 glass border-x-0 border-b-0">
+                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase italic">📎 Attachment Loaded</div>
+                    <form onsubmit="sendReply(event)" class="flex space-x-4 items-center">
+                        <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
+                        <button type="button" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                        </button>
+                        <input type="text" id="msg-input" placeholder="Enter message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none">
+                        <button class="bg-blue-600 px-6 py-3 rounded-xl font-bold uppercase text-xs">Send</button>
+                    </form>
+                </div>
+            </main>
+        </div>
+
+        <div id="view-admin" class="hidden flex-1 overflow-y-auto p-10 space-y-8">
+            <div class="grid grid-cols-2 gap-8">
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs">Add Staff Member</h2>
+                    <input type="text" id="add-user" placeholder="Staff Username" class="w-full bg-slate-900 border border-slate-800 p-2 rounded text-sm mb-2 outline-none">
+                    <input type="text" id="add-discord" placeholder="Discord ID" class="w-full bg-slate-900 border border-slate-800 p-2 rounded text-sm mb-2 outline-none">
+                    <label class="flex items-center space-x-2 mb-4 text-[10px] uppercase font-bold text-slate-400">
+                        <input type="checkbox" id="add-is-admin"> <span>Grant Admin Access</span>
+                    </label>
+                    <button onclick="addStaff()" class="bg-blue-600 text-[10px] font-bold px-4 py-2 rounded uppercase">Authorize Staff</button>
+                </div>
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs">Staff Management</h2>
+                    <div id="staff-stats" class="text-sm space-y-2"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-8">
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs">Broadcast</h2>
+                    <textarea id="bulk-msg" class="w-full bg-slate-900 p-3 rounded border border-slate-800 h-24 outline-none text-sm mb-4" placeholder="Message to ALL owners..."></textarea>
+                    <button onclick="sendBulk()" class="bg-blue-600 text-[10px] font-bold px-4 py-2 rounded uppercase">Send Global</button>
+                </div>
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs font-black">Connected Servers</h2>
+                    <div id="srv-list" class="grid grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let activeId = null;
+        let threadStore = {};
+        let selectedFile = null;
+
+        async function req(url, method = 'GET', body = null) {
+            const res = await fetch(url, { 
+                method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: body ? JSON.stringify(body) : null 
+            });
+            if (res.status === 401 && !url.includes('/api/login') && !url.includes('/api/public/request-reset')) {
+                document.getElementById('login-view').classList.remove('hidden');
+                return { error: 'Unauthorized' };
+            }
+            return res.json();
         }
 
-        // --- REALTIME UPDATES ---
+        async function doLogin() {
+            const data = await req('/api/login', 'POST', { 
+                username: document.getElementById('l-user').value, 
+                password: document.getElementById('l-pass').value 
+            });
+            if (data.success) {
+                location.reload();
+            } else alert("Access Denied");
+        }
+
+        async function doLogout() {
+            // Force browser to dump session and reload
+            document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            location.reload();
+        }
+
+        function toggleRecovery(show) {
+            document.getElementById('login-section').classList.toggle('hidden', show);
+            document.getElementById('recovery-section').classList.toggle('hidden', !show);
+        }
+
+        async function requestRecovery() {
+            const discordId = document.getElementById('r-discord').value;
+            const res = await req('/api/public/request-reset', 'POST', { discordId });
+            if(res.success) { alert("Key sent to Discord."); toggleRecovery(false); }
+        }
+
+        function showView(v) {
+            document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat');
+            document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin');
+            if (v === 'admin') loadAdminData();
+        }
+
+        async function loadThreads() {
+            const data = await req('/api/threads');
+            if(data.error) return;
+            const list = document.getElementById('thread-list');
+            list.innerHTML = '';
+            data.forEach(t => {
+                threadStore[t._id] = t;
+                const d = document.createElement('div');
+                d.className = `p-4 border-b border-slate-900 cursor-pointer hover:bg-slate-900 transition ${activeId === t._id ? 'bg-slate-900 border-l-4 border-blue-500' : ''}`;
+                d.innerHTML = `<div class="font-bold text-sm">${t.userTag}</div><div class="text-[9px] text-slate-500 uppercase">${t.botName}</div>`;
+                d.onclick = () => { activeId = t._id; renderChat(); loadThreads(); };
+                list.appendChild(d);
+            });
+        }
+
+        function renderChat() {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+            if (!activeId) return;
+            document.getElementById('active-tag').innerText = threadStore[activeId].userTag;
+            threadStore[activeId].messages.forEach(m => {
+                const d = document.createElement('div');
+                d.className = `max-w-[75%] p-3 rounded-xl text-sm ${m.fromBot ? 'bg-blue-600 self-end' : 'bg-slate-800 self-start'}`;
+                let html = `<div>${m.content}</div>`;
+                if (m.attachments) m.attachments.forEach(url => html += `<img src="${url}" class="attachment-preview cursor-pointer" onclick="window.open('${url}')">`);
+                d.innerHTML = html;
+                box.appendChild(d);
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function loadAdminData() {
+            const stats = await req('/api/admin/stats');
+            const srvs = await req('/api/admin/servers');
+            if(stats.error) return;
+            
+            document.getElementById('staff-stats').innerHTML = stats.map(s => `
+                <div class="flex items-center justify-between border-b border-slate-800 py-2">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-xs">${s.username} ${s.isAdmin ? '<span class="text-amber-500 font-black">[A]</span>' : ''}</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="adminResetKey('${s._id}')" class="text-blue-400 text-[8px] px-2 py-1 rounded border border-blue-500/30 hover:bg-blue-600 hover:text-white transition font-bold uppercase">Reset</button>
+                        <button onclick="deleteStaff('${s._id}')" class="text-red-500 text-[8px] px-2 py-1 rounded border border-red-500/30 hover:bg-red-600 hover:text-white transition font-bold uppercase">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('srv-list').innerHTML = srvs.map(s => `
+                <div class="glass p-4 rounded-lg">
+                    <div class="font-bold text-xs truncate">${s.name}</div>
+                    <div class="text-[10px] text-slate-500 mb-3">${s.members} members</div>
+                    <div class="flex space-x-1">
+                        <button onclick="createInv('${s.id}', '${s.botId}')" class="bg-blue-600 text-[8px] px-2 py-1 rounded font-bold">INV</button>
+                        <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="bg-red-600 text-[8px] px-2 py-1 rounded font-bold">LEAVE</button>
+                        <button onclick="dmOwner('${s.id}', '${s.botId}')" class="bg-slate-700 text-[8px] px-2 py-1 rounded font-bold">DM</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addStaff() {
+            const username = document.getElementById('add-user').value;
+            const discordId = document.getElementById('add-discord').value;
+            const adminStatus = document.getElementById('add-is-admin').checked;
+            const res = await req('/api/admin/staff/add', 'POST', { username, discordId, adminStatus });
+            if(res.success) { alert("Staff member added."); loadAdminData(); }
+        }
+
+        async function deleteStaff(staffId) {
+            if (confirm("Delete staff?")) { await req('/api/admin/staff/delete', 'POST', { staffId }); loadAdminData(); }
+        }
+
+        async function adminResetKey(staffId) {
+            if (confirm("Reset Key?")) await req('/api/admin/staff/reset-password', 'POST', { staffId });
+        }
+
+        async function createInv(serverId, botId) {
+            const res = await req('/api/admin/create-invite', 'POST', { serverId, botId });
+            if (res.url) window.prompt("Invite:", res.url);
+        }
+
+        async function leaveSrv(serverId, botId) {
+            if (confirm("Leave server?")) { await req('/api/admin/leave-server', 'POST', { serverId, botId }); loadAdminData(); }
+        }
+
+        async function dmOwner(serverId, botId) {
+            const message = prompt("Message:");
+            if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message });
+        }
+
+        async function sendBulk() {
+            const message = document.getElementById('bulk-msg').value;
+            if (message) {
+                const res = await req('/api/admin/bulk-message', 'POST', { message });
+                alert(`Broadcasted to ${res.sentTo} owners.`);
+            }
+        }
+
+        function handleFileSelect() {
+            const file = document.getElementById('file-input').files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedFile = { base64: e.target.result, name: file.name };
+                document.getElementById('file-indicator').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function sendReply(event) {
+            event.preventDefault();
+            const msg = document.getElementById('msg-input').value;
+            if ((!msg && !selectedFile) || !activeId) return;
+            await req('/api/reply', 'POST', { threadId: activeId, content: msg, fileBase64: selectedFile?.base64, fileName: selectedFile?.name });
+            document.getElementById('msg-input').value = '';
+            selectedFile = null;
+            document.getElementById('file-indicator').classList.add('hidden');
+        }
+
+        async function closeTicket() {
+            if (!activeId) return;
+            await req('/api/close-thread', 'POST', { threadId: activeId });
+            activeId = null;
+            loadThreads(); renderChat();
+        }
+
         socket.on('new_message', (d) => {
             if (threadStore[d.threadId]) {
                 threadStore[d.threadId].messages.push(d);
                 if (activeId === d.threadId) renderChat();
-            } else {
-                loadThreads();
-            }
+            } else loadThreads();
         });
 
         // AUTO-LOGIN CHECK
         (async () => {
             const data = await req('/api/threads');
             if(!data.error) {
-                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('login-view').classList.add('hidden');
                 loadThreads();
+                const adminStats = await req('/api/admin/stats');
+                if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden');
             }
         })();
     </script>
