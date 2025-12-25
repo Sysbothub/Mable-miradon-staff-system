@@ -49,7 +49,7 @@ async function setupDefaultAdmin() {
         await new Staff({
             username: 'admin',
             password: hashedPassword,
-            discordId: '000000000000000000', // Default placeholder
+            discordId: '000000000000000000',
             isAdmin: true
         }).save();
         console.log("✅ Default Admin Created: User 'admin' | Pass 'map4491'");
@@ -71,11 +71,8 @@ app.use(session({
 const isAuth = (req, res, next) => req.session.staffId ? next() : res.status(401).send("Unauthorized");
 const isAdmin = (req, res, next) => (req.session.staffId && req.session.isAdmin) ? next() : res.status(403).send("Admin only");
 
-// --- BOT CLUSTERING ---
-const botConfigs = [
-    { name: "Primary", token: process.env.BOT_ONE_TOKEN },
-    { name: "Secondary", token: process.env.BOT_TWO_TOKEN }
-];
+// --- DYNAMIC BOT CLUSTERING ---
+const botTokens = [process.env.BOT_ONE_TOKEN, process.env.BOT_TWO_TOKEN];
 const clients = [];
 
 async function sendLog(title, description, color = '#3b82f6', files = []) {
@@ -87,8 +84,8 @@ async function sendLog(title, description, color = '#3b82f6', files = []) {
     } catch (e) { console.error("Log Error:", e); }
 }
 
-botConfigs.forEach(config => {
-    if (!config.token) return;
+botTokens.forEach(token => {
+    if (!token) return;
     const client = new Client({
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildInvites],
         partials: [Partials.Channel, Partials.Message]
@@ -111,12 +108,11 @@ botConfigs.forEach(config => {
         io.emit('new_message', { threadId: thread._id, ...msgData });
     });
 
-    client.login(config.token).catch(console.error);
+    client.login(token).catch(e => console.error("Bot Login Failed:", e.message));
     clients.push(client);
 });
 
 // --- API ENDPOINTS ---
-
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await Staff.findOne({ username });
@@ -162,7 +158,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
 
-    let transcript = `OFFICIAL SUPPORT TRANSCRIPT\nUser: ${thread.userTag} (${thread.userId})\nBot: ${thread.botName}\nStaff: ${req.session.username}\n-------------------------------\n\n`;
+    let transcript = `OFFICIAL TRANSCRIPT: ${thread.userTag}\nBot: ${thread.botName}\nHandled By: ${req.session.username}\n\n`;
     thread.messages.forEach(m => {
         transcript += `[${m.timestamp.toISOString()}] ${m.authorTag}: ${m.content}\n`;
     });
@@ -173,7 +169,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     try {
         fs.writeFileSync(fPath, transcript);
         const attachment = new AttachmentBuilder(fPath);
-        await sendLog("🔒 Ticket Archive Generated", `User: ${thread.userTag}\nClosed By: ${req.session.username}`, '#ef4444', [attachment]);
+        await sendLog("🔒 Archive Logged", `User: ${thread.userTag}\nStaff: ${req.session.username}`, '#ef4444', [attachment]);
         
         await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { ticketsClosed: 1 } });
         await Thread.findByIdAndDelete(threadId);
@@ -204,7 +200,7 @@ app.post('/api/admin/create-invite', isAdmin, async (req, res) => {
         const chan = guild.channels.cache.find(c => c.type === ChannelType.GuildText && c.permissionsFor(client.user).has('CreateInstantInvite'));
         const inv = await chan.createInvite({ maxAge: 3600, maxUses: 1 });
         res.json({ success: true, url: inv.url });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: "No Permission" }); }
 });
 
 app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
@@ -214,9 +210,9 @@ app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
     await new Staff({ username, discordId, password: hashedPassword, isAdmin: adminStatus }).save();
     try {
         const user = await clients[0].users.fetch(discordId);
-        await user.send(`**Terminal Access Granted**\nUser: ${username}\nPass: ${tempPass}`);
+        await user.send(`**Terminal Access**\nUser: ${username}\nPass: ${tempPass}`);
     } catch(e) {}
     res.json({ success: true });
 });
 
-server.listen(process.env.PORT || 10000, () => console.log("System Online"));
+server.listen(process.env.PORT || 10000, () => console.log("HQ Terminal Ready"));
