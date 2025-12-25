@@ -7,8 +7,7 @@
     <style>
         body { background: #020617; color: #f1f5f9; }
         .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid #1e293b; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+        .attachment-preview { max-width: 250px; border-radius: 8px; margin-top: 5px; border: 1px solid #334155; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -40,13 +39,23 @@
             <main class="flex-1 flex flex-col bg-slate-950">
                 <div class="h-12 glass border-x-0 border-t-0 flex items-center justify-between px-6">
                     <span id="active-tag" class="text-xs font-bold text-slate-500 uppercase italic">Awaiting Selection</span>
-                    <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold uppercase">Close</button>
+                    <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold uppercase">Close Ticket</button>
                 </div>
                 <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col"></div>
-                <form onsubmit="sendReply(event)" class="p-4 glass border-x-0 border-b-0 flex space-x-4">
-                    <input type="text" id="msg-input" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none">
-                    <button class="bg-blue-600 px-6 rounded-xl font-bold uppercase text-xs">Send</button>
-                </form>
+                
+                <div class="p-4 glass border-x-0 border-b-0">
+                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase italic">📎 Attachment Loaded</div>
+                    <form onsubmit="sendReply(event)" class="flex space-x-4 items-center">
+                        <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
+                        <button type="button" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                        </button>
+                        <input type="text" id="msg-input" placeholder="Enter message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none">
+                        <button class="bg-blue-600 px-6 py-3 rounded-xl font-bold uppercase text-xs">Send</button>
+                    </form>
+                </div>
             </main>
         </div>
 
@@ -58,7 +67,7 @@
                     <button onclick="sendBulk()" class="bg-blue-600 text-[10px] font-bold px-4 py-2 rounded uppercase">Send Global</button>
                 </div>
                 <div class="glass p-6 rounded-xl">
-                    <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs">Staff Management</h2>
+                    <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs">Staff</h2>
                     <div id="staff-stats" class="text-sm space-y-2"></div>
                 </div>
             </div>
@@ -74,6 +83,7 @@
         const socket = io();
         let activeId = null;
         let threadStore = {};
+        let selectedFile = null;
 
         async function req(url, method = 'GET', body = null) {
             const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : null });
@@ -111,19 +121,42 @@
             document.getElementById('active-tag').innerText = threadStore[activeId].userTag;
             threadStore[activeId].messages.forEach(m => {
                 const d = document.createElement('div');
-                d.className = `max-w-[70%] p-3 rounded-lg text-sm ${m.fromBot ? 'bg-blue-600 self-end' : 'bg-slate-800 self-start'}`;
-                d.innerText = m.content;
+                d.className = `max-w-[75%] p-3 rounded-xl text-sm ${m.fromBot ? 'bg-blue-600 self-end' : 'bg-slate-800 self-start'}`;
+                let html = `<div>${m.content}</div>`;
+                if (m.attachments) m.attachments.forEach(url => html += `<img src="${url}" class="attachment-preview" onclick="window.open('${url}')">`);
+                d.innerHTML = html;
                 box.appendChild(d);
             });
             box.scrollTop = box.scrollHeight;
         }
 
+        function handleFileSelect() {
+            const file = document.getElementById('file-input').files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedFile = { base64: e.target.result, name: file.name };
+                document.getElementById('file-indicator').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
         async function sendReply(e) {
             e.preventDefault();
-            const val = document.getElementById('msg-input').value;
-            if (!val || !activeId) return;
-            await req('/api/reply', 'POST', { threadId: activeId, content: val });
+            const msg = document.getElementById('msg-input').value;
+            if ((!msg && !selectedFile) || !activeId) return;
+
+            await req('/api/reply', 'POST', { 
+                threadId: activeId, 
+                content: msg, 
+                fileBase64: selectedFile ? selectedFile.base64 : null,
+                fileName: selectedFile ? selectedFile.name : null
+            });
+
             document.getElementById('msg-input').value = '';
+            document.getElementById('file-input').value = '';
+            selectedFile = null;
+            document.getElementById('file-indicator').classList.add('hidden');
         }
 
         async function closeTicket() {
@@ -147,7 +180,7 @@
                 <div class="glass p-4 rounded-lg">
                     <div class="font-bold text-xs truncate">${s.name}</div>
                     <div class="text-[10px] text-slate-500 mb-3">${s.members} members</div>
-                    <div class="flex space-x-2">
+                    <div class="flex space-x-1">
                         <button onclick="createInv('${s.id}', '${s.botId}')" class="bg-blue-600 text-[8px] px-2 py-1 rounded">INV</button>
                         <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="bg-red-600 text-[8px] px-2 py-1 rounded">LEAVE</button>
                         <button onclick="dmOwner('${s.id}', '${s.botId}')" class="bg-slate-700 text-[8px] px-2 py-1 rounded">DM</button>
