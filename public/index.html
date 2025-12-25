@@ -17,9 +17,22 @@
     <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
         <div class="glass p-8 rounded-2xl w-full max-w-sm text-center">
             <h1 class="text-2xl font-black text-blue-500 mb-6 italic">HQ TERMINAL</h1>
-            <input type="text" id="l-user" placeholder="Identifier" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-4 outline-none">
-            <input type="password" id="l-pass" placeholder="Security Key" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-6 outline-none">
-            <button onclick="doLogin()" class="w-full bg-blue-600 p-3 rounded-lg font-bold uppercase text-sm">Establish Connection</button>
+            
+            <div id="login-section">
+                <input type="text" id="l-user" placeholder="Identifier" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-4 outline-none">
+                <input type="password" id="l-pass" placeholder="Security Key" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-2 outline-none">
+                <div class="text-right mb-6">
+                    <button onclick="toggleRecovery(true)" class="text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold transition">Forgot Key?</button>
+                </div>
+                <button onclick="doLogin()" class="w-full bg-blue-600 p-3 rounded-lg font-bold uppercase text-sm">Establish Connection</button>
+            </div>
+
+            <div id="recovery-section" class="hidden">
+                <p class="text-[10px] text-slate-400 mb-4 uppercase font-bold italic">Enter Discord ID for Key Recovery</p>
+                <input type="text" id="r-discord" placeholder="Discord ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-6 outline-none">
+                <button onclick="requestRecovery()" class="w-full bg-amber-600 p-3 rounded-lg font-bold uppercase text-sm mb-4">Send New Key</button>
+                <button onclick="toggleRecovery(false)" class="text-[10px] text-slate-500 hover:text-white uppercase font-bold transition">Return to Login</button>
+            </div>
         </div>
     </div>
 
@@ -31,7 +44,6 @@
         </div>
         <div class="flex items-center space-x-4">
             <span id="user-tag" class="text-xs font-mono text-slate-500"></span>
-            <button onclick="selfReset()" title="Refresh Security Key" class="text-[10px] text-blue-400 border border-blue-400/30 px-3 py-1 rounded hover:bg-blue-600 hover:text-white transition uppercase font-bold">Reset Key</button>
             <button onclick="location.reload()" class="text-xs text-red-500 border border-red-500/30 px-3 py-1 rounded hover:bg-red-600 hover:text-white transition">DC</button>
         </div>
     </header>
@@ -101,9 +113,27 @@
         let threadStore = {};
         let selectedFile = null;
 
+        // UI NAVIGATION FOR LOGIN/RECOVERY
+        function toggleRecovery(show) {
+            document.getElementById('login-section').classList.toggle('hidden', show);
+            document.getElementById('recovery-section').classList.toggle('hidden', !show);
+        }
+
+        async function requestRecovery() {
+            const discordId = document.getElementById('r-discord').value;
+            if(!discordId) return alert("Discord ID required.");
+            const res = await req('/api/public/request-reset', 'POST', { discordId });
+            if(res.success) {
+                alert("New key sent to your Discord DMs.");
+                toggleRecovery(false);
+            } else {
+                alert(res.error || "Reset failed.");
+            }
+        }
+
         async function req(url, method = 'GET', body = null) {
             const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : null });
-            if (res.status === 401 && url !== '/api/login') return location.reload();
+            if (res.status === 401 && !url.includes('/api/login') && !url.includes('/api/public/request-reset')) return location.reload();
             return res.json();
         }
 
@@ -116,17 +146,6 @@
                 loadThreads();
             } else {
                 alert("Access Denied: Invalid Identifier or Key");
-            }
-        }
-
-        async function selfReset() {
-            if (!confirm("Confirm key reset? You will receive a new key via Discord DM and will need to log in again immediately.")) return;
-            const res = await req('/api/staff/self-reset', 'POST');
-            if (res.success) {
-                alert("Success. Check your DMs for the new key. Disconnecting...");
-                location.reload();
-            } else {
-                alert("Error: Bot could not DM you.");
             }
         }
 
@@ -171,8 +190,8 @@
             reader.readAsDataURL(file);
         }
 
-        async function sendReply(e) {
-            e.preventDefault();
+        async function sendReply(event) {
+            event.preventDefault();
             const msg = document.getElementById('msg-input').value;
             if ((!msg && !selectedFile) || !activeId) return;
 
@@ -236,10 +255,10 @@
             const username = document.getElementById('add-user').value;
             const discordId = document.getElementById('add-discord').value;
             const adminStatus = document.getElementById('add-is-admin').checked;
-            if(!username || !discordId) return alert("All fields required");
+            if(!username || !discordId) return alert("Fields required.");
             const res = await req('/api/admin/staff/add', 'POST', { username, discordId, adminStatus });
             if(res.success) {
-                alert("Staff member authorized. Credentials sent via DM.");
+                alert("Staff member authorized. Key sent.");
                 document.getElementById('add-user').value = '';
                 document.getElementById('add-discord').value = '';
                 loadAdminData();
@@ -247,31 +266,29 @@
         }
 
         async function deleteStaff(staffId) {
-            if(!confirm("Permanently remove this staff member?")) return;
+            if(!confirm("Remove staff?")) return;
             const res = await req('/api/admin/staff/delete', 'POST', { staffId });
             if(res.success) loadAdminData();
-            else alert(res.error || "Failed to delete");
         }
 
         async function adminResetKey(staffId) {
-            if (!confirm("Generate a new security key for this staff member? It will be sent via Discord DM.")) return;
+            if (!confirm("Reset key?")) return;
             const res = await req('/api/admin/staff/reset-password', 'POST', { staffId });
-            if (res.success) alert("New key generated and sent.");
-            else alert("Error resetting credentials.");
+            if (res.success) alert("Sent.");
         }
 
         async function createInv(serverId, botId) {
             const res = await req('/api/admin/create-invite', 'POST', { serverId, botId });
-            if (res.url) window.prompt("Invite Link Created:", res.url);
+            if (res.url) window.prompt("Invite:", res.url);
         }
 
         async function leaveSrv(serverId, botId) {
-            if (confirm("Leave this server?")) await req('/api/admin/leave-server', 'POST', { serverId, botId });
+            if (confirm("Leave?")) await req('/api/admin/leave-server', 'POST', { serverId, botId });
             loadAdminData();
         }
 
         async function dmOwner(serverId, botId) {
-            const msg = prompt("Message for owner:");
+            const msg = prompt("Message:");
             if (msg) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message: msg });
         }
 
@@ -279,7 +296,7 @@
             const msg = document.getElementById('bulk-msg').value;
             if (!msg) return;
             const res = await req('/api/admin/bulk-message', 'POST', { message: msg });
-            alert(`Broadcast sent to ${res.sentTo} owners.`);
+            alert(`Sent to ${res.sentTo} owners.`);
         }
 
         socket.on('new_message', (d) => {
