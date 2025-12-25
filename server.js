@@ -154,6 +154,14 @@ app.post('/api/login', async (req, res) => {
     } else res.status(401).send("Invalid Credentials");
 });
 
+// LOGOUT ENDPOINT (Required for the logout button to clear the secure session cookie)
+app.post('/api/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.clearCookie('connect.sid');
+        res.json({ success: true });
+    });
+});
+
 app.get('/api/threads', isAuth, async (req, res) => {
     const threads = await Thread.find().sort({ lastMessageAt: -1 });
     res.json(threads);
