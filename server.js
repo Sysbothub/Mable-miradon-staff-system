@@ -57,7 +57,7 @@ async function setupDefaultAdmin() {
 }
 setupDefaultAdmin();
 
-// --- MIDDLEWARE (RENDER COMPATIBILITY) ---
+// --- MIDDLEWARE ---
 app.set('trust proxy', 1); 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static('public'));
@@ -68,8 +68,8 @@ app.use(session({
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: { 
         maxAge: 1000 * 60 * 60 * 24, 
-        secure: true, 
-        sameSite: 'none' 
+        secure: process.env.NODE_ENV === 'production', 
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' 
     } 
 }));
 
@@ -124,7 +124,31 @@ botTokens.forEach(token => {
     clients.push(client);
 });
 
-// --- API ENDPOINTS ---
+// --- PUBLIC ACCESS ENDPOINTS ---
+
+// NEW: Request Reset via Login Page (Publicly accessible)
+app.post('/api/public/request-reset', async (req, res) => {
+    const { discordId } = req.body;
+    if (!discordId) return res.status(400).json({ error: "Discord ID required" });
+
+    const staff = await Staff.findOne({ discordId });
+    if (!staff) return res.status(404).json({ error: "No staff member found with that ID" });
+    
+    const newPass = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(newPass, 10);
+    
+    staff.password = hashedPassword;
+    await staff.save();
+    
+    try {
+        const user = await clients[0].users.fetch(discordId);
+        await user.send(`**Terminal Security Recovery**\n\n**New Security Key:** ${newPass}\n**Access URL:** ${getPanelUrl()}`);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Found user, but could not send DM. Ensure DMs are open." });
+    }
+});
+
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await Staff.findOne({ username });
@@ -135,6 +159,8 @@ app.post('/api/login', async (req, res) => {
         req.session.save(() => res.json({ success: true, isAdmin: user.isAdmin, username: user.username }));
     } else res.status(401).send("Invalid Credentials");
 });
+
+// --- AUTHENTICATED STAFF ENDPOINTS ---
 
 app.get('/api/threads', isAuth, async (req, res) => {
     const threads = await Thread.find().sort({ lastMessageAt: -1 });
@@ -193,26 +219,6 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     } catch (e) { res.status(500).send("Archive Error"); }
 });
 
-// --- STAFF SELF-SERVE RESET API ---
-app.post('/api/staff/self-reset', isAuth, async (req, res) => {
-    const staff = await Staff.findById(req.session.staffId);
-    if (!staff) return res.status(404).send("Not Found");
-    
-    const newPass = Math.random().toString(36).slice(-8);
-    const hashedPassword = await bcrypt.hash(newPass, 10);
-    
-    staff.password = hashedPassword;
-    await staff.save();
-    
-    try {
-        const user = await clients[0].users.fetch(staff.discordId);
-        await user.send(`**Terminal Self-Reset Established**\n\n**New Security Key:** ${newPass}\n**Access URL:** ${getPanelUrl()}`);
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: "Failed to DM credentials" });
-    }
-});
-
 // --- ADMIN API ---
 app.get('/api/admin/stats', isAdmin, async (req, res) => {
     const stats = await Staff.find().sort({ ticketsClosed: -1 });
@@ -264,6 +270,7 @@ app.post('/api/admin/create-invite', isAdmin, async (req, res) => {
     try {
         const guild = await client.guilds.fetch(serverId);
         const chan = guild.channels.cache.find(c => c.type === ChannelType.GuildText && c.permissionsFor(client.user).has('CreateInstantInvite'));
+        if(!chan) throw new Error("No Perms");
         const inv = await chan.createInvite({ maxAge: 3600, maxUses: 1 });
         res.json({ success: true, url: inv.url });
     } catch (e) { res.status(500).json({ error: "No Permission" }); }
@@ -309,7 +316,6 @@ app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
-// --- DELETE STAFF ROUTE ---
 app.post('/api/admin/staff/delete', isAdmin, async (req, res) => {
     const { staffId } = req.body;
     if (staffId === req.session.staffId.toString()) return res.status(400).json({ error: "Cannot delete yourself" });
