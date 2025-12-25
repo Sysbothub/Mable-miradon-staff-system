@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// --- DB CONNECTION ---
+// --- DATABASE MODELS ---
 mongoose.connect(process.env.MONGODB_URI);
 
 const Staff = mongoose.model('Staff', new mongoose.Schema({
@@ -41,11 +41,27 @@ const Thread = mongoose.model('Thread', new mongoose.Schema({
     lastMessageAt: { type: Date, default: Date.now }
 }));
 
+// --- AUTOMATIC ADMIN SETUP ---
+async function setupDefaultAdmin() {
+    const adminExists = await Staff.findOne({ username: 'admin' });
+    if (!adminExists) {
+        const hashedPassword = await bcrypt.hash('map4491', 10);
+        await new Staff({
+            username: 'admin',
+            password: hashedPassword,
+            discordId: '000000000000000000', // Default placeholder
+            isAdmin: true
+        }).save();
+        console.log("✅ Default Admin Created: User 'admin' | Pass 'map4491'");
+    }
+}
+setupDefaultAdmin();
+
 // --- MIDDLEWARE ---
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'terminal-secret-2025',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
@@ -57,8 +73,8 @@ const isAdmin = (req, res, next) => (req.session.staffId && req.session.isAdmin)
 
 // --- BOT CLUSTERING ---
 const botConfigs = [
-    { name: "Bot One", token: process.env.BOT_ONE_TOKEN },
-    { name: "Bot Two", token: process.env.BOT_TWO_TOKEN }
+    { name: "Primary", token: process.env.BOT_ONE_TOKEN },
+    { name: "Secondary", token: process.env.BOT_TWO_TOKEN }
 ];
 const clients = [];
 
@@ -68,33 +84,26 @@ async function sendLog(title, description, color = '#3b82f6', files = []) {
         const channel = await clients[0].channels.fetch(process.env.LOG_CHANNEL_ID);
         const logEmbed = new EmbedBuilder().setTitle(title).setDescription(description).setColor(color).setTimestamp();
         await channel.send({ embeds: [logEmbed], files: files });
-    } catch (e) { console.error("Logging error:", e); }
+    } catch (e) { console.error("Log Error:", e); }
 }
 
 botConfigs.forEach(config => {
     if (!config.token) return;
     const client = new Client({
-        intents: [
-            GatewayIntentBits.Guilds, 
-            GatewayIntentBits.DirectMessages, 
-            GatewayIntentBits.MessageContent, 
-            GatewayIntentBits.GuildMembers, 
-            GatewayIntentBits.GuildInvites
-        ],
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildInvites],
         partials: [Partials.Channel, Partials.Message]
     });
 
     client.on('messageCreate', async (message) => {
-        // STRICT DM FILTER
-        if (message.author.bot || message.guild) return;
+        if (message.author.bot || message.guild) return; 
 
         let thread = await Thread.findOne({ userId: message.author.id, botId: client.user.id });
         if (!thread) {
             thread = new Thread({ userId: message.author.id, userTag: message.author.tag, botId: client.user.id, botName: client.user.username, messages: [] });
-            sendLog("🆕 New Ticket", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
+            sendLog("🆕 Ticket Created", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
         }
         
-        const msgData = { authorTag: message.author.tag, content: message.content || "[Attachment]", attachments: message.attachments.map(a => a.url), fromBot: false };
+        const msgData = { authorTag: message.author.tag, content: message.content || "[Media]", attachments: message.attachments.map(a => a.url), fromBot: false };
         thread.messages.push(msgData);
         thread.lastMessageAt = new Date();
         await thread.save();
@@ -106,7 +115,7 @@ botConfigs.forEach(config => {
     clients.push(client);
 });
 
-// --- API ROUTES ---
+// --- API ENDPOINTS ---
 
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
@@ -125,96 +134,66 @@ app.get('/api/threads', isAuth, async (req, res) => {
 app.post('/api/reply', isAuth, async (req, res) => {
     const { threadId, content } = req.body;
     const thread = await Thread.findById(threadId);
-    if (!thread) return res.status(404).send("Thread not found");
+    if (!thread) return res.status(404).send("Not Found");
     
     const client = clients.find(c => c.user.id === thread.botId);
     try {
         const user = await client.users.fetch(thread.userId);
         const embed = new EmbedBuilder()
             .setColor('#3b82f6')
-            .setAuthor({ name: `Support Team: ${req.session.username}`, iconURL: client.user.displayAvatarURL() })
+            .setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() })
             .setDescription(content)
             .setTimestamp();
 
         await user.send({ embeds: [embed] });
-
         const reply = { authorTag: `Staff (${req.session.username})`, content, fromBot: true, attachments: [] };
         thread.messages.push(reply);
         thread.lastMessageAt = new Date();
         await thread.save();
 
-        // Increment Staff Stat
         await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { repliesSent: 1 } });
-
         io.emit('new_message', { threadId: thread._id, ...reply });
         res.json({ success: true });
-    } catch (err) { res.status(500).send("Discord DM failed"); }
+    } catch (err) { res.status(500).send("DM Failed"); }
 });
 
 app.post('/api/close-thread', isAuth, async (req, res) => {
     const { threadId } = req.body;
     const thread = await Thread.findById(threadId);
-    if (!thread) return res.status(404).send("Thread not found");
+    if (!thread) return res.status(404).send("Not Found");
 
-    // 1. Generate Transcript
-    let transcriptText = `SUPPORT TRANSCRIPT\nUser: ${thread.userTag} (${thread.userId})\nBot: ${thread.botName}\nClosed By: ${req.session.username}\n--------------------------------------\n\n`;
+    let transcript = `OFFICIAL SUPPORT TRANSCRIPT\nUser: ${thread.userTag} (${thread.userId})\nBot: ${thread.botName}\nStaff: ${req.session.username}\n-------------------------------\n\n`;
     thread.messages.forEach(m => {
-        transcriptText += `[${new Date(m.timestamp).toLocaleString()}] ${m.authorTag}: ${m.content}\n`;
+        transcript += `[${m.timestamp.toISOString()}] ${m.authorTag}: ${m.content}\n`;
     });
 
-    const fileName = `transcript-${thread.userId}.txt`;
-    const filePath = path.join(__dirname, fileName);
+    const fName = `transcript-${thread.userId}.txt`;
+    const fPath = path.join(__dirname, fName);
 
     try {
-        fs.writeFileSync(filePath, transcriptText);
-        const attachment = new AttachmentBuilder(filePath);
-
-        // 2. Log to Discord
-        await sendLog("🔒 Ticket Closed & Purged", `**Staff:** ${req.session.username}\n**User:** ${thread.userTag}`, '#ef4444', [attachment]);
-
-        // 3. Increment Staff Stat & Delete DB Entry
+        fs.writeFileSync(fPath, transcript);
+        const attachment = new AttachmentBuilder(fPath);
+        await sendLog("🔒 Ticket Archive Generated", `User: ${thread.userTag}\nClosed By: ${req.session.username}`, '#ef4444', [attachment]);
+        
         await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { ticketsClosed: 1 } });
         await Thread.findByIdAndDelete(threadId);
-        
-        fs.unlinkSync(filePath);
+        fs.unlinkSync(fPath);
         res.json({ success: true });
-    } catch (e) { res.status(500).send("Transcript failed"); }
+    } catch (e) { res.status(500).send("Archive Error"); }
 });
-
-// --- ADMIN API ---
 
 app.get('/api/admin/stats', isAdmin, async (req, res) => {
-    const staff = await Staff.find({}, 'username ticketsClosed repliesSent isAdmin').sort({ ticketsClosed: -1 });
-    res.json(staff);
-});
-
-app.post('/api/admin/broadcast', isAdmin, async (req, res) => {
-    const { message } = req.body;
-    const threads = await Thread.find();
-    let count = 0;
-    for (const thread of threads) {
-        const client = clients.find(c => c.user.id === thread.botId);
-        if(!client) continue;
-        try {
-            const user = await client.users.fetch(thread.userId);
-            const embed = new EmbedBuilder().setTitle("📢 Announcement").setColor('#f59e0b').setDescription(message).setTimestamp();
-            await user.send({ embeds: [embed] });
-            count++;
-        } catch(e) {}
-    }
-    sendLog("📢 Broadcast Sent", `By: ${req.session.username}\nReached: ${count} users`);
-    res.json({ success: true, count });
+    const stats = await Staff.find().sort({ ticketsClosed: -1 });
+    res.json(stats);
 });
 
 app.get('/api/admin/servers', isAdmin, async (req, res) => {
-    let list = [];
+    let servers = [];
     clients.forEach(c => {
         if (!c.isReady()) return;
-        c.guilds.cache.forEach(g => {
-            list.push({ id: g.id, name: g.name, members: g.memberCount, botName: c.user.username, botId: c.user.id });
-        });
+        c.guilds.cache.forEach(g => servers.push({ id: g.id, name: g.name, members: g.memberCount, botName: c.user.username, botId: c.user.id }));
     });
-    res.json({ servers: list });
+    res.json(servers);
 });
 
 app.post('/api/admin/create-invite', isAdmin, async (req, res) => {
@@ -222,22 +201,22 @@ app.post('/api/admin/create-invite', isAdmin, async (req, res) => {
     const client = clients.find(c => c.user.id === botId);
     try {
         const guild = await client.guilds.fetch(serverId);
-        const channel = guild.channels.cache.find(c => c.type === ChannelType.GuildText && c.permissionsFor(client.user).has('CreateInstantInvite'));
-        const invite = await channel.createInvite({ maxAge: 3600, maxUses: 1 });
-        res.json({ success: true, url: invite.url });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+        const chan = guild.channels.cache.find(c => c.type === ChannelType.GuildText && c.permissionsFor(client.user).has('CreateInstantInvite'));
+        const inv = await chan.createInvite({ maxAge: 3600, maxUses: 1 });
+        res.json({ success: true, url: inv.url });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
     const { username, discordId, adminStatus } = req.body;
-    const tempPass = Math.random().toString(36).slice(-10);
+    const tempPass = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(tempPass, 10);
     await new Staff({ username, discordId, password: hashedPassword, isAdmin: adminStatus }).save();
     try {
         const user = await clients[0].users.fetch(discordId);
-        await user.send({ content: `**Access Granted**\nUser: ${username}\nPass: ${tempPass}` });
+        await user.send(`**Terminal Access Granted**\nUser: ${username}\nPass: ${tempPass}`);
     } catch(e) {}
     res.json({ success: true });
 });
 
-server.listen(process.env.PORT || 10000, () => console.log("Terminal Active"));
+server.listen(process.env.PORT || 10000, () => console.log("System Online"));
