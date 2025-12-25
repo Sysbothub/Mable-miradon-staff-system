@@ -117,7 +117,8 @@ botTokens.forEach(token => {
         thread.messages.push(msgData);
         thread.lastMessageAt = new Date();
         await thread.save();
-        io.emit('new_message', { threadId: thread._id, ...msgData });
+        // NOTIFICATION SOUND TRIGGER ADDED BELOW
+        io.emit('new_message', { threadId: thread._id, notif_sound: true, ...msgData });
     });
 
     client.login(token).catch(e => console.error("Bot Login Failed:", e.message));
