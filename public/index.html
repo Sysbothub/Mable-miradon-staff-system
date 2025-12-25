@@ -2,185 +2,188 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HQ Terminal | Support</title>
+    <title>HQ TERMINAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #020617; color: #f1f5f9; font-family: sans-serif; }
+        body { background: #020617; color: #f1f5f9; }
         .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid #1e293b; }
-        .ticket-item:hover { background: #1e293b; }
-        .active-ticket { background: #1e293b; border-left: 4px solid #3b82f6; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
     </style>
 </head>
-<body class="h-screen overflow-hidden">
-    <div id="login-view" class="flex items-center justify-center h-full">
-        <div class="glass p-10 rounded-2xl w-full max-w-md shadow-2xl">
-            <h1 class="text-2xl font-black text-center mb-8 text-blue-500 tracking-tighter uppercase">Establish Connection</h1>
-            <div class="space-y-4">
-                <input type="text" id="l-user" placeholder="Username" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl outline-none focus:border-blue-500">
-                <input type="password" id="l-pass" placeholder="Security Key" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl outline-none focus:border-blue-500">
-                <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold uppercase transition-all">Authorize Access</button>
-            </div>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
+        <div class="glass p-8 rounded-2xl w-full max-w-sm text-center">
+            <h1 class="text-2xl font-black text-blue-500 mb-6 italic">HQ TERMINAL</h1>
+            <input type="text" id="l-user" placeholder="Identifier" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-4 outline-none">
+            <input type="password" id="l-pass" placeholder="Security Key" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-6 outline-none">
+            <button onclick="doLogin()" class="w-full bg-blue-600 p-3 rounded-lg font-bold uppercase text-sm">Establish Connection</button>
         </div>
     </div>
 
-    <div id="panel-view" class="hidden h-full flex flex-col">
-        <nav class="h-16 glass flex items-center justify-between px-8 z-10">
-            <div class="flex items-center space-x-6">
-                <span class="font-black text-blue-500 italic">HQ TERMINAL</span>
-                <button onclick="switchView('chat')" class="text-xs font-bold uppercase hover:text-blue-400">Tickets</button>
-                <button id="admin-nav" onclick="switchView('admin')" class="hidden text-xs font-bold uppercase text-amber-500">Admin Panel</button>
-            </div>
-            <div class="flex items-center space-x-4">
-                <span id="display-user" class="text-xs text-slate-500 font-mono"></span>
-                <button onclick="location.reload()" class="text-xs bg-red-900/20 text-red-500 px-3 py-1 rounded-lg">Disconnect</button>
-            </div>
-        </nav>
+    <header class="h-16 glass flex items-center justify-between px-8">
+        <div class="flex items-center space-x-6">
+            <span class="font-black text-blue-500 italic">HQ TERMINAL</span>
+            <button onclick="showView('chat')" class="text-xs font-bold uppercase">Tickets</button>
+            <button id="nav-admin" onclick="showView('admin')" class="hidden text-xs font-bold uppercase text-amber-500">Admin</button>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span id="user-tag" class="text-xs font-mono text-slate-500"></span>
+            <button onclick="location.reload()" class="text-xs text-red-500 border border-red-500/30 px-3 py-1 rounded">DC</button>
+        </div>
+    </header>
 
-        <div class="flex flex-1 overflow-hidden">
-            <aside class="w-80 glass border-t-0 border-l-0 overflow-y-auto" id="thread-list"></aside>
-
+    <div class="flex flex-1 overflow-hidden">
+        <div id="view-chat" class="flex flex-1 overflow-hidden">
+            <aside id="thread-list" class="w-80 glass border-t-0 border-l-0 overflow-y-auto"></aside>
             <main class="flex-1 flex flex-col bg-slate-950">
-                <div id="chat-view" class="flex flex-col h-full">
-                    <div class="h-14 glass border-x-0 border-t-0 flex items-center justify-between px-6">
-                        <span id="chat-title" class="text-xs font-bold text-slate-400 uppercase">No Active Session</span>
-                        <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-3 py-1 rounded font-bold uppercase">Close Ticket</button>
-                    </div>
-                    <div id="chat-history" class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col"></div>
-                    <form onsubmit="sendReply(event)" class="p-4 glass border-x-0 border-b-0 flex space-x-4">
-                        <input type="text" id="reply-input" placeholder="Compose message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none">
-                        <button class="bg-blue-600 px-6 rounded-xl font-bold uppercase text-xs">Send</button>
-                    </form>
+                <div class="h-12 glass border-x-0 border-t-0 flex items-center justify-between px-6">
+                    <span id="active-tag" class="text-xs font-bold text-slate-500 uppercase italic">Awaiting Selection</span>
+                    <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold uppercase">Close</button>
                 </div>
-
-                <div id="admin-view" class="hidden p-10 overflow-y-auto h-full">
-                    <div class="grid grid-cols-2 gap-8">
-                        <div class="glass p-6 rounded-xl">
-                            <h2 class="text-amber-500 font-bold mb-4 uppercase text-sm tracking-widest">Staff Rankings</h2>
-                            <div id="staff-stats" class="space-y-2"></div>
-                        </div>
-                        <div class="glass p-6 rounded-xl">
-                            <h2 class="text-blue-500 font-bold mb-4 uppercase text-sm tracking-widest">Server Control</h2>
-                            <div id="server-list" class="space-y-2"></div>
-                        </div>
-                    </div>
-                </div>
+                <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col"></div>
+                <form onsubmit="sendReply(event)" class="p-4 glass border-x-0 border-b-0 flex space-x-4">
+                    <input type="text" id="msg-input" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none">
+                    <button class="bg-blue-600 px-6 rounded-xl font-bold uppercase text-xs">Send</button>
+                </form>
             </main>
+        </div>
+
+        <div id="view-admin" class="hidden flex-1 overflow-y-auto p-10 space-y-8">
+            <div class="grid grid-cols-2 gap-8">
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs">Broadcast</h2>
+                    <textarea id="bulk-msg" class="w-full bg-slate-900 p-3 rounded border border-slate-800 h-24 outline-none text-sm mb-4" placeholder="Message to ALL owners..."></textarea>
+                    <button onclick="sendBulk()" class="bg-blue-600 text-[10px] font-bold px-4 py-2 rounded uppercase">Send Global</button>
+                </div>
+                <div class="glass p-6 rounded-xl">
+                    <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs">Staff Management</h2>
+                    <div id="staff-stats" class="text-sm space-y-2"></div>
+                </div>
+            </div>
+            <div class="glass p-6 rounded-xl">
+                <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs font-black">Connected Servers</h2>
+                <div id="srv-list" class="grid grid-cols-3 gap-4"></div>
+            </div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        let currentThreadId = null;
-        let threads = {};
+        let activeId = null;
+        let threadStore = {};
 
-        async function api(path, method = 'GET', body = null) {
-            const res = await fetch(path, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: body ? JSON.stringify(body) : null
-            });
-            if (res.status === 401) return { error: 'Unauthorized' };
+        async function req(url, method = 'GET', body = null) {
+            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : null });
             return res.json();
         }
 
         async function doLogin() {
-            const username = document.getElementById('l-user').value;
-            const password = document.getElementById('l-pass').value;
-            const data = await api('/api/login', 'POST', { username, password });
-            
+            const data = await req('/api/login', 'POST', { username: document.getElementById('l-user').value, password: document.getElementById('l-pass').value });
             if (data.success) {
-                document.getElementById('login-view').classList.add('hidden');
-                document.getElementById('panel-view').classList.remove('hidden');
-                document.getElementById('display-user').innerText = data.username;
-                if (data.isAdmin) document.getElementById('admin-nav').classList.remove('hidden');
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('user-tag').innerText = data.username;
+                if (data.isAdmin) document.getElementById('nav-admin').classList.remove('hidden');
                 loadThreads();
-            } else {
-                alert("Authorization Failed");
             }
         }
 
         async function loadThreads() {
-            const data = await api('/api/threads');
+            const data = await req('/api/threads');
             const list = document.getElementById('thread-list');
             list.innerHTML = '';
             data.forEach(t => {
-                threads[t._id] = t;
-                const div = document.createElement('div');
-                div.className = `p-5 cursor-pointer border-b border-slate-900 ticket-item ${currentThreadId === t._id ? 'active-ticket' : ''}`;
-                div.innerHTML = `<div class="font-bold text-sm">${t.userTag}</div><div class="text-[10px] text-slate-500 uppercase">${t.botName}</div>`;
-                div.onclick = () => {
-                    currentThreadId = t._id;
-                    document.getElementById('chat-title').innerText = t.userTag;
-                    renderChat();
-                    loadThreads();
-                };
-                list.appendChild(div);
+                threadStore[t._id] = t;
+                const d = document.createElement('div');
+                d.className = `p-4 border-b border-slate-900 cursor-pointer hover:bg-slate-900 ${activeId === t._id ? 'bg-slate-900 border-l-4 border-blue-500' : ''}`;
+                d.innerHTML = `<div class="font-bold text-sm">${t.userTag}</div><div class="text-[9px] text-slate-500">${t.botName}</div>`;
+                d.onclick = () => { activeId = t._id; renderChat(); loadThreads(); };
+                list.appendChild(d);
             });
         }
 
         function renderChat() {
-            const container = document.getElementById('chat-history');
-            container.innerHTML = '';
-            if (!currentThreadId) return;
-            
-            threads[currentThreadId].messages.forEach(m => {
-                const div = document.createElement('div');
-                div.className = `max-w-[80%] p-3 rounded-xl text-sm ${m.fromBot ? 'bg-blue-600 self-end' : 'bg-slate-800 self-start'}`;
-                div.innerHTML = `<div class="text-[9px] opacity-50 uppercase font-bold mb-1">${m.authorTag}</div>${m.content}`;
-                container.appendChild(div);
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+            if (!activeId) return;
+            document.getElementById('active-tag').innerText = threadStore[activeId].userTag;
+            threadStore[activeId].messages.forEach(m => {
+                const d = document.createElement('div');
+                d.className = `max-w-[70%] p-3 rounded-lg text-sm ${m.fromBot ? 'bg-blue-600 self-end' : 'bg-slate-800 self-start'}`;
+                d.innerText = m.content;
+                box.appendChild(d);
             });
-            container.scrollTop = container.scrollHeight;
+            box.scrollTop = box.scrollHeight;
         }
 
         async function sendReply(e) {
             e.preventDefault();
-            const input = document.getElementById('reply-input');
-            if (!input.value || !currentThreadId) return;
-            await api('/api/reply', 'POST', { threadId: currentThreadId, content: input.value });
-            input.value = '';
+            const val = document.getElementById('msg-input').value;
+            if (!val || !activeId) return;
+            await req('/api/reply', 'POST', { threadId: activeId, content: val });
+            document.getElementById('msg-input').value = '';
         }
 
         async function closeTicket() {
-            if (!currentThreadId) return;
-            await api('/api/close-thread', 'POST', { threadId: currentThreadId });
-            currentThreadId = null;
-            loadThreads();
-            renderChat();
+            if (!activeId) return;
+            await req('/api/close-thread', 'POST', { threadId: activeId });
+            activeId = null;
+            loadThreads(); renderChat();
         }
 
-        socket.on('new_message', (data) => {
-            if (threads[data.threadId]) {
-                threads[data.threadId].messages.push(data);
-                if (currentThreadId === data.threadId) renderChat();
-            } else {
-                loadThreads();
-            }
+        function showView(v) {
+            document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat');
+            document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin');
+            if (v === 'admin') loadAdminData();
+        }
+
+        async function loadAdminData() {
+            const stats = await req('/api/admin/stats');
+            const srvs = await req('/api/admin/servers');
+            document.getElementById('staff-stats').innerHTML = stats.map(s => `<div class="flex justify-between border-b border-slate-800 py-1"><span>${s.username}</span><span>${s.ticketsClosed} closed</span></div>`).join('');
+            document.getElementById('srv-list').innerHTML = srvs.map(s => `
+                <div class="glass p-4 rounded-lg">
+                    <div class="font-bold text-xs truncate">${s.name}</div>
+                    <div class="text-[10px] text-slate-500 mb-3">${s.members} members</div>
+                    <div class="flex space-x-2">
+                        <button onclick="createInv('${s.id}', '${s.botId}')" class="bg-blue-600 text-[8px] px-2 py-1 rounded">INV</button>
+                        <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="bg-red-600 text-[8px] px-2 py-1 rounded">LEAVE</button>
+                        <button onclick="dmOwner('${s.id}', '${s.botId}')" class="bg-slate-700 text-[8px] px-2 py-1 rounded">DM</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function createInv(serverId, botId) {
+            const res = await req('/api/admin/create-invite', 'POST', { serverId, botId });
+            if (res.url) alert(res.url);
+        }
+
+        async function leaveSrv(serverId, botId) {
+            if (confirm("Leave this server?")) await req('/api/admin/leave-server', 'POST', { serverId, botId });
+            loadAdminData();
+        }
+
+        async function dmOwner(serverId, botId) {
+            const msg = prompt("Message for owner:");
+            if (msg) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message: msg });
+        }
+
+        async function sendBulk() {
+            const msg = document.getElementById('bulk-msg').value;
+            if (!msg) return;
+            const res = await req('/api/admin/bulk-message', 'POST', { message: msg });
+            alert(`Broadcast sent to ${res.sentTo} owners.`);
+        }
+
+        socket.on('new_message', (d) => {
+            if (threadStore[d.threadId]) {
+                threadStore[d.threadId].messages.push(d);
+                if (activeId === d.threadId) renderChat();
+            } else loadThreads();
         });
-
-        async function switchView(view) {
-            document.getElementById('chat-view').classList.toggle('hidden', view !== 'chat');
-            document.getElementById('admin-view').classList.toggle('hidden', view !== 'admin');
-            if (view === 'admin') loadAdminStats();
-        }
-
-        async function loadAdminStats() {
-            const stats = await api('/api/admin/stats');
-            const servers = await api('/api/admin/servers');
-            
-            document.getElementById('staff-stats').innerHTML = stats.map(s => 
-                `<div class="flex justify-between text-xs py-1 border-b border-slate-800"><span>${s.username}</span><span class="text-blue-400">${s.ticketsClosed} Closes</span></div>`
-            ).join('');
-
-            document.getElementById('server-list').innerHTML = servers.map(srv => 
-                `<div class="flex justify-between text-xs py-1"><span>${srv.name}</span><button onclick="createInvite('${srv.id}', '${srv.botId}')" class="text-blue-500 underline text-[10px]">Invite</button></div>`
-            ).join('');
-        }
-
-        async function createInvite(serverId, botId) {
-            const data = await api('/api/admin/create-invite', 'POST', { serverId, botId });
-            if (data.url) alert("Invite Created: " + data.url);
-        }
     </script>
 </body>
 </html>
