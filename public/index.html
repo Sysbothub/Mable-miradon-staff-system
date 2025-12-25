@@ -15,6 +15,8 @@
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+
     <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
         <div class="glass p-8 rounded-2xl w-full max-w-sm text-center">
             <h1 class="text-2xl font-black text-blue-500 mb-6 italic">HQ TERMINAL</h1>
@@ -139,9 +141,15 @@
             if (res.ok) { window.location.reload(); } else { alert("ACCESS DENIED"); btn.disabled = false; btn.innerText = "Establish Link"; }
         }
 
-        function doLogout() {
-            document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-            window.location.reload();
+        async function doLogout() {
+            const res = await fetch('/api/logout', { method: 'POST' });
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                // Fallback if endpoint fails
+                document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                window.location.reload();
+            }
         }
 
         function toggleRecovery(show) {
@@ -281,6 +289,11 @@
         }
 
         socket.on('new_message', (d) => {
+            // Play notification sound
+            if (d.notif_sound) {
+                document.getElementById('notif-sound').play().catch(() => {});
+            }
+            
             if (threadStore[d.threadId]) {
                 threadStore[d.threadId].messages.push(d);
                 if (activeId === d.threadId) renderChat();
