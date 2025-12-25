@@ -58,14 +58,19 @@ async function setupDefaultAdmin() {
 setupDefaultAdmin();
 
 // --- MIDDLEWARE ---
+app.set('trust proxy', 1); // FIX 1: Allow Render Proxy
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
     secret: process.env.SESSION_SECRET,
-    resave: false,
+    resave: true, // FIX 2: Ensure session is tracked
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-    cookie: { maxAge: 1000 * 60 * 60 * 24 } 
+    cookie: { 
+        maxAge: 1000 * 60 * 60 * 24,
+        secure: true, // FIX 3: Required for Render HTTPS
+        sameSite: 'none' // FIX 4: Required for modern browser cookies
+    } 
 }));
 
 const isAuth = (req, res, next) => req.session.staffId ? next() : res.status(401).send("Unauthorized");
@@ -118,7 +123,10 @@ app.post('/api/login', async (req, res) => {
     const user = await Staff.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
         req.session.staffId = user._id; req.session.isAdmin = user.isAdmin; req.session.username = user.username;
-        res.json({ success: true, isAdmin: user.isAdmin, username: user.username });
+        // Fix 5: Explicitly save before sending response
+        req.session.save(() => {
+            res.json({ success: true, isAdmin: user.isAdmin, username: user.username });
+        });
     } else res.status(401).send("Invalid Credentials");
 });
 
