@@ -59,7 +59,7 @@ setupDefaultAdmin();
 
 // --- MIDDLEWARE (RENDER COMPATIBILITY) ---
 app.set('trust proxy', 1); 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Limit increased for file uploads
 app.use(express.static('public'));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'hq-secret-key',
@@ -102,7 +102,16 @@ botTokens.forEach(token => {
             thread = new Thread({ userId: message.author.id, userTag: message.author.tag, botId: client.user.id, botName: client.user.username, messages: [] });
             sendLog("🆕 Ticket Created", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
         }
-        const msgData = { authorTag: message.author.tag, content: message.content || "[Media]", attachments: message.attachments.map(a => a.url), fromBot: false };
+        
+        // Receiving Attachments
+        const attachments = message.attachments.map(a => a.url);
+        const msgData = { 
+            authorTag: message.author.tag, 
+            content: message.content || (attachments.length > 0 ? "[Sent Attachment]" : "[Media]"), 
+            attachments: attachments, 
+            fromBot: false 
+        };
+
         thread.messages.push(msgData);
         thread.lastMessageAt = new Date();
         await thread.save();
@@ -131,15 +140,33 @@ app.get('/api/threads', isAuth, async (req, res) => {
 });
 
 app.post('/api/reply', isAuth, async (req, res) => {
-    const { threadId, content } = req.body;
+    const { threadId, content, fileBase64, fileName } = req.body;
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
     const client = clients.find(c => c.user.id === thread.botId);
     try {
         const user = await client.users.fetch(thread.userId);
-        const embed = new EmbedBuilder().setColor('#3b82f6').setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() }).setDescription(content).setTimestamp();
-        await user.send({ embeds: [embed] });
-        const reply = { authorTag: `Staff (${req.session.username})`, content, fromBot: true, attachments: [] };
+        
+        let messageOptions = {
+            embeds: [new EmbedBuilder().setColor('#3b82f6').setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() }).setDescription(content || "Sent an attachment").setTimestamp()]
+        };
+
+        // Sending Attachments (Base64 to Buffer)
+        if (fileBase64) {
+            const buffer = Buffer.from(fileBase64.split(',')[1], 'base64');
+            messageOptions.files = [new AttachmentBuilder(buffer, { name: fileName || 'upload.png' })];
+        }
+
+        const sentMsg = await user.send(messageOptions);
+        const attachmentUrls = sentMsg.attachments.map(a => a.url);
+
+        const reply = { 
+            authorTag: `Staff (${req.session.username})`, 
+            content: content || "[File Attachment]", 
+            fromBot: true, 
+            attachments: attachmentUrls 
+        };
+
         thread.messages.push(reply);
         thread.lastMessageAt = new Date();
         await thread.save();
