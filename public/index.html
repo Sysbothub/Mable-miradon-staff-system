@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Miraidon Trade Services Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #020617; color: #f1f5f9; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
@@ -11,6 +12,14 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
         .hidden { display: none !important; }
+        
+        /* Mobile visibility helpers */
+        .mobile-show { display: block; }
+        .mobile-hide { display: none; }
+        @media (min-width: 768px) {
+            .mobile-show { display: none; }
+            .mobile-hide { display: block; }
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -18,7 +27,7 @@
     <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
 
     <div id="reset-view" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 hidden">
-        <div class="glass p-8 rounded-2xl w-full max-w-sm">
+        <div class="glass p-8 rounded-2xl w-[90%] max-w-sm">
             <h2 class="text-xl font-bold text-blue-500 mb-4">Update Security Key</h2>
             <p class="text-[10px] text-slate-400 mb-4">Set your own custom password for future logins.</p>
             
@@ -39,7 +48,7 @@
     </div>
 
     <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
-        <div class="glass p-8 rounded-2xl w-full max-w-sm text-center">
+        <div class="glass p-8 rounded-2xl w-[90%] max-w-sm text-center">
             <h1 class="text-2xl font-black text-blue-500 mb-6 italic">HQ TERMINAL</h1>
             
             <div id="login-section">
@@ -60,56 +69,64 @@
         </div>
     </div>
 
-    <header class="h-16 glass flex items-center justify-between px-8 z-40">
-        <div class="flex items-center space-x-6">
-            <span class="font-black text-blue-500 italic">HQ TERMINAL</span>
+    <header class="h-16 glass flex items-center justify-between px-4 md:px-8 z-40">
+        <div class="flex items-center space-x-4 md:space-x-6">
+            <span class="font-black text-blue-500 italic text-sm md:text-base">HQ</span>
             <button onclick="showView('chat')" class="text-xs font-bold uppercase hover:text-blue-400 transition">Tickets</button>
-            <button id="nav-admin" onclick="showView('admin')" class="hidden text-xs font-bold uppercase text-amber-500 hover:text-amber-400 transition">Admin Console</button>
+            <button id="nav-admin" onclick="showView('admin')" class="hidden text-xs font-bold uppercase text-amber-500 hover:text-amber-400 transition">Admin</button>
         </div>
-        <div class="flex items-center space-x-4">
-            <button onclick="selfReset()" class="text-[10px] text-slate-500 hover:text-white border border-slate-800 px-2 py-1 rounded transition uppercase">Reset My Key</button>
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <button onclick="selfReset()" class="text-[10px] text-slate-500 hover:text-white border border-slate-800 px-2 py-1 rounded transition uppercase">Reset Key</button>
             <button onclick="doLogout()" class="text-xs text-red-500 border border-red-500/30 px-3 py-1 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold italic">DC</button>
         </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden">
-        <div id="view-chat" class="flex flex-1 overflow-hidden">
-            <aside id="thread-list" class="w-80 glass border-t-0 border-l-0 overflow-y-auto"></aside>
-            <main class="flex-1 flex flex-col bg-slate-950">
-                <div class="h-12 glass border-x-0 border-t-0 flex items-center justify-between px-6">
-                    <span id="active-tag" class="text-xs font-bold text-slate-500 uppercase italic">Idle...</span>
-                    <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold uppercase">Archive & Close</button>
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <div id="view-chat" class="flex flex-1 overflow-hidden w-full absolute inset-0 md:static">
+            
+            <aside id="thread-list" class="w-full md:w-80 glass border-t-0 border-l-0 overflow-y-auto absolute md:static inset-0 z-10 bg-[#020617] md:bg-transparent"></aside>
+            
+            <main id="chat-area" class="flex-1 flex flex-col bg-slate-950 w-full hidden md:flex absolute md:static inset-0 z-20">
+                <div class="h-12 glass border-x-0 border-t-0 flex items-center justify-between px-4 md:px-6">
+                    <div class="flex items-center">
+                        <button onclick="goBackToList()" class="md:hidden mr-3 text-slate-400 hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                        <span id="active-tag" class="text-xs font-bold text-slate-500 uppercase italic">Idle...</span>
+                    </div>
+                    <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold uppercase">Archive</button>
                 </div>
-                <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col"></div>
+                <div id="chat-box" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col"></div>
                 
                 <div class="p-4 glass border-x-0 border-b-0">
-                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase italic">📎 Ready: Attachment Staged</div>
-                    <form onsubmit="sendReply(event)" class="flex space-x-4 items-end">
+                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase italic">📎 Ready</div>
+                    <form onsubmit="sendReply(event)" class="flex space-x-2 md:space-x-4 items-end">
                         <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
                         <button type="button" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-1">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         </button>
-                        <textarea id="msg-input" placeholder="Secure Message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none text-sm h-24 resize-none"></textarea>
-                        <button class="bg-blue-600 px-6 py-3 rounded-xl font-bold uppercase text-xs h-[48px]">Transmit</button>
+                        <textarea id="msg-input" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none text-sm h-16 md:h-24 resize-none"></textarea>
+                        <button class="bg-blue-600 px-4 md:px-6 py-3 rounded-xl font-bold uppercase text-xs h-[48px]">Send</button>
                     </form>
                 </div>
             </main>
         </div>
 
-        <div id="view-admin" class="hidden flex-1 overflow-y-auto p-10 space-y-8">
-            <div class="grid grid-cols-2 gap-8">
+        <div id="view-admin" class="hidden flex-1 overflow-y-auto p-4 md:p-10 space-y-8 w-full bg-slate-950 absolute inset-0 md:static z-30">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="glass p-6 rounded-xl">
                     <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs italic underline">Provision Staff</h2>
                     <input type="text" id="add-user" placeholder="USERNAME" class="w-full bg-slate-900 border border-slate-800 p-3 rounded text-xs mb-2 outline-none">
                     <input type="text" id="add-discord" placeholder="DISCORD ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded text-xs mb-4 outline-none">
                     <label class="flex items-center space-x-2 mb-6 text-[10px] uppercase font-bold text-slate-500">
-                        <input type="checkbox" id="add-is-admin" class="w-4 h-4 rounded border-slate-800 bg-slate-900"> <span>Elevated Permissions (Admin)</span>
+                        <input type="checkbox" id="add-is-admin" class="w-4 h-4 rounded border-slate-800 bg-slate-900"> <span>Admin</span>
                     </label>
-                    <button onclick="addStaff()" class="w-full bg-blue-600 text-[10px] font-bold py-3 rounded uppercase">Authorize Staff Member</button>
+                    <button onclick="addStaff()" class="w-full bg-blue-600 text-[10px] font-bold py-3 rounded uppercase">Authorize Staff</button>
                 </div>
-                <div class="glass p-6 rounded-xl overflow-hidden flex flex-col">
+                <div class="glass p-6 rounded-xl overflow-hidden flex flex-col h-[300px]">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-amber-500 font-bold uppercase text-xs italic underline">Operational Staff Registry</h2>
+                        <h2 class="text-amber-500 font-bold uppercase text-xs italic underline">Staff Registry</h2>
                         
                         <div class="flex items-center space-x-2">
                             <div id="status-indicator" class="w-2 h-2 rounded-full bg-green-500"></div>
@@ -124,8 +141,8 @@
             <div class="glass p-6 rounded-xl border border-indigo-500/30">
                 <h2 class="text-indigo-400 font-bold mb-4 uppercase text-xs italic underline">License Activation Terminal</h2>
                 
-                <div class="grid grid-cols-4 gap-4 mb-4">
-                    <div class="col-span-2">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="md:col-span-2">
                         <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">License Key</label>
                         <input type="text" id="lic-key" placeholder="Key String..." class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
                     </div>
@@ -148,59 +165,59 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-4 gap-4 mb-4">
-                    <div class="col-span-1">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
                         <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Server Name</label>
                         <input type="text" id="lic-srv-name" placeholder="Name" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100">
                     </div>
-                    <div class="col-span-1">
+                    <div>
                         <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Server ID</label>
                         <input type="text" id="lic-srv-id" placeholder="ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
                     </div>
-                    <div class="col-span-1">
+                    <div>
                         <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Channel ID</label>
                         <input type="text" id="lic-chan-id" placeholder="ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
                     </div>
-                    <div class="col-span-1">
+                    <div>
                         <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">User Discord ID</label>
                         <input type="text" id="lic-disc-id" placeholder="ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
                     </div>
                 </div>
 
-                <div class="flex space-x-4 items-end">
-                    <div class="flex-1">
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-end">
+                    <div class="w-full flex-1">
                         <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Instance Identifier</label>
                         <input type="text" id="lic-id" placeholder="HWID / Email" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 h-[42px]">
                     </div>
-                    <button onclick="activateLicense()" class="bg-indigo-600 hover:bg-indigo-500 transition px-6 py-3 rounded font-bold uppercase text-[10px] h-[42px] w-40">Activate</button>
+                    <button onclick="activateLicense()" class="w-full md:w-40 bg-indigo-600 hover:bg-indigo-500 transition px-6 py-3 rounded font-bold uppercase text-[10px] h-[42px]">Activate</button>
                 </div>
                 <div id="lic-result" class="hidden mt-4 p-3 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono"></div>
             </div>
 
             <div class="glass p-6 rounded-xl border border-blue-500/30">
                 <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs italic underline">Direct Messaging / Ticket Opener</h2>
-                <div class="flex space-x-4 items-start">
-                    <div class="w-1/3">
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-start">
+                    <div class="w-full md:w-1/3">
                         <input type="text" id="dm-id" placeholder="Discord User ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
                     </div>
-                    <div class="flex-1">
+                    <div class="w-full flex-1">
                         <textarea id="dm-content" placeholder="Type message to send..." class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 h-[80px] resize-none"></textarea>
                     </div>
-                    <button onclick="sendManualDM()" class="bg-blue-600 hover:bg-blue-500 transition px-6 py-3 rounded font-bold uppercase text-[10px] h-[80px] w-32">Send & Open</button>
+                    <button onclick="sendManualDM()" class="w-full md:w-32 bg-blue-600 hover:bg-blue-500 transition px-6 py-3 rounded font-bold uppercase text-[10px] h-[80px]">Send & Open</button>
                 </div>
             </div>
 
             <div class="glass p-6 rounded-xl">
-                <h2 class="text-red-500 font-bold mb-4 uppercase text-xs italic underline">Global Broadcast (All Bot Owners)</h2>
-                <div class="flex space-x-4">
+                <h2 class="text-red-500 font-bold mb-4 uppercase text-xs italic underline">Global Broadcast</h2>
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
                     <input type="text" id="bulk-msg" placeholder="Broadcast Content..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs">
-                    <button onclick="sendBulk()" class="bg-red-600 px-6 py-3 rounded font-bold uppercase text-[10px]">Execute Global DM</button>
+                    <button onclick="sendBulk()" class="bg-red-600 px-6 py-3 rounded font-bold uppercase text-[10px]">Execute</button>
                 </div>
             </div>
 
             <div class="glass p-6 rounded-xl">
-                <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs italic underline">Bot Fleet: Connected Servers</h2>
-                <div id="srv-list" class="grid grid-cols-3 gap-4"></div>
+                <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs italic underline">Bot Fleet</h2>
+                <div id="srv-list" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
             </div>
         </div>
     </div>
@@ -241,13 +258,7 @@
 
         async function doLogout() {
             const res = await fetch('/api/logout', { method: 'POST' });
-            if (res.ok) {
-                window.location.reload();
-            } else {
-                // Fallback if endpoint fails
-                document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                window.location.reload();
-            }
+            if (res.ok) { window.location.reload(); } else { document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.reload(); }
         }
 
         function toggleRecovery(show) {
@@ -263,30 +274,24 @@
         function selfReset() {
             document.getElementById('reset-view').classList.remove('hidden');
             document.getElementById('new-pw-input').value = '';
-            validatePassword(); // Reset state
+            validatePassword();
         }
 
-        function closeResetModal() {
-            document.getElementById('reset-view').classList.add('hidden');
-        }
+        function closeResetModal() { document.getElementById('reset-view').classList.add('hidden'); }
 
         function validatePassword() {
             const pass = document.getElementById('new-pw-input').value;
             const btn = document.getElementById('btn-save-pw');
-            
-            // Regex Checks
             const hasLen = pass.length >= 8;
             const hasUpper = /[A-Z]/.test(pass);
             const hasNum = /\d/.test(pass);
             const hasSym = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
 
-            // Update UI
             updateReq('req-len', hasLen);
             updateReq('req-upper', hasUpper);
             updateReq('req-num', hasNum);
             updateReq('req-sym', hasSym);
 
-            // Enable Button if all met
             if(hasLen && hasUpper && hasNum && hasSym) {
                 btn.disabled = false;
                 btn.classList.remove('bg-blue-600/20', 'text-white/20', 'cursor-not-allowed');
@@ -314,27 +319,35 @@
         async function submitNewPassword() {
             const pass = document.getElementById('new-pw-input').value;
             const btn = document.getElementById('btn-save-pw');
-            
-            btn.innerText = "UPDATING...";
-            btn.disabled = true;
-
+            btn.innerText = "UPDATING..."; btn.disabled = true;
             const res = await req('/api/staff/self-reset', 'POST', { newPassword: pass });
-            
-            if(res.success) {
-                alert("Success. Please login with your new key.");
-                closeResetModal();
-                doLogout();
-            } else {
-                alert(res.error);
-                btn.innerText = "SAVE KEY";
-                validatePassword(); // Re-check button state
-            }
+            if(res.success) { alert("Success. Login with new key."); closeResetModal(); doLogout(); } else { alert(res.error); btn.innerText = "SAVE KEY"; validatePassword(); }
         }
 
         function showView(v) {
-            document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat');
-            document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin');
-            if (v === 'admin') loadAdminData();
+            const chatView = document.getElementById('view-chat');
+            const adminView = document.getElementById('view-admin');
+            
+            if(v === 'chat') {
+                chatView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                // Mobile: Reset to list view when entering chat tab
+                document.getElementById('thread-list').classList.remove('hidden');
+                document.getElementById('chat-area').classList.add('hidden');
+                document.getElementById('chat-area').classList.remove('flex');
+            } else {
+                chatView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                loadAdminData();
+            }
+        }
+
+        function goBackToList() {
+            // Mobile only: Switch from chat back to list
+            document.getElementById('thread-list').classList.remove('hidden');
+            document.getElementById('chat-area').classList.add('hidden');
+            document.getElementById('chat-area').classList.remove('flex');
+            activeId = null;
         }
 
         async function loadThreads() {
@@ -347,7 +360,17 @@
                 const d = document.createElement('div');
                 d.className = `p-4 border-b border-slate-900 cursor-pointer hover:bg-slate-900 transition ${activeId === t._id ? 'bg-slate-900 border-l-4 border-blue-500' : ''}`;
                 d.innerHTML = `<div class="font-bold text-xs">${t.userTag}</div><div class="text-[9px] text-slate-500 uppercase">${t.botName}</div>`;
-                d.onclick = () => { activeId = t._id; renderChat(); loadThreads(); };
+                d.onclick = () => { 
+                    activeId = t._id; 
+                    renderChat(); 
+                    
+                    // Mobile: Hide List, Show Chat
+                    if(window.innerWidth < 768) {
+                        document.getElementById('thread-list').classList.add('hidden');
+                        document.getElementById('chat-area').classList.remove('hidden');
+                        document.getElementById('chat-area').classList.add('flex');
+                    }
+                };
                 list.appendChild(d);
             });
         }
@@ -360,15 +383,10 @@
             threadStore[activeId].messages.forEach(m => {
                 const d = document.createElement('div');
                 d.className = `max-w-[75%] p-3 rounded-xl text-[11px] ${m.fromBot ? 'bg-blue-600 self-end font-bold' : 'bg-slate-800 self-start'}`;
-                
-                // whitespace-pre-wrap ensures multiline messages render correctly
                 let html = `<div class="whitespace-pre-wrap">${m.content}</div>`;
-                
                 if (m.attachments) m.attachments.forEach(url => html += `<img src="${url}" class="attachment-preview" onclick="window.open('${url}')">`);
-                
                 const ts = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
                 html += `<div class="text-[9px] text-right mt-1 opacity-50">${ts}</div>`;
-
                 d.innerHTML = html;
                 box.appendChild(d);
             });
@@ -379,7 +397,6 @@
             const stats = await req('/api/admin/stats');
             const srvs = await req('/api/admin/servers');
             const cfg = await req('/api/admin/config');
-
             if(!stats || stats.error) return;
             
             const ind = document.getElementById('status-indicator');
@@ -421,11 +438,7 @@
         }
 
         async function addStaff() {
-            const res = await req('/api/admin/staff/add', 'POST', { 
-                username: document.getElementById('add-user').value, 
-                discordId: document.getElementById('add-discord').value, 
-                adminStatus: document.getElementById('add-is-admin').checked 
-            });
+            const res = await req('/api/admin/staff/add', 'POST', { username: document.getElementById('add-user').value, discordId: document.getElementById('add-discord').value, adminStatus: document.getElementById('add-is-admin').checked });
             if(res.success) { alert("Staff Authorized."); loadAdminData(); }
         }
 
@@ -438,21 +451,15 @@
         async function toggleSupport() {
             const statusText = document.getElementById('status-text').innerText;
             const isOnline = statusText === 'ONLINE';
-            
             let note = null;
-
-            if(isOnline) {
-                note = prompt("Optional: Reason for going offline?");
-                if(note === null) return; 
-            }
-
+            if(isOnline) { note = prompt("Optional: Reason for going offline?"); if(note === null) return; }
             const res = await req('/api/admin/config/toggle', 'POST', { note });
             if(res.success) loadAdminData();
         }
 
         async function sendBulk() {
             const message = document.getElementById('bulk-msg').value;
-            if (message && confirm("Confirm global broadcast to ALL owners?")) {
+            if (message && confirm("Confirm global broadcast?")) {
                 const res = await req('/api/admin/bulk-message', 'POST', { message });
                 alert(`Broadcast Successful. Targets: ${res.sentTo}`);
                 document.getElementById('bulk-msg').value = '';
@@ -464,75 +471,41 @@
             const instance = document.getElementById('lic-id').value;
             const type = document.getElementById('lic-type').value; 
             const duration = document.getElementById('lic-duration').value;
-            
             const srvName = document.getElementById('lic-srv-name').value;
             const srvId = document.getElementById('lic-srv-id').value;
             const chanId = document.getElementById('lic-chan-id').value;
             const discId = document.getElementById('lic-disc-id').value;
-
             const resBox = document.getElementById('lic-result');
 
-            // STRICT FRONTEND VALIDATION
-            if(!key || !instance || !discId || !srvName || !srvId || !chanId) {
-                return alert("All fields (Key, Instance, User, Server, Channel) are required.");
-            }
+            if(!key || !instance || !discId || !srvName || !srvId || !chanId) return alert("All fields are required.");
 
             const btn = event.target;
             const ogText = btn.innerText;
-            btn.innerText = "PROCESSING...";
-            btn.disabled = true;
+            btn.innerText = "PROCESSING..."; btn.disabled = true;
 
-            const res = await req('/api/admin/license/activate', 'POST', { 
-                license_key: key, 
-                instance_name: instance,
-                activation_type: type,
-                duration: duration,
-                server_name: srvName,
-                server_id: srvId,
-                channel_id: chanId,
-                discord_id: discId
-            });
+            const res = await req('/api/admin/license/activate', 'POST', { license_key: key, instance_name: instance, activation_type: type, duration: duration, server_name: srvName, server_id: srvId, channel_id: chanId, discord_id: discId });
 
-            btn.innerText = ogText;
-            btn.disabled = false;
-            resBox.classList.remove('hidden');
+            btn.innerText = ogText; btn.disabled = false; resBox.classList.remove('hidden');
 
             if(res.success) {
                 resBox.innerHTML = `<span class="text-green-400 font-bold">SUCCESS:</span> ${type} Logged.<br><span class="text-slate-500">Instance ID: ${res.data.id}</span>`;
-                // Clear inputs
-                document.getElementById('lic-key').value = '';
-                document.getElementById('lic-id').value = '';
-                document.getElementById('lic-disc-id').value = '';
-            } else {
-                resBox.innerHTML = `<span class="text-red-400 font-bold">ERROR:</span> ${res.error}`;
-            }
+                document.getElementById('lic-key').value = ''; document.getElementById('lic-id').value = ''; document.getElementById('lic-disc-id').value = '';
+            } else { resBox.innerHTML = `<span class="text-red-400 font-bold">ERROR:</span> ${res.error}`; }
         }
 
         async function sendManualDM() {
             const id = document.getElementById('dm-id').value;
             const content = document.getElementById('dm-content').value;
             if(!id || !content) return alert("ID and Message required");
-
             if(!confirm("Send DM and open ticket?")) return;
-
             const res = await req('/api/admin/manual-dm', 'POST', { discordId: id, content: content });
-            
-            if(res.success) {
-                alert("Message Sent & Ticket Opened!");
-                document.getElementById('dm-id').value = '';
-                document.getElementById('dm-content').value = '';
-            } else {
-                alert("Error: " + res.error);
-            }
+            if(res.success) { alert("Message Sent & Ticket Opened!"); document.getElementById('dm-id').value = ''; document.getElementById('dm-content').value = ''; } else { alert("Error: " + res.error); }
         }
 
         function handleFileSelect() {
             const file = document.getElementById('file-input').files[0];
             const reader = new FileReader();
-            reader.onload = (e) => {
-                selectedFile = { base64: e.target.result, name: file.name };
-                document.getElementById('file-indicator').classList.remove('hidden');
-            };
+            reader.onload = (e) => { selectedFile = { base64: e.target.result, name: file.name }; document.getElementById('file-indicator').classList.remove('hidden'); };
             reader.readAsDataURL(file);
         }
 
@@ -541,39 +514,25 @@
             const content = document.getElementById('msg-input').value;
             if (!activeId) return;
             await req('/api/reply', 'POST', { threadId: activeId, content, fileBase64: selectedFile?.base64, fileName: selectedFile?.name });
-            document.getElementById('msg-input').value = '';
-            selectedFile = null;
-            document.getElementById('file-indicator').classList.add('hidden');
+            document.getElementById('msg-input').value = ''; selectedFile = null; document.getElementById('file-indicator').classList.add('hidden');
         }
 
         async function closeTicket() {
             if (activeId && confirm("Archive and close this session?")) {
                 await req('/api/close-thread', 'POST', { threadId: activeId });
                 activeId = null; loadThreads(); renderChat();
+                if(window.innerWidth < 768) goBackToList();
             }
         }
 
         socket.on('new_message', (d) => {
-            // Play notification sound
-            if (d.notif_sound) {
-                document.getElementById('notif-sound').play().catch(() => {});
-            }
-            
-            if (threadStore[d.threadId]) {
-                threadStore[d.threadId].messages.push(d);
-                if (activeId === d.threadId) renderChat();
-            } else loadThreads();
+            if (d.notif_sound) document.getElementById('notif-sound').play().catch(() => {});
+            if (threadStore[d.threadId]) { threadStore[d.threadId].messages.push(d); if (activeId === d.threadId) renderChat(); } else loadThreads();
         });
 
-        // INIT TERMINAL
         (async () => {
             const data = await req('/api/threads');
-            if(!data.error) {
-                document.getElementById('login-view').classList.add('hidden');
-                loadThreads();
-                const adminStats = await req('/api/admin/stats');
-                if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden');
-            }
+            if(!data.error) { document.getElementById('login-view').classList.add('hidden'); loadThreads(); const adminStats = await req('/api/admin/stats'); if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden'); }
         })();
     </script>
 </body>
