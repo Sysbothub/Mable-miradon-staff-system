@@ -92,6 +92,33 @@
                 </div>
             </div>
             
+            <div class="glass p-6 rounded-xl border border-indigo-500/30">
+                <h2 class="text-indigo-400 font-bold mb-4 uppercase text-xs italic underline">License Activation Terminal</h2>
+                <div class="flex space-x-4 items-end">
+                    <div class="flex-[2]">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">License Key</label>
+                        <input type="text" id="lic-key" placeholder="Key String..." class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono h-[42px]">
+                    </div>
+
+                    <div class="flex-1">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Log Note / Type</label>
+                        <select id="lic-type" class="w-full bg-slate-900 border border-slate-800 px-2 rounded outline-none text-xs text-indigo-100 h-[42px] cursor-pointer">
+                            <option value="Professor Mable Rental">Mable Rental</option>
+                            <option value="Premium Subscription">Premium Sub</option>
+                            <option value="Other / Replacement">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="flex-1">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Instance Identifier</label>
+                        <input type="text" id="lic-id" placeholder="HWID / Email" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 h-[42px]">
+                    </div>
+
+                    <button onclick="activateLicense()" class="bg-indigo-600 hover:bg-indigo-500 transition px-6 py-3 rounded font-bold uppercase text-[10px] h-[42px]">Activate</button>
+                </div>
+                <div id="lic-result" class="hidden mt-4 p-3 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono"></div>
+            </div>
+
             <div class="glass p-6 rounded-xl">
                 <h2 class="text-red-500 font-bold mb-4 uppercase text-xs italic underline">Global Broadcast (All Bot Owners)</h2>
                 <div class="flex space-x-4">
@@ -258,6 +285,38 @@
                 const res = await req('/api/admin/bulk-message', 'POST', { message });
                 alert(`Broadcast Successful. Targets: ${res.sentTo}`);
                 document.getElementById('bulk-msg').value = '';
+            }
+        }
+
+        async function activateLicense() {
+            const key = document.getElementById('lic-key').value;
+            const instance = document.getElementById('lic-id').value;
+            const type = document.getElementById('lic-type').value; 
+            const resBox = document.getElementById('lic-result');
+
+            if(!key || !instance) return alert("Please fill in both fields.");
+
+            const btn = event.target;
+            const ogText = btn.innerText;
+            btn.innerText = "PROCESSING...";
+            btn.disabled = true;
+
+            const res = await req('/api/admin/license/activate', 'POST', { 
+                license_key: key, 
+                instance_name: instance,
+                activation_type: type
+            });
+
+            btn.innerText = ogText;
+            btn.disabled = false;
+            resBox.classList.remove('hidden');
+
+            if(res.success) {
+                resBox.innerHTML = `<span class="text-green-400 font-bold">SUCCESS:</span> ${type} Logged.<br><span class="text-slate-500">Instance ID: ${res.data.id}</span>`;
+                document.getElementById('lic-key').value = '';
+                document.getElementById('lic-id').value = '';
+            } else {
+                resBox.innerHTML = `<span class="text-red-400 font-bold">ERROR:</span> ${res.error}`;
             }
         }
 
