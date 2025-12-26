@@ -103,6 +103,31 @@ botTokens.forEach(token => {
         let thread = await Thread.findOne({ userId: message.author.id, botId: client.user.id });
         if (!thread) {
             thread = new Thread({ userId: message.author.id, userTag: message.author.tag, botId: client.user.id, botName: client.user.username, messages: [] });
+            
+            // --- AUTOMATED DM LOGIC ---
+            const autoReply = new EmbedBuilder()
+                .setColor('#3b82f6')
+                .setTitle('Support Ticket Opened')
+                .setDescription('Thank you for reaching out. A staff member will respond to your inquiry within **12-24 hours**.\n\n*Note: Our average response time is currently 2 hours.*')
+                .setTimestamp();
+            
+            try {
+                const imageDir = path.join(__dirname, 'public', 'image');
+                if (fs.existsSync(imageDir)) {
+                    const files = fs.readdirSync(imageDir).filter(f => !f.startsWith('.'));
+                    if (files.length > 0) {
+                        const attachment = new AttachmentBuilder(path.join(imageDir, files[0]));
+                        await message.author.send({ embeds: [autoReply], files: [attachment] }).catch(() => {});
+                    } else {
+                        await message.author.send({ embeds: [autoReply] }).catch(() => {});
+                    }
+                } else {
+                    await message.author.send({ embeds: [autoReply] }).catch(() => {});
+                }
+            } catch (err) {
+                await message.author.send({ embeds: [autoReply] }).catch(() => {});
+            }
+
             sendLog("🆕 Ticket Created", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
         }
         
