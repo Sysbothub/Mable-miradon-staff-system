@@ -1,4 +1,5 @@
 require('dotenv').config();
+const axios = require('axios'); // [NEW] Added for SellApp API
 const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType, AttachmentBuilder } = require('discord.js');
 const express = require('express');
 const http = require('http');
@@ -287,6 +288,40 @@ app.post('/api/admin/staff/reset-password', isAdmin, async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: "Password updated in DB but DM failed." });
+    }
+});
+
+// --- NEW LICENSE ACTIVATION API ---
+app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
+    const { license_key, instance_name, activation_type } = req.body;
+    const SELLAPP_TOKEN = process.env.SELLAPP_TOKEN;
+
+    if (!SELLAPP_TOKEN) return res.status(500).json({ error: "System Error: Missing API Token" });
+
+    try {
+        const response = await axios.post('https://sell.app/api/v2/licenses/activate', {
+            license_key: license_key,
+            instance_name: instance_name
+        }, {
+            headers: {
+                'Authorization': `Bearer ${SELLAPP_TOKEN}`,
+                'Content-Type': 'application/json',
+                'accept': 'application/json'
+            }
+        });
+
+        // Log the action to Discord
+        await sendLog(
+            "🔑 License Activated", 
+            `**Staff:** ${req.session.username}\n**Type:** ${activation_type}\n**Instance:** ${instance_name}\n**Key ID:** ${response.data.id}`, 
+            '#10b981'
+        );
+        
+        res.json({ success: true, data: response.data });
+
+    } catch (err) {
+        const msg = err.response?.data?.message || "Activation Failed";
+        res.status(400).json({ error: msg });
     }
 });
 
