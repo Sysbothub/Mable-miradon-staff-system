@@ -108,7 +108,7 @@ botTokens.forEach(token => {
             const autoReply = new EmbedBuilder()
                 .setColor('#3b82f6')
                 .setTitle('Support Ticket Opened')
-                .setDescription('Thank you for reaching out. A staff member will respond to your inquiry within **12-24 hours**.\n\n*Note: Our average response time is currently 2 hours.*')
+                .setDescription('Thank you for reaching out to Miraidon Trade Services. A staff member will respond to your inquiry within **12-24 hours**.\n\n*Note: Our average response time is currently 2 hours.*')
                 .setTimestamp();
             
             try {
