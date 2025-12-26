@@ -1,5 +1,5 @@
 require('dotenv').config();
-const axios = require('axios'); // [NEW] Added for SellApp API
+const axios = require('axios'); // Required for SellApp API
 const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType, AttachmentBuilder } = require('discord.js');
 const express = require('express');
 const http = require('http');
@@ -42,8 +42,28 @@ const Thread = mongoose.model('Thread', new mongoose.Schema({
     lastMessageAt: { type: Date, default: Date.now }
 }));
 
-// --- AUTOMATIC ADMIN SETUP ---
-async function setupDefaultAdmin() {
+const License = mongoose.model('License', new mongoose.Schema({
+    key: String,
+    instanceId: String,
+    discordId: String,
+    serverId: String,
+    serverName: String,
+    channelId: String,
+    type: String,
+    duration: String,
+    activatedAt: { type: Date, default: Date.now },
+    expiresAt: Date,
+    reminderSent: { type: Boolean, default: false }
+}));
+
+const Config = mongoose.model('Config', new mongoose.Schema({
+    id: { type: String, default: 'global' },
+    supportOnline: { type: Boolean, default: true },
+    offlineNote: { type: String, default: '' }
+}));
+
+// --- AUTOMATIC ADMIN & CONFIG SETUP ---
+async function setupDefaults() {
     const adminExists = await Staff.findOne({ username: 'admin' });
     if (!adminExists) {
         const hashedPassword = await bcrypt.hash('map4491', 10);
@@ -55,10 +75,16 @@ async function setupDefaultAdmin() {
         }).save();
         console.log("✅ Default Admin Created: User 'admin' | Pass 'map4491'");
     }
-}
-setupDefaultAdmin();
 
-// --- MIDDLEWARE (RENDER COMPATIBILITY) ---
+    const configExists = await Config.findOne({ id: 'global' });
+    if (!configExists) {
+        await new Config({ id: 'global', supportOnline: true }).save();
+        console.log("✅ Default Config Created");
+    }
+}
+setupDefaults();
+
+// --- MIDDLEWARE ---
 app.set('trust proxy', 1); 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static('public'));
@@ -77,7 +103,6 @@ app.use(session({
 const isAuth = (req, res, next) => req.session.staffId ? next() : res.status(401).send("Unauthorized");
 const isAdmin = (req, res, next) => (req.session.staffId && req.session.isAdmin) ? next() : res.status(403).send("Admin only");
 
-// --- HELPER: GET PANEL URL ---
 const getPanelUrl = () => process.env.APP_URL || "Panel URL Not Configured";
 
 // --- DYNAMIC BOT CLUSTERING ---
@@ -105,12 +130,50 @@ botTokens.forEach(token => {
         if (!thread) {
             thread = new Thread({ userId: message.author.id, userTag: message.author.tag, botId: client.user.id, botName: client.user.username, messages: [] });
             
-            // --- AUTOMATED DM LOGIC ---
-            const autoReply = new EmbedBuilder()
-                .setColor('#3b82f6')
-                .setTitle('Support Ticket Opened')
-                .setDescription('Thank you for reaching out to Miraidon Trade Services. A staff member will respond to your inquiry within **12-24 hours**.\n\n*Note: Our average response time is currently 2 hours.*')
-                .setTimestamp();
+            // --- AUTO DM LOGIC ---
+            const config = await Config.findOne({ id: 'global' });
+            const isManualOnline = config ? config.supportOnline : true;
+            const offlineNote = config ? config.offlineNote : '';
+
+            // Calculate Time in AST (Atlantic Standard Time)
+            const now = new Date();
+            const options = { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' };
+            const formatter = new Intl.DateTimeFormat('en-US', options);
+            const parts = formatter.formatToParts(now);
+            const hour = parseInt(parts.find(p => p.type === 'hour').value);
+            const minute = parseInt(parts.find(p => p.type === 'minute').value);
+            const currentTotalMinutes = (hour * 60) + minute;
+
+            const startTotal = 8 * 60; // 08:00 AM
+            const endTotal = 23 * 60 + 59; // 11:59 PM
+            
+            const isWorkHours = currentTotalMinutes >= startTotal && currentTotalMinutes <= endTotal;
+
+            let autoReply;
+
+            // Priority: Manual Offline > Schedule > Online
+            if (!isManualOnline) {
+                const noteText = offlineNote ? `**Reason:** ${offlineNote}\n\n` : '';
+                autoReply = new EmbedBuilder()
+                    .setColor('#ef4444')
+                    .setTitle('Support Currently Offline')
+                    .setDescription(`Support has been toggled offline by staff.\n\n${noteText}We have received your message and will respond as soon as we are available.\n\n**Support Hours:** 8:00 AM - 11:59 PM AST`)
+                    .setTimestamp();
+
+            } else if (!isWorkHours) {
+                autoReply = new EmbedBuilder()
+                    .setColor('#f59e0b')
+                    .setTitle('Support Closed')
+                    .setDescription('You have reached us outside of support hours. A staff member will check your ticket when we open.\n\n**Support Hours:** 8:00 AM - 11:59 PM AST\n**Current Status:** Closed')
+                    .setTimestamp();
+
+            } else {
+                autoReply = new EmbedBuilder()
+                    .setColor('#3b82f6')
+                    .setTitle('Support Ticket Opened')
+                    .setDescription('Thank you for reaching out to Miraidon Trade Services. A staff member will respond to your inquiry within **12-24 hours**.\n\n**Support Hours:** 8:00 AM AST - 11:59 PM AST\n**Note:** Support may be unavailable during holidays.\n\n*Our average response time is currently 2 hours.*')
+                    .setTimestamp();
+            }
             
             try {
                 const imageDir = path.join(__dirname, 'public', 'image');
@@ -137,13 +200,13 @@ botTokens.forEach(token => {
             authorTag: message.author.tag, 
             content: message.content || (attachments.length > 0 ? "[Sent Attachment]" : "[Media]"), 
             attachments: attachments, 
-            fromBot: false 
+            fromBot: false,
+            timestamp: new Date()
         };
 
         thread.messages.push(msgData);
         thread.lastMessageAt = new Date();
         await thread.save();
-        // NOTIFICATION SOUND TRIGGER ADDED BELOW
         io.emit('new_message', { threadId: thread._id, notif_sound: true, ...msgData });
     });
 
@@ -153,7 +216,6 @@ botTokens.forEach(token => {
 
 // --- API ENDPOINTS ---
 
-// NEW: PUBLIC RECOVERY ENDPOINT FOR LOGIN PAGE
 app.post('/api/public/request-reset', async (req, res) => {
     const { discordId } = req.body;
     if (!discordId) return res.status(400).json({ error: "Discord ID required" });
@@ -180,7 +242,6 @@ app.post('/api/login', async (req, res) => {
     } else res.status(401).send("Invalid Credentials");
 });
 
-// LOGOUT ENDPOINT (Required for the logout button to clear the secure session cookie)
 app.post('/api/logout', (req, res) => {
     req.session.destroy(() => {
         res.clearCookie('connect.sid');
@@ -216,7 +277,8 @@ app.post('/api/reply', isAuth, async (req, res) => {
             authorTag: `Staff (${req.session.username})`, 
             content: content || "[File Attachment]", 
             fromBot: true, 
-            attachments: attachmentUrls 
+            attachments: attachmentUrls,
+            timestamp: new Date()
         };
 
         thread.messages.push(reply);
@@ -245,23 +307,36 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     } catch (e) { res.status(500).send("Archive Error"); }
 });
 
-// --- STAFF SELF-SERVE RESET API ---
+// --- STAFF SELF-SERVE RESET (STRICT VALIDATION) ---
 app.post('/api/staff/self-reset', isAuth, async (req, res) => {
+    const { newPassword } = req.body;
+
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+
+    if (!newPassword || newPassword.length < minLength || !hasUpperCase || !hasNumber || !hasSymbol) {
+        return res.status(400).json({ 
+            error: "Password must be 8+ chars, with at least 1 Uppercase, 1 Number, and 1 Symbol." 
+        });
+    }
+
     const staff = await Staff.findById(req.session.staffId);
     if (!staff) return res.status(404).send("Not Found");
     
-    const newPass = Math.random().toString(36).slice(-8);
-    const hashedPassword = await bcrypt.hash(newPass, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
     
     staff.password = hashedPassword;
     await staff.save();
     
     try {
         const user = await clients[0].users.fetch(staff.discordId);
-        await user.send(`**Terminal Self-Reset Established**\n\n**New Security Key:** ${newPass}\n**Access URL:** ${getPanelUrl()}`);
+        await user.send(`**Terminal Security Alert**\n\nYour Security Key has been **manually updated** by you.\n**Access URL:** ${getPanelUrl()}`);
         res.json({ success: true });
     } catch (e) {
-        res.status(500).json({ error: "Failed to DM credentials" });
+        // Return success even if DM fails (password WAS changed)
+        res.json({ success: true });
     }
 });
 
@@ -291,9 +366,18 @@ app.post('/api/admin/staff/reset-password', isAdmin, async (req, res) => {
     }
 });
 
-// --- NEW LICENSE ACTIVATION API ---
+// --- LICENSE ACTIVATION (STRICT VALIDATION) ---
 app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
-    const { license_key, instance_name, activation_type } = req.body;
+    const { 
+        license_key, instance_name, activation_type, duration,
+        server_name, server_id, channel_id, discord_id 
+    } = req.body;
+    
+    // Strict Validation
+    if (!server_name || !server_id || !channel_id || !discord_id || !license_key) {
+        return res.status(400).json({ error: "All fields (Server Name/ID, Channel ID, Discord ID) are required." });
+    }
+
     const SELLAPP_TOKEN = process.env.SELLAPP_TOKEN;
 
     if (!SELLAPP_TOKEN) return res.status(500).json({ error: "System Error: Missing API Token" });
@@ -310,19 +394,127 @@ app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
             }
         });
 
-        // Log the action to Discord
-        await sendLog(
-            "🔑 License Activated", 
-            `**Staff:** ${req.session.username}\n**Type:** ${activation_type}\n**Instance:** ${instance_name}\n**Key ID:** ${response.data.id}`, 
-            '#10b981'
-        );
+        let expiresAt = null;
+        if (duration && duration !== 'Lifetime') {
+            const days = parseInt(duration.split(' ')[0]);
+            if (!isNaN(days)) {
+                expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+            }
+        }
+
+        await new License({
+            key: license_key,
+            instanceId: response.data.id,
+            discordId: discord_id,
+            serverId: server_id,
+            serverName: server_name,
+            channelId: channel_id,
+            type: activation_type,
+            duration: duration,
+            expiresAt: expiresAt
+        }).save();
+
+        const logDescription = [
+            `**Staff:** ${req.session.username}`,
+            `**Type:** ${activation_type || 'N/A'}`,
+            `**Duration:** ${duration || 'N/A'}`,
+            `**User:** <@${discord_id}> (${discord_id})`,
+            `**Server:** ${server_name} (${server_id})`,
+            `**Channel:** <#${channel_id}> (${channel_id})`,
+            `**Instance:** ${instance_name}`,
+            `**Key ID:** ${response.data.id}`
+        ].join('\n');
+
+        await sendLog("🔑 License Activated", logDescription, '#10b981');
         
         res.json({ success: true, data: response.data });
 
     } catch (err) {
+        console.error(err);
         const msg = err.response?.data?.message || "Activation Failed";
         res.status(400).json({ error: msg });
     }
+});
+
+app.post('/api/admin/manual-dm', isAdmin, async (req, res) => {
+    const { discordId, content } = req.body;
+    if (!discordId || !content) return res.status(400).json({ error: "Missing ID or Message" });
+
+    try {
+        let thread = await Thread.findOne({ userId: discordId });
+        let client;
+
+        if (thread) {
+            client = clients.find(c => c.user.id === thread.botId);
+        } else {
+            client = clients[0];
+        }
+
+        if (!client || !client.isReady()) return res.status(500).json({ error: "Bot Cluster Offline" });
+
+        const user = await client.users.fetch(discordId);
+        const embed = new EmbedBuilder()
+            .setColor('#3b82f6')
+            .setAuthor({ name: `Staff Message (${req.session.username})`, iconURL: client.user.displayAvatarURL() })
+            .setDescription(content)
+            .setTimestamp();
+
+        const sentMsg = await user.send({ embeds: [embed] });
+        const attachmentUrls = sentMsg.attachments.map(a => a.url);
+
+        if (!thread) {
+            thread = new Thread({
+                userId: discordId,
+                userTag: user.tag,
+                botId: client.user.id,
+                botName: client.user.username,
+                messages: []
+            });
+            await sendLog("🆕 Manual Ticket Created", `**Staff:** ${req.session.username}\n**User:** ${user.tag} (${discordId})`, '#facc15');
+        }
+
+        const msgData = {
+            authorTag: `Staff (${req.session.username})`,
+            content: content,
+            attachments: attachmentUrls,
+            fromBot: true,
+            timestamp: new Date()
+        };
+
+        thread.messages.push(msgData);
+        thread.lastMessageAt = new Date();
+        await thread.save();
+
+        await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { repliesSent: 1 } });
+        io.emit('new_message', { threadId: thread._id, ...msgData });
+
+        res.json({ success: true, threadId: thread._id });
+
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "DM Failed: Invalid ID or Privacy Settings." });
+    }
+});
+
+app.get('/api/admin/config', isAdmin, async (req, res) => {
+    const config = await Config.findOne({ id: 'global' });
+    res.json(config);
+});
+
+app.post('/api/admin/config/toggle', isAdmin, async (req, res) => {
+    const { note } = req.body;
+    const config = await Config.findOne({ id: 'global' });
+    
+    config.supportOnline = !config.supportOnline;
+    
+    if (config.supportOnline) {
+        config.offlineNote = ''; 
+    } else {
+        config.offlineNote = note || '';
+    }
+    
+    await config.save();
+    res.json({ success: true, supportOnline: config.supportOnline });
 });
 
 app.get('/api/admin/servers', isAdmin, async (req, res) => {
@@ -403,5 +595,35 @@ app.post('/api/admin/staff/delete', isAdmin, async (req, res) => {
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: "Delete failed" }); }
 });
+
+setInterval(async () => {
+    const client = clients[0];
+    if (!client || !client.isReady()) return;
+
+    const threeDaysFromNow = new Date(Date.now() + 259200000); 
+    
+    const expiringLicenses = await License.find({
+        expiresAt: { $lt: threeDaysFromNow, $gt: new Date() },
+        reminderSent: false
+    });
+
+    for (const lic of expiringLicenses) {
+        try {
+            const user = await client.users.fetch(lic.discordId);
+            const embed = new EmbedBuilder()
+                .setTitle("⚠️ License Expiration Warning")
+                .setDescription(`Your **${lic.type}** license is expiring soon!\n\n**Server:** ${lic.serverName}\n**Expires:** <t:${Math.floor(lic.expiresAt.getTime() / 1000)}:R>\n\nPlease purchase a new license to maintain access.`)
+                .setColor('#f59e0b');
+            
+            await user.send({ embeds: [embed] });
+            
+            lic.reminderSent = true;
+            await lic.save();
+            console.log(`Sent expiry reminder to ${lic.discordId}`);
+        } catch (e) {
+            console.error(`Failed to DM expiry to ${lic.discordId}:`, e.message);
+        }
+    }
+}, 1000 * 60 * 60 * 12);
 
 server.listen(process.env.PORT || 10000, () => console.log("HQ Terminal Ready"));
