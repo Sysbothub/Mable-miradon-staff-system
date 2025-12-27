@@ -8,7 +8,6 @@
         body{background:#020617;color:white;font-family:monospace} 
         input, select, textarea{background:#0f172a;border:1px solid #334155;padding:5px;width:100%;color:white;outline:none}
         input:focus, select:focus, textarea:focus{border-color:#6366f1}
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -26,15 +25,9 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="p-4 border border-indigo-900 rounded bg-slate-900/50">
                 <h2 class="text-indigo-400 font-bold mb-3 border-b border-indigo-900 pb-1">LICENSE ACTIVATION</h2>
-                <div class="grid grid-cols-2 gap-2 mb-2">
-                    <input id="lk" placeholder="License Key">
-                    <input id="ld" placeholder="Discord User ID">
-                </div>
+                <div class="grid grid-cols-2 gap-2 mb-2"><input id="lk" placeholder="License Key"><input id="ld" placeholder="Discord User ID"></div>
                 <input id="li" placeholder="Instance ID / HWID" class="mb-2">
-                <div class="grid grid-cols-2 gap-2 mb-2">
-                    <input id="sn" placeholder="Server Name">
-                    <input id="sid" placeholder="Server ID">
-                </div>
+                <div class="grid grid-cols-2 gap-2 mb-2"><input id="sn" placeholder="Server Name"><input id="sid" placeholder="Server ID"></div>
                 <div class="grid grid-cols-2 gap-2 mb-2">
                     <select id="dur"><option>30 Days</option><option>90 Days</option><option>365 Days</option><option>Lifetime</option></select>
                     <select id="type"><option>Premium Subscription</option><option>Professor Mable Rental</option></select>
@@ -68,20 +61,14 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="p-4 border border-pink-900 rounded bg-slate-900/50">
                 <h2 class="text-pink-400 font-bold mb-2">FAQ EDITOR</h2>
-                <div class="flex gap-2 mb-2">
-                    <input id="fq" placeholder="Question">
-                    <button onclick="faq()" class="bg-pink-600 hover:bg-pink-500 w-24 rounded font-bold text-xs">ADD</button>
-                </div>
+                <div class="flex gap-2 mb-2"><input id="fq" placeholder="Question"><button onclick="faq()" class="bg-pink-600 hover:bg-pink-500 w-24 rounded font-bold text-xs">ADD</button></div>
                 <textarea id="fa" placeholder="Answer" class="h-16"></textarea>
             </div>
 
             <div class="p-4 border border-red-900 rounded bg-slate-900/50">
                 <h2 class="text-red-400 font-bold mb-2">GLOBAL BROADCAST</h2>
                 <p class="text-[10px] text-slate-400 mb-2">Sends a DM to the owner of every server the bot is in.</p>
-                <div class="flex gap-2">
-                    <input id="bm" placeholder="Message...">
-                    <button onclick="broadcast()" class="bg-red-600 hover:bg-red-500 w-32 rounded font-bold text-xs">SEND ALL</button>
-                </div>
+                <div class="flex gap-2"><input id="bm" placeholder="Message..."><button onclick="broadcast()" class="bg-red-600 hover:bg-red-500 w-32 rounded font-bold text-xs">SEND ALL</button></div>
             </div>
         </div>
 
@@ -103,14 +90,16 @@
             document.getElementById('staff').innerHTML = staff.map(s => `
                 <div class="flex justify-between items-center p-1 border-b border-slate-800 last:border-0">
                     <span>${s.username} ${s.isAdmin?'(A)':''} <span class="text-slate-500 ml-2">★ ${(s.ratingSum/s.ratingCount||0).toFixed(1)}</span></span>
-                    <button onclick="delS('${s._id}')" class="text-red-500 font-bold hover:text-red-400">✕</button>
+                    <div class="flex gap-2">
+                        <button onclick="resetPass('${s._id}')" class="text-blue-400 font-bold hover:text-blue-300" title="Reset Password">↺</button>
+                        <button onclick="delS('${s._id}')" class="text-red-500 font-bold hover:text-red-400" title="Delete Account">✕</button>
+                    </div>
                 </div>
             `).join('');
 
             // Load Servers
             const servers = await req('/api/admin/servers');
             const sList = document.getElementById('server-list');
-            
             if (servers.length === 0) {
                 sList.innerHTML = '<div class="text-center text-slate-500 col-span-full">No active servers found.</div>';
             } else {
@@ -133,7 +122,6 @@
             }
         }
 
-        // --- ACTIONS ---
         async function lic() { 
             const btn = event.target; btn.innerText="..."; btn.disabled=true;
             try {
@@ -157,19 +145,21 @@
         async function delS(id) { if(confirm("Delete staff?")) { await req('/api/admin/staff/delete','POST',{staffId:id}); load(); } }
         async function faq() { await req('/api/admin/faq/add','POST',{question:document.getElementById('fq').value,answer:document.getElementById('fa').value}); alert("Added"); }
         
-        // NEW: MANUAL TICKET FUNCTION
+        // NEW: RESET PASS FUNCTION
+        async function resetPass(id) {
+            if(confirm("Force reset password for this user? They will be DM'd the new key.")) {
+                const res = await req('/api/admin/staff/reset', 'POST', { staffId: id });
+                if(res.success) alert("Password reset and DM sent.");
+                else alert("Error: " + res.error);
+            }
+        }
+
         async function openTicket() {
             const id = document.getElementById('md-id').value;
             const msg = document.getElementById('md-msg').value;
             if(!id || !msg) return alert("Missing ID or Message");
-            
             const btn = event.target; btn.innerText = "..."; btn.disabled = true;
-            try {
-                await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg });
-                alert("Ticket Opened!");
-                document.getElementById('md-id').value = '';
-                document.getElementById('md-msg').value = '';
-            } catch(e) { alert("Failed. Check ID."); }
+            try { await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg }); alert("Ticket Opened!"); document.getElementById('md-id').value = ''; document.getElementById('md-msg').value = ''; } catch(e) { alert("Failed. Check ID."); }
             btn.innerText = "OPEN"; btn.disabled = false;
         }
 
