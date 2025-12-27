@@ -173,7 +173,7 @@
             loadThreads();
         }
 
-        // Render Messages in Chat Box
+        // Render Messages in Chat Box (UPDATED FOR FILES)
         function renderChat() {
             const box = document.getElementById('chat-box');
             box.innerHTML = '';
@@ -183,8 +183,33 @@
             t.messages.forEach(m => {
                 const d = document.createElement('div');
                 d.className = `flex flex-col max-w-[85%] ${m.fromBot ? 'self-end items-end' : 'self-start items-start'}`;
+                
+                // Base Message Content
                 let c = `<div class="px-3 py-2 rounded text-xs border ${m.fromBot ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}">${m.content}</div>`;
-                if(m.attachments) m.attachments.forEach(a => c += `<img src="${a}" class="mt-2 max-w-[150px] rounded border border-slate-700 cursor-pointer hover:opacity-80" onclick="window.open('${a}')">`);
+                
+                // Attachment Handler
+                if(m.attachments && m.attachments.length > 0) {
+                    m.attachments.forEach(a => {
+                        // Check if it's an image based on extension
+                        const isImage = a.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+                        
+                        if(isImage) {
+                            // Render Preview
+                            c += `<img src="${a}" class="mt-2 max-w-[200px] rounded border border-slate-700 cursor-pointer hover:opacity-80" onclick="window.open('${a}')">`;
+                        } else {
+                            // Render Download Link
+                            c += `
+                                <div class="mt-2">
+                                    <a href="${a}" target="_blank" class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-blue-400 hover:text-white hover:border-blue-500 transition">
+                                        <span>📎</span>
+                                        <span>Download Attachment</span>
+                                    </a>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+
                 d.innerHTML = c + `<span class="text-[9px] text-slate-600 mt-1">${new Date(m.timestamp).toLocaleTimeString()}</span>`;
                 box.appendChild(d);
             });
