@@ -26,18 +26,19 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // ==========================================
-// 1. STORAGE CONFIGURATION
+// 1. DISK STORAGE CONFIGURATION
 // ==========================================
 
-// Determine if we are running on Render or Local Machine
+// Determine storage path based on environment
 const DATA_DIR = process.env.RENDER === 'true' ? '/var/data' : path.join(__dirname, 'local_storage');
 
-// Ensure storage folders exist immediately on startup
+// Create Data Directory if missing
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     console.log(`[SYSTEM] Created Data Directory: ${DATA_DIR}`);
 }
 
+// Create Archive Directory if missing
 const ARCHIVE_DIR = path.join(DATA_DIR, 'archives');
 if (!fs.existsSync(ARCHIVE_DIR)) {
     fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
@@ -47,36 +48,36 @@ if (!fs.existsSync(ARCHIVE_DIR)) {
 console.log(`[SYSTEM] 📂 Storage Mounted at: ${DATA_DIR}`);
 
 // ==========================================
-// 2. DATABASE MODELS
+// 2. DATABASE CONFIGURATION & MODELS
 // ==========================================
 
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log("[SYSTEM] ✅ MongoDB Connected"))
+    .then(() => {
+        console.log("[SYSTEM] ✅ MongoDB Connected");
+        performDatabaseRepair(); // Trigger repair routine on connection
+    })
     .catch(e => console.error("[SYSTEM] ❌ DB Error:", e));
 
-// Staff Member Model
+// Model: Staff Member
 const Staff = mongoose.model('Staff', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     discordId: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
-    // Stats
     ticketsClosed: { type: Number, default: 0 },
     repliesSent: { type: Number, default: 0 },
     ratingSum: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 }
 }));
 
-// Active Ticket Thread Model
+// Model: Active Ticket Thread
 const Thread = mongoose.model('Thread', new mongoose.Schema({
     userId: String,
     userTag: String,
     botId: String,
     botName: String,
-    // Claiming System
     claimedBy: { type: String, default: null },
     claimedAt: { type: Date, default: null },
-    // Messages
     messages: [{
         authorTag: String,
         content: String,
@@ -87,7 +88,7 @@ const Thread = mongoose.model('Thread', new mongoose.Schema({
     lastMessageAt: { type: Date, default: Date.now }
 }));
 
-// License Model
+// Model: License Key
 const License = mongoose.model('License', new mongoose.Schema({
     key: String,
     instanceId: String,
@@ -102,14 +103,14 @@ const License = mongoose.model('License', new mongoose.Schema({
     reminderSent: { type: Boolean, default: false }
 }));
 
-// Global Configuration
+// Model: Global Configuration
 const Config = mongoose.model('Config', new mongoose.Schema({
     id: { type: String, default: 'global' },
     supportOnline: { type: Boolean, default: true },
     offlineNote: { type: String, default: '' }
 }));
 
-// Sticky Notes (CRM)
+// Model: CRM Sticky Notes
 const UserNote = mongoose.model('UserNote', new mongoose.Schema({
     userId: { type: String, required: true, unique: true },
     note: { type: String, default: "" },
@@ -117,18 +118,18 @@ const UserNote = mongoose.model('UserNote', new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 }));
 
-// Canned Responses (Macros)
+// Model: Canned Responses (Macros)
 const Macro = mongoose.model('Macro', new mongoose.Schema({
     title: { type: String, required: true },
     content: { type: String, required: true }
 }));
 
 // ==========================================
-// 3. INITIALIZATION & MIDDLEWARE
+// 3. SYSTEM UTILITIES (SETUP & REPAIR)
 // ==========================================
 
 async function setupDefaults() {
-    // Ensure default admin exists
+    // Check for Admin
     const adminExists = await Staff.findOne({ username: 'admin' });
     if (!adminExists) {
         const hashedPassword = await bcrypt.hash('map4491', 10);
@@ -141,7 +142,7 @@ async function setupDefaults() {
         console.log("[SYSTEM] ✅ Default Admin Created");
     }
 
-    // Ensure default config exists
+    // Check for Config
     const configExists = await Config.findOne({ id: 'global' });
     if (!configExists) {
         await new Config({ id: 'global', supportOnline: true }).save();
@@ -149,6 +150,30 @@ async function setupDefaults() {
     }
 }
 setupDefaults();
+
+// Auto-Repair Function for Legacy Data
+async function performDatabaseRepair() {
+    console.log("[SYSTEM] 🛠️  Running database integrity check...");
+    try {
+        // Fix threads missing the 'claimedBy' field
+        const result = await Thread.updateMany(
+            { claimedBy: { $exists: false } },
+            { $set: { claimedBy: null, claimedAt: null } }
+        );
+        
+        if (result.modifiedCount > 0) {
+            console.log(`[SYSTEM] ✅ Repaired ${result.modifiedCount} legacy tickets.`);
+        } else {
+            console.log("[SYSTEM] ✅ Database is healthy (No legacy tickets found).");
+        }
+    } catch (e) {
+        console.error("[SYSTEM] ❌ Database Repair Failed:", e);
+    }
+}
+
+// ==========================================
+// 4. SERVER MIDDLEWARE
+// ==========================================
 
 app.set('trust proxy', 1); 
 app.use(express.json({ limit: '10mb' })); 
@@ -161,26 +186,32 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 24, secure: true, sameSite: 'none' } 
 }));
 
-// Auth Guards
+// Authentication Middleware
 const isAuth = (req, res, next) => {
-    if (req.session.staffId) return next();
+    if (req.session.staffId) {
+        return next();
+    }
     res.status(401).send("Unauthorized");
 };
 
+// Admin Authorization Middleware
 const isAdmin = (req, res, next) => {
-    if (req.session.staffId && req.session.isAdmin) return next();
+    if (req.session.staffId && req.session.isAdmin) {
+        return next();
+    }
     res.status(403).send("Admin only");
 };
 
 const getPanelUrl = () => process.env.APP_URL || "Panel URL Not Configured";
 
 // ==========================================
-// 4. DISCORD BOT LOGIC
+// 5. DISCORD BOT CLIENTS
 // ==========================================
 
 const botTokens = [process.env.BOT_ONE_TOKEN, process.env.BOT_TWO_TOKEN].filter(t => t);
 const clients = [];
 
+// Helper: Log to Discord Channel
 async function sendLog(title, description, color = '#3b82f6', files = []) {
     if (!process.env.LOG_CHANNEL_ID || !clients[0]) return;
     try {
@@ -191,11 +222,13 @@ async function sendLog(title, description, color = '#3b82f6', files = []) {
             .setColor(color)
             .setTimestamp();
         await channel.send({ embeds: [logEmbed], files: files });
+        console.log(`[LOG] Log sent: ${title}`);
     } catch (e) { 
         console.error("[LOG] Error sending log:", e.message); 
     }
 }
 
+// Initialize Bots
 botTokens.forEach((token, index) => {
     const client = new Client({
         intents: [
@@ -214,30 +247,30 @@ botTokens.forEach((token, index) => {
         console.log(`[BOT_${index + 1}] 🤖 Logged in as ${client.user.tag}`);
     });
 
-    // A. User Typing Logic
+    // A. Listen for User Typing
     client.on('typingStart', async (typing) => {
         if (typing.user.bot) return;
-        // Broadcast to web panel
         io.emit('user_typing', { userId: typing.user.id });
     });
 
-    // B. Interaction Logic (Star Ratings)
+    // B. Listen for Button Clicks (Ratings)
     client.on('interactionCreate', async (interaction) => {
         if (!interaction.isButton()) return;
 
+        // Custom ID format: action_score_staffId
         const [action, scoreStr, staffId] = interaction.customId.split('_');
 
         if (action === 'rate') {
             const score = parseInt(scoreStr);
             
-            // Update Staff Stats
+            // Increment Staff Stats
             await Staff.findByIdAndUpdate(staffId, { 
                 $inc: { ratingSum: score, ratingCount: 1 } 
             });
 
-            console.log(`[RATING] Staff ${staffId} received ${score} stars.`);
+            console.log(`[RATING] User rated Staff ${staffId}: ${score} Stars`);
 
-            // Disable Buttons
+            // Disable buttons to prevent double voting
             const disabledRow = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId('done')
@@ -253,28 +286,34 @@ botTokens.forEach((token, index) => {
         }
     });
 
-    // C. Message Logic (New Ticket / Reply)
+    // C. Listen for Messages
     client.on('messageCreate', async (message) => {
         if (message.author.bot || message.guild) return; 
         
+        // Find existing thread
         let thread = await Thread.findOne({ userId: message.author.id, botId: client.user.id });
         
-        // Handle New Ticket
+        // --- NEW TICKET CREATION LOGIC ---
         if (!thread) {
-            console.log(`[TICKET] 📩 New Thread: ${message.author.tag}`);
+            console.log(`[TICKET] 📩 New Thread Started: ${message.author.tag}`);
+            
+            // Create Database Entry
             thread = new Thread({ 
                 userId: message.author.id, 
                 userTag: message.author.tag, 
                 botId: client.user.id, 
                 botName: client.user.username, 
-                messages: [] 
+                messages: [],
+                claimedBy: null, // Explicitly set for new schema
+                claimedAt: null
             });
             
+            // Check Config for Auto-Replies
             const config = await Config.findOne({ id: 'global' });
             const isManualOnline = config ? config.supportOnline : true;
             const offlineNote = config ? config.offlineNote : '';
 
-            // AST Timezone Logic
+            // Check Time (AST)
             const now = new Date();
             const options = { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' };
             const formatter = new Intl.DateTimeFormat('en-US', options);
@@ -316,7 +355,8 @@ botTokens.forEach((token, index) => {
             sendLog("🆕 Ticket Created", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
         }
         
-        // Save Message to DB
+        console.log(`[MSG] 📥 From ${message.author.tag}: ${message.content.substring(0, 30)}...`);
+
         const attachments = message.attachments.map(a => a.url);
         const msgData = { 
             authorTag: message.author.tag, 
@@ -329,6 +369,8 @@ botTokens.forEach((token, index) => {
         thread.messages.push(msgData);
         thread.lastMessageAt = new Date();
         await thread.save();
+        
+        // Push update to Web Panel
         io.emit('new_message', { threadId: thread._id, notif_sound: true, ...msgData });
     });
 
@@ -337,11 +379,11 @@ botTokens.forEach((token, index) => {
 });
 
 // ==========================================
-// 5. SOCKET IO EVENTS
+// 6. SOCKET.IO EVENTS
 // ==========================================
 
 io.on('connection', (socket) => {
-    // Handle Staff Typing
+    // Listen for Staff Typing in Panel
     socket.on('staff_typing', async (data) => {
         const { threadId } = data;
         const thread = await Thread.findById(threadId);
@@ -351,7 +393,7 @@ io.on('connection', (socket) => {
         if (client) {
             try {
                 const user = await client.users.fetch(thread.userId);
-                // Trigger typing in Discord DM
+                // Trigger Discord "Bot is typing..."
                 const dmChannel = user.dmChannel || await user.createDM();
                 await dmChannel.sendTyping();
             } catch(e) {}
@@ -360,10 +402,10 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
-// 6. API ROUTES - TICKET MANAGEMENT
+// 7. API ROUTES - TICKET MANAGEMENT
 // ==========================================
 
-// Close Thread & Archive
+// Route: Archive Thread
 app.post('/api/close-thread', isAuth, async (req, res) => {
     const { threadId } = req.body;
     console.log(`[ARCHIVE] 🔒 Archiving thread ${threadId} by ${req.session.username}`);
@@ -371,7 +413,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
 
-    // 1. Generate Transcript Text
+    // 1. Generate Text Transcript
     let transcriptText = `OFFICIAL TRANSCRIPT: ${thread.userTag}\nBot: ${thread.botName}\n\n`;
     thread.messages.forEach(m => { 
         transcriptText += `[${m.timestamp.toISOString()}] ${m.authorTag}: ${m.content}\n`; 
@@ -382,7 +424,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     try {
         fs.writeFileSync(tempPath, transcriptText);
         
-        // 2. Log to Discord Log Channel
+        // 2. Send Log to Discord
         await sendLog("🔒 Archive Logged", `User: ${thread.userTag}\n**Saved to System Disk**`, '#ef4444', [new AttachmentBuilder(tempPath)]);
         
         // 3. Save JSON to Persistent Disk
@@ -399,7 +441,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
         fs.writeFileSync(filePath, JSON.stringify(archiveData, null, 2));
         console.log(`[ARCHIVE] ✅ Saved to disk: ${filePath}`);
         
-        // 4. Send Rating Request to User
+        // 4. Send 5-Star Rating Request to User
         const staffId = req.session.staffId;
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`rate_1_${staffId}`).setLabel('1⭐').setStyle(ButtonStyle.Secondary),
@@ -424,7 +466,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
             } 
         }
 
-        // 5. Cleanup
+        // 5. Cleanup Database
         await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { ticketsClosed: 1 } });
         await Thread.findByIdAndDelete(threadId);
         fs.unlinkSync(tempPath);
@@ -436,7 +478,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     }
 });
 
-// Claim Ticket
+// Route: Claim Ticket
 app.post('/api/claim', isAuth, async (req, res) => {
     const { threadId } = req.body;
     console.log(`[CLAIM] Attempt by ${req.session.username} on ${threadId}`);
@@ -444,7 +486,7 @@ app.post('/api/claim', isAuth, async (req, res) => {
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
 
-    // Check if already claimed
+    // Check if locked
     if (thread.claimedBy && thread.claimedBy !== req.session.username && !req.session.isAdmin) {
         return res.status(403).json({ error: `Locked by ${thread.claimedBy}` });
     }
@@ -457,7 +499,7 @@ app.post('/api/claim', isAuth, async (req, res) => {
     res.json({ success: true, claimedBy: thread.claimedBy });
 });
 
-// Unclaim Ticket
+// Route: Unclaim Ticket
 app.post('/api/unclaim', isAuth, async (req, res) => {
     const { threadId } = req.body;
     const thread = await Thread.findById(threadId);
@@ -474,7 +516,7 @@ app.post('/api/unclaim', isAuth, async (req, res) => {
     res.json({ success: true });
 });
 
-// Reply to Ticket
+// Route: Reply to Ticket
 app.post('/api/reply', isAuth, async (req, res) => {
     const { threadId, content, fileBase64, fileName } = req.body;
     console.log(`[REPLY] 📤 Staff ${req.session.username} replying to thread ${threadId}`);
@@ -515,14 +557,14 @@ app.post('/api/reply', isAuth, async (req, res) => {
     }
 });
 
-// Get Active Threads
+// Route: Get All Threads
 app.get('/api/threads', isAuth, async (req, res) => { 
     const threads = await Thread.find().sort({ lastMessageAt: -1 }); 
     res.json(threads); 
 });
 
 // ==========================================
-// 7. API ROUTES - CRM
+// 8. API ROUTES - CRM & DISK
 // ==========================================
 
 // Get User History from Disk
@@ -575,7 +617,7 @@ app.post('/api/crm/note', isAuth, async (req, res) => {
 });
 
 // ==========================================
-// 8. API ROUTES - MACROS
+// 9. API ROUTES - MACROS
 // ==========================================
 
 app.get('/api/macros', isAuth, async (req, res) => { 
@@ -596,15 +638,18 @@ app.post('/api/admin/macros/delete', isAdmin, async (req, res) => {
 });
 
 // ==========================================
-// 9. API ROUTES - AUTH
+// 10. API ROUTES - AUTH
 // ==========================================
 
+// Get Current User Info
 app.get('/api/auth/user', isAuth, (req, res) => {
     res.json({ username: req.session.username, isAdmin: req.session.isAdmin });
 });
 
+// Login
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
+    console.log(`[AUTH] 🔐 Login attempt: ${username}`);
     const user = await Staff.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
         req.session.staffId = user._id; 
@@ -616,6 +661,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Logout
 app.post('/api/logout', (req, res) => { 
     req.session.destroy(() => { 
         res.clearCookie('connect.sid'); 
@@ -623,6 +669,7 @@ app.post('/api/logout', (req, res) => {
     }); 
 });
 
+// Request Password Reset
 app.post('/api/public/request-reset', async (req, res) => {
     const { discordId } = req.body;
     console.log(`[AUTH] 🆘 Recovery requested: ${discordId}`);
@@ -641,6 +688,7 @@ app.post('/api/public/request-reset', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "DM Failed" }); }
 });
 
+// Self Reset Password
 app.post('/api/staff/self-reset', isAuth, async (req, res) => {
     const { newPassword } = req.body;
     const staff = await Staff.findById(req.session.staffId);
@@ -654,7 +702,7 @@ app.post('/api/staff/self-reset', isAuth, async (req, res) => {
 });
 
 // ==========================================
-// 10. API ROUTES - ADMIN & BOT FLEET
+// 11. API ROUTES - ADMIN & BOT FLEET
 // ==========================================
 
 app.get('/api/admin/stats', isAdmin, async (req, res) => { 
@@ -677,7 +725,7 @@ app.post('/api/admin/config/toggle', isAdmin, async (req, res) => {
     res.json({ success: true, supportOnline: config.supportOnline }); 
 });
 
-// A. Server List
+// A. Server List (Bot Fleet)
 app.get('/api/admin/servers', isAdmin, async (req, res) => {
     let servers = [];
     clients.forEach(c => {
@@ -729,7 +777,7 @@ app.post('/api/admin/dm-owner', isAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: "DM Failed" }); }
 });
 
-// E. Bulk Broadcast
+// E. Bulk Broadcast (Global)
 app.post('/api/admin/bulk-message', isAdmin, async (req, res) => {
     console.log(`[ADMIN] Starting global broadcast...`);
     let sentCount = 0;
@@ -747,7 +795,7 @@ app.post('/api/admin/bulk-message', isAdmin, async (req, res) => {
     res.json({ success: true, sentTo: sentCount });
 });
 
-// F. Licensing
+// F. License Activation
 app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
     console.log(`[LICENSE] 🔑 Activation attempt for ${req.body.discord_id}`);
     try {
@@ -782,7 +830,7 @@ app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
     }
 });
 
-// G. Staff Management
+// G. Add Staff
 app.post('/api/admin/staff/add', isAdmin, async (req, res) => { 
     console.log(`[ADMIN] 👤 Adding staff: ${req.body.username}`);
     const tempPass = Math.random().toString(36).slice(-8); 
@@ -802,6 +850,7 @@ app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
     res.json({ success: true }); 
 });
 
+// H. Delete Staff
 app.post('/api/admin/staff/delete', isAdmin, async (req, res) => { 
     console.log(`[ADMIN] 🗑️ Deleting staff ID: ${req.body.staffId}`);
     if (req.body.staffId === req.session.staffId.toString()) return res.status(400).json({ error: "Cannot delete yourself" }); 
@@ -809,7 +858,7 @@ app.post('/api/admin/staff/delete', isAdmin, async (req, res) => {
     res.json({ success: true }); 
 });
 
-// H. Manual DM (Open Ticket)
+// I. Manual DM (Open Ticket)
 app.post('/api/admin/manual-dm', isAdmin, async (req, res) => {
     console.log(`[ADMIN] 📨 Manual DM to ${req.body.discordId}`);
     try {
@@ -835,4 +884,5 @@ app.post('/api/admin/manual-dm', isAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: "DM Failed" }); }
 });
 
-server.listen(process.env.PORT || 10000, () => console.log(`[SYSTEM] 🚀 HQ Terminal Ready`));
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => console.log(`[SYSTEM] 🚀 HQ Terminal Ready on Port ${PORT}`));
