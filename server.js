@@ -1,21 +1,14 @@
 /**
  * =========================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER (v7.9)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER (v8.1)
  * =========================================================================================
  * * STATUS: FULLY EXPANDED & VERBOSE
- * * LOGGING: RESTORED
- * * ARCHITECTURE: Multi-Page Application (MPA)
- * * FEATURES:
- * - Dual Bot Core (Miraidon + Mable)
- * - Secure Session Auth
- * - License System (Sell.App + Auto-DM + Server Tracking)
- * - Automatic Expiration Reminders
- * - Full Admin Fleet Management
- * - CRM & Transcript Logging
+ * * FIX: Restored full 1-5 Star Rating Buttons
+ * * FEATURES: All previous features included.
  * =========================================================================================
  */
 
-// 1. Load Environment Variables
+// 1. Load Environment Configuration
 require('dotenv').config();
 
 // 2. Import Required Modules
@@ -41,17 +34,17 @@ const {
     ButtonStyle 
 } = require('discord.js');
 
-// 3. Initialize Server
+// 3. Initialize Server Instance
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 
 // =========================================================================================
-//  SECTION: DISK STORAGE CONFIGURATION
+//  SECTION: FILE SYSTEM STORAGE
 // =========================================================================================
 
-// Determine correct storage path (Render vs Local)
+// Determine correct storage path based on environment (Render vs Local)
 let DATA_DIR;
 if (process.env.RENDER === 'true') {
     DATA_DIR = '/var/data';
@@ -59,45 +52,47 @@ if (process.env.RENDER === 'true') {
     DATA_DIR = path.join(__dirname, 'local_storage');
 }
 
-// Create Data Directory if it does not exist
+// Ensure Data Directory Exists
 if (!fs.existsSync(DATA_DIR)) {
+    console.log(`[SYSTEM] Initializing Data Directory at: ${DATA_DIR}`);
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    console.log(`[SYSTEM] 📂 Created Data Directory: ${DATA_DIR}`);
 }
 
-// Create Archive Directory if it does not exist
+// Ensure Archive Directory Exists
 const ARCHIVE_DIR = path.join(DATA_DIR, 'archives');
 if (!fs.existsSync(ARCHIVE_DIR)) {
+    console.log(`[SYSTEM] Initializing Archive Directory at: ${ARCHIVE_DIR}`);
     fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
-    console.log(`[SYSTEM] 📂 Created Archive Directory: ${ARCHIVE_DIR}`);
 }
 
 console.log(`[SYSTEM] 📂 Storage Mounted Successfully at: ${DATA_DIR}`);
 
 
 // =========================================================================================
-//  SECTION: DATABASE CONNECTION & MODELS
+//  SECTION: DATABASE CONNECTION & SCHEMAS
 // =========================================================================================
 
+// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log("[SYSTEM] ✅ MongoDB Connection Successful");
-        setupDefaults();
-        performDatabaseRepair();
+        initializeSystemDefaults();
+        repairDatabaseIntegrity();
     })
     .catch((error) => {
-        console.error("[SYSTEM] ❌ CRITICAL MongoDB Connection Error:", error);
+        console.error("[SYSTEM] ❌ CRITICAL DB ERROR:", error);
     });
 
 /**
- * MODEL: Staff
+ * SCHEMA: Staff
+ * Managing login credentials and performance metrics.
  */
 const StaffSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     discordId: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
-    // Stats
+    // Metrics
     ticketsClosed: { type: Number, default: 0 },
     repliesSent: { type: Number, default: 0 },
     ratingSum: { type: Number, default: 0 },
@@ -106,15 +101,15 @@ const StaffSchema = new mongoose.Schema({
 const Staff = mongoose.model('Staff', StaffSchema);
 
 /**
- * MODEL: Thread (Active Ticket)
+ * SCHEMA: Thread
+ * Represents an active support ticket.
  */
 const ThreadSchema = new mongoose.Schema({
     userId: String,
     userTag: String,
     botId: String,
     botName: String,
-    claimedBy: { type: String, default: null },
-    claimedAt: { type: Date, default: null },
+    claimedBy: { type: String, default: null }, // Legacy compatibility
     messages: [{
         authorTag: String,
         content: String,
@@ -127,25 +122,27 @@ const ThreadSchema = new mongoose.Schema({
 const Thread = mongoose.model('Thread', ThreadSchema);
 
 /**
- * MODEL: License
+ * SCHEMA: License
+ * Manages keys generated via Sell.App API.
  */
 const LicenseSchema = new mongoose.Schema({
     key: String,
     instanceId: String,
     discordId: String,
-    serverId: String,      // Added v7.8
-    serverName: String,    // Added v7.8
+    serverId: String,      // For tracking removal later
+    serverName: String,    // For tracking removal later
     channelId: String,
     type: String,
     duration: String,
     activatedAt: { type: Date, default: Date.now },
-    expiresAt: Date,
-    reminderSent: { type: Boolean, default: false }
+    expiresAt: Date, // Null = Lifetime
+    reminderSent: { type: Boolean, default: false } // Tracks if 3-day warning was sent
 });
 const License = mongoose.model('License', LicenseSchema);
 
 /**
- * MODEL: Config
+ * SCHEMA: Config
+ * Global settings (Online/Offline Toggle).
  */
 const ConfigSchema = new mongoose.Schema({
     id: { type: String, default: 'global' },
@@ -155,7 +152,8 @@ const ConfigSchema = new mongoose.Schema({
 const Config = mongoose.model('Config', ConfigSchema);
 
 /**
- * MODEL: UserNote
+ * SCHEMA: UserNote
+ * CRM Sticky Notes for users.
  */
 const UserNoteSchema = new mongoose.Schema({
     userId: { type: String, required: true, unique: true },
@@ -166,7 +164,8 @@ const UserNoteSchema = new mongoose.Schema({
 const UserNote = mongoose.model('UserNote', UserNoteSchema);
 
 /**
- * MODEL: Macro
+ * SCHEMA: Macro
+ * Canned responses for staff.
  */
 const MacroSchema = new mongoose.Schema({
     title: { type: String, required: true },
@@ -175,7 +174,8 @@ const MacroSchema = new mongoose.Schema({
 const Macro = mongoose.model('Macro', MacroSchema);
 
 /**
- * MODEL: FAQ
+ * SCHEMA: FAQ
+ * Dynamic Questions/Answers for the public page.
  */
 const FAQSchema = new mongoose.Schema({
     question: { type: String, required: true },
@@ -186,11 +186,11 @@ const FAQ = mongoose.model('FAQ', FAQSchema);
 
 
 // =========================================================================================
-//  SECTION: SYSTEM UTILITIES & STARTUP
+//  SECTION: STARTUP ROUTINES
 // =========================================================================================
 
-async function setupDefaults() {
-    // Check if an admin exists
+async function initializeSystemDefaults() {
+    // Create default Admin if missing
     const adminExists = await Staff.findOne({ username: 'admin' });
     if (!adminExists) {
         const hashedPassword = await bcrypt.hash('map4491', 10);
@@ -200,10 +200,10 @@ async function setupDefaults() {
             discordId: '000000000000000000', 
             isAdmin: true 
         }).save();
-        console.log("[SYSTEM] ✅ Default Admin Account Created (admin/map4491)");
+        console.log("[SYSTEM] ✅ Default Admin Account Created");
     }
 
-    // Check if config exists
+    // Create default Config if missing
     const configExists = await Config.findOne({ id: 'global' });
     if (!configExists) {
         await new Config({ id: 'global', supportOnline: true }).save();
@@ -211,26 +211,31 @@ async function setupDefaults() {
     }
 }
 
-async function performDatabaseRepair() {
+async function repairDatabaseIntegrity() {
+    // Ensures legacy tickets have the 'claimedBy' field to prevent UI crashes
     try {
         await Thread.updateMany(
             { claimedBy: { $exists: false } },
             { $set: { claimedBy: null } }
         );
-        console.log("[SYSTEM] ✅ Database Schema Integrity Verified");
+        console.log("[SYSTEM] ✅ Database Integrity Verified");
     } catch (e) {
-        console.error("[SYSTEM] ❌ Database Repair Failed:", e);
+        console.error("[SYSTEM] Repair Failed:", e);
     }
 }
 
 
 // =========================================================================================
-//  SECTION: SERVER CONFIGURATION & AUTHENTICATION
+//  SECTION: EXPRESS MIDDLEWARE & AUTHENTICATION
 // =========================================================================================
 
-app.set('trust proxy', 1); 
-app.use(express.json({ limit: '50mb' })); // Increased limit for ZIP files
+// Proxy trust for Render/Nginx
+app.set('trust proxy', 1);
 
+// JSON Parsing (Large limit for file uploads like zips)
+app.use(express.json({ limit: '50mb' }));
+
+// Session Management
 app.use(session({
     secret: process.env.SESSION_SECRET || 'hq-secret-key-default',
     resave: true,
@@ -247,23 +252,22 @@ app.use(session({
 const isAuth = (req, res, next) => {
     if (req.session.staffId) {
         return next();
-    } else {
-        console.log(`[AUTH] 🛑 Unauthorized access attempt to ${req.path}`);
-        if (req.path.startsWith('/api')) {
-            return res.status(401).json({ error: "Unauthorized" });
-        }
-        return res.redirect('/login.html');
     }
+    // If API request, return JSON error
+    if (req.path.startsWith('/api')) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+    // If Page request, redirect to login
+    return res.redirect('/login.html');
 };
 
 // Middleware: Admin Guard
 const isAdmin = (req, res, next) => {
     if (req.session.staffId && req.session.isAdmin) {
         return next();
-    } else {
-        console.log(`[AUTH] 🛑 Non-Admin attempted to access ${req.path}`);
-        return res.status(403).json({ error: "Admin Access Required" });
     }
+    console.log(`[AUTH] 🛑 Non-Admin attempted to access ${req.path}`);
+    return res.status(403).json({ error: "Admin Access Required" });
 };
 
 const getPanelUrl = () => {
@@ -325,7 +329,7 @@ botTokens.forEach((token, index) => {
     });
 
     client.once('ready', () => {
-        console.log(`[BOT_${index + 1}] 🤖 Logged in as ${client.user.tag}`);
+        console.log(`[BOT_${index + 1}] 🤖 Active: ${client.user.tag}`);
     });
 
     // TYPING INDICATOR
@@ -383,7 +387,7 @@ botTokens.forEach((token, index) => {
                 userTag: message.author.tag, 
                 botId: client.user.id, 
                 botName: client.user.username, 
-                messages: []
+                messages: [] 
             });
             
             const config = await Config.findOne({ id: 'global' });
@@ -410,7 +414,7 @@ botTokens.forEach((token, index) => {
                 autoReply = new EmbedBuilder().setColor('#ef4444').setTitle('Support Currently Offline').setDescription(`Support has been toggled offline by staff.\n\n${noteText}We will respond when available.`).setTimestamp();
             } else if (!isWorkHours) {
                 console.log(`[TICKET] ⚠️ Auto-Reply: Outside Hours`);
-                autoReply = new EmbedBuilder().setColor('#f59e0b').setTitle('Support Closed').setDescription('You have reached us outside of support hours (8:00 AM - 11:59 PM AST).').setTimestamp();
+                autoReply = new EmbedBuilder().setColor('#f59e0b').setTitle('Support Closed').setDescription('Hours: 8:00 AM - 11:59 PM AST.').setTimestamp();
             } else {
                 console.log(`[TICKET] ✅ Auto-Reply: Online`);
                 autoReply = new EmbedBuilder().setColor('#3b82f6').setTitle('Support Ticket Opened').setDescription('A staff member will respond to your inquiry within **12-24 hours**.').setTimestamp();
@@ -689,11 +693,14 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
 
         fs.writeFileSync(filePath, JSON.stringify(archiveData, null, 2));
         
-        // Send Rating Request
+        // FIXED: Full 5-Star Rating System restored
         const staffId = req.session.staffId;
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`rate_5_${staffId}`).setLabel('5⭐').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId(`rate_1_${staffId}`).setLabel('1⭐').setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId(`rate_1_${staffId}`).setLabel('1⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rate_2_${staffId}`).setLabel('2⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rate_3_${staffId}`).setLabel('3⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rate_4_${staffId}`).setLabel('4⭐').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId(`rate_5_${staffId}`).setLabel('5⭐').setStyle(ButtonStyle.Success)
         );
         
         const embed = new EmbedBuilder().setTitle("How was your support?").setDescription(`You were helped by **${req.session.username}**. Please rate your experience.`).setColor('#3b82f6');
