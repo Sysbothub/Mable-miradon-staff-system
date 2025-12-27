@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HQ TERMINAL</title>
+    <title>TRADE SERVICES PANEL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -25,7 +25,6 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
         .hidden { display: none !important; }
-        
         @media (max-width: 768px) { 
             .glass { border-radius: 0; border-left: 0; border-right: 0; } 
         }
@@ -37,21 +36,17 @@
 
     <div id="login-view" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
         <div class="glass p-8 rounded-2xl w-[90%] max-w-sm text-center border border-slate-800">
-            <h1 class="text-3xl font-black text-blue-500 mb-8 italic tracking-tighter">HQ TERMINAL</h1>
-            
+            <h1 class="text-3xl font-black text-blue-500 mb-8 italic tracking-tighter">TRADE SERVICES PANEL</h1>
             <input type="text" id="l-user" placeholder="IDENTIFIER" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-4 outline-none text-sm text-center transition focus:border-blue-500 text-white">
-            
             <input type="password" id="l-pass" placeholder="SECURITY KEY" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-6 outline-none text-sm text-center transition focus:border-blue-500 text-white">
-            
             <button id="login-btn" onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl font-bold uppercase text-sm tracking-widest shadow-lg shadow-blue-900/20">Establish Link</button>
-            
             <button onclick="requestRecovery()" class="text-xs text-slate-500 mt-4 hover:text-white uppercase font-bold">Lost Key? Recover via Discord</button>
         </div>
     </div>
 
     <header class="h-14 md:h-16 glass flex items-center justify-between px-4 z-50 shrink-0">
         <div class="flex items-center space-x-4">
-            <span class="font-black text-blue-500 italic text-lg">HQ</span>
+            <span class="font-black text-blue-500 italic text-lg">TSP</span>
             <div class="h-6 w-px bg-slate-800 mx-2"></div>
             <button onclick="showView('chat')" class="text-xs font-bold uppercase text-slate-300 hover:text-white transition">Tickets</button>
             <button id="nav-admin" onclick="showView('admin')" class="hidden text-xs font-bold uppercase text-amber-500 hover:text-amber-400 transition">Admin</button>
@@ -65,8 +60,7 @@
             
             <aside id="thread-list" class="w-full md:w-72 glass border-r border-slate-800 overflow-y-auto bg-[#020617] z-20 flex flex-col">
                 <div class="p-4 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#020617]/95 backdrop-blur">Active Frequencies</div>
-                <div id="thread-container" class="space-y-1 p-2">
-                    </div>
+                <div id="thread-container" class="space-y-1 p-2"></div>
             </aside>
             
             <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 w-full h-full absolute md:static inset-0 z-30">
@@ -80,41 +74,36 @@
                             <div id="status-sub" class="text-[10px] text-slate-500 uppercase font-bold">Live Secure Channel</div>
                         </div>
                     </div>
-                    <div class="flex space-x-2 items-center">
-                        <button id="btn-claim" onclick="toggleClaim()" class="hidden text-[10px] font-bold uppercase px-3 py-1.5 rounded border transition"></button>
+                    
+                    <div class="flex items-center space-x-2">
+                        <div id="viewer-display" class="hidden text-[10px] text-slate-400 font-bold mr-2 border border-slate-700 rounded px-2 py-1 bg-slate-900/50"></div>
                         
                         <button onclick="toggleCRM()" class="md:hidden p-2 text-slate-400 hover:text-yellow-400 font-bold border border-slate-700 rounded px-3">CRM</button>
-                        
                         <button onclick="closeTicket()" class="text-[10px] bg-red-600/10 text-red-500 border border-red-600/50 px-3 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold">Archive</button>
                     </div>
                 </div>
 
-                <div id="lock-overlay" class="hidden bg-slate-900/90 border-b border-red-900/50 p-2 text-center text-[10px] text-red-400 font-bold uppercase">
-                    🔒 Ticket Locked
-                </div>
-
                 <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-slate-950/50"></div>
-
+                
                 <div class="p-3 md:p-4 glass border-t border-slate-800 shrink-0 pb-safe">
                     <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached
                     </div>
-                    
                     <form onsubmit="sendReply(event)" class="flex space-x-2 items-end">
                         <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
                         
-                        <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                        <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700">+</button>
                         
                         <div class="relative group">
-                            <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1 disabled:opacity-50 disabled:cursor-not-allowed">⚡</button>
+                            <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1">⚡</button>
                             <div id="macro-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
                                 <div id="macro-list" class="max-h-48 overflow-y-auto">Loading...</div>
                             </div>
                         </div>
                         
-                        <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-950"></textarea>
+                        <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white"></textarea>
                         
-                        <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-800">Send</button>
+                        <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20">Send</button>
                     </form>
                 </div>
             </main>
@@ -180,7 +169,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div class="glass p-5 rounded-2xl border border-amber-500/20">
                         <h2 class="text-amber-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Response Macros</h2>
                         <div class="flex gap-2 mb-4">
@@ -199,7 +188,7 @@
                     </div>
                 </div>
 
-                <div class="glass p-5 rounded-2xl border border-slate-700/50">
+                <div class="glass p-5 rounded-2xl border border-slate-700/50 mt-4">
                     <h2 class="text-slate-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-slate-700/50 pb-2">Bot Fleet & Broadcasts</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -229,7 +218,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io(); 
-        
         let activeId = null; 
         let activeUserId = null; 
         let currentUser = "Staff"; 
@@ -238,28 +226,21 @@
         let selectedFile = null; 
         let typingTimeout = null;
 
-        // --- HTTP HELPER FUNCTION ---
+        // --- HTTP REQUEST WRAPPER ---
         async function req(url, method = 'GET', body = null) { 
-            try {
-                const res = await fetch(url, { 
-                    method, 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: body ? JSON.stringify(body) : null 
-                }); 
-                
-                if (res.status === 401 && !url.includes('/api/login')) { 
-                    document.getElementById('login-view').classList.remove('hidden'); 
-                    return { error: 'Unauthorized' }; 
-                } 
-                
-                return await res.json();
-            } catch (e) {
-                console.error("Request Failed:", e);
-                return { error: "Network Error" };
-            }
+            const res = await fetch(url, { 
+                method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: body ? JSON.stringify(body) : null 
+            }); 
+            if (res.status === 401 && !url.includes('/api/login')) { 
+                document.getElementById('login-view').classList.remove('hidden'); 
+                return { error: 'Unauthorized' }; 
+            } 
+            return res.json(); 
         }
 
-        // --- AUTH & STARTUP ---
+        // --- AUTHENTICATION & STARTUP ---
         async function identifyUser() { 
             const res = await req('/api/auth/user'); 
             if(res.username) { 
@@ -267,15 +248,12 @@
                 isUserAdmin = res.isAdmin; 
             } 
         } 
-        
-        // Start identification immediately
         identifyUser();
         
         async function doLogin() { 
             const btn = document.getElementById('login-btn'); 
             btn.innerText = "LINKING..."; 
             btn.disabled = true; 
-            
             const res = await fetch('/api/login', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
@@ -284,44 +262,28 @@
                     password: document.getElementById('l-pass').value 
                 }) 
             }); 
-            
-            if (res.ok) { 
-                window.location.reload(); 
-            } else { 
-                alert("ACCESS DENIED"); 
-                btn.innerText = "Establish Link"; 
-                btn.disabled = false; 
-            } 
+            if (res.ok) { window.location.reload(); } 
+            else { alert("ACCESS DENIED"); btn.innerText = "Establish Link"; btn.disabled = false; } 
         }
 
         async function doLogout() { 
-            const res = await fetch('/api/logout', { method: 'POST' });
-            if (res.ok) {
-                window.location.reload(); 
-            }
+            if(await (await fetch('/api/logout', { method: 'POST' })).ok) window.location.reload(); 
         }
 
         async function requestRecovery() { 
             const user = prompt("Enter your Discord ID to receive a new key:"); 
-            if (user) { 
+            if(user) { 
                 await req('/api/public/request-reset', 'POST', { discordId: user }); 
                 alert("Check your DMs."); 
             } 
         }
 
-        // --- NAVIGATION & UI TOGGLES ---
+        // --- NAVIGATION CONTROLS ---
         function showView(v) { 
             document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat'); 
             document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin'); 
-            
-            if (v === 'chat' && window.innerWidth < 768) {
-                closeChatMobile(); 
-            }
-            
-            if (v === 'admin') { 
-                loadAdminData(); 
-                loadAdminMacros(); 
-            } 
+            if(v === 'chat' && window.innerWidth < 768) closeChatMobile(); 
+            if(v === 'admin') { loadAdminData(); loadAdminMacros(); } 
         }
 
         function closeChatMobile() { 
@@ -329,6 +291,7 @@
             document.getElementById('chat-area').classList.add('hidden'); 
             document.getElementById('chat-area').classList.remove('flex'); 
             activeId = null; 
+            socket.emit('leave_ticket_room'); 
         }
 
         function openChatMobile() { 
@@ -340,16 +303,13 @@
         function toggleCRM() { 
             const p = document.getElementById('crm-panel'); 
             const o = document.getElementById('crm-overlay'); 
-            
-            if (p.classList.contains('hidden') || p.classList.contains('translate-x-full')) { 
+            if(p.classList.contains('hidden') || p.classList.contains('translate-x-full')) { 
                 p.classList.remove('hidden', 'translate-x-full'); 
                 p.classList.add('translate-x-0'); 
                 o.classList.remove('hidden'); 
             } else { 
                 p.classList.add('translate-x-full'); 
-                setTimeout(() => { 
-                    if(window.innerWidth < 768) p.classList.add('hidden'); 
-                }, 300); 
+                setTimeout(() => { if(window.innerWidth < 768) p.classList.add('hidden'); }, 300); 
                 o.classList.add('hidden'); 
             } 
         }
@@ -357,7 +317,7 @@
         // --- CORE CHAT LOGIC ---
         async function loadThreads() {
             const data = await req('/api/threads'); 
-            if (!data || data.error) return;
+            if(!data || data.error) return;
             
             const list = document.getElementById('thread-container'); 
             list.innerHTML = data.length === 0 ? '<div class="text-center text-slate-600 text-[10px] mt-10">NO ACTIVE SIGNALS</div>' : '';
@@ -388,9 +348,15 @@
                 `;
                 
                 d.onclick = () => { 
-                    console.log('Clicked Thread:', t._id); // Debug Log
+                    // Leave old room
+                    if(activeId) socket.emit('leave_ticket_room');
+                    
                     activeId = t._id; 
                     activeUserId = t.userId; 
+                    
+                    // Join new room
+                    socket.emit('join_ticket_room', { threadId: activeId, username: currentUser });
+                    
                     renderChat(); 
                     loadCRM(t.userId); 
                     if(window.innerWidth < 768) openChatMobile(); 
@@ -410,10 +376,7 @@
             
             document.getElementById('active-tag').innerHTML = `${cur.userTag} <span class="text-slate-600 text-[10px] ml-2 font-mono select-all">${uid}</span>`;
             
-            // Execute Safe Claim UI Update
-            updateClaimUI(cur);
-            
-            // Render Messages
+            // Render Messages Safe Mode
             if (cur.messages && Array.isArray(cur.messages)) {
                 cur.messages.forEach(m => {
                     const d = document.createElement('div'); 
@@ -437,7 +400,6 @@
                     box.appendChild(d);
                 });
             }
-            
             box.scrollTop = box.scrollHeight;
         }
 
@@ -454,7 +416,6 @@
         async function sendReply(event) { 
             event.preventDefault(); 
             const input = document.getElementById('msg-input'); 
-            
             if (!activeId) return; 
             
             await req('/api/reply', 'POST', { 
@@ -479,82 +440,16 @@
             } 
         }
 
-        // --- FAIL-SAFE CLAIMING UI ---
-        function updateClaimUI(t) {
-            const btn = document.getElementById('btn-claim'); 
-            const overlay = document.getElementById('lock-overlay');
-            
-            if (!btn || !overlay) {
-                console.error("UI Elements missing for Claim System");
-                return;
-            }
-            
-            btn.classList.remove('hidden');
-            
-            // Explicit check for undefined/null to handle old tickets
-            const claimedBy = (t.claimedBy === undefined || t.claimedBy === null) ? null : t.claimedBy;
-            
-            if (!claimedBy) { 
-                // Unlocked State
-                btn.innerText = "CLAIM"; 
-                btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-green-500/50 text-green-500 hover:bg-green-900/20 transition"; 
-                enableInputs(true); 
-            }
-            else if (claimedBy === currentUser) { 
-                // Claimed by Me
-                btn.innerText = "UNCLAIM"; 
-                btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-yellow-500/50 text-yellow-500 hover:bg-yellow-900/20 transition"; 
-                enableInputs(true); 
-            }
-            else { 
-                // Locked by Someone Else
-                btn.innerText = isUserAdmin ? `OVERRIDE (${claimedBy})` : `LOCKED: ${claimedBy}`; 
-                btn.className = isUserAdmin 
-                    ? "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-red-500/50 text-red-500 hover:bg-red-900/20 transition"
-                    : "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-red-500/50 text-red-500 cursor-not-allowed"; 
-                
-                // If admin, allow override. If not, lock inputs.
-                enableInputs(isUserAdmin); 
-                overlay.classList.toggle('hidden', isUserAdmin); 
-            }
-        }
-
-        function enableInputs(enable) { 
-            const ids = ['msg-input', 'btn-send', 'btn-macro', 'btn-add-file']; 
-            ids.forEach(id => { 
-                const el = document.getElementById(id); 
-                if(el) el.disabled = !enable; 
-            }); 
-            
-            const overlay = document.getElementById('lock-overlay'); 
-            if(overlay) overlay.classList.toggle('hidden', enable); 
-        }
-
-        async function toggleClaim() { 
-            if (!activeId) return; 
-            const t = threadStore[activeId]; 
-            
-            if (t.claimedBy === currentUser) {
-                await req('/api/unclaim', 'POST', { threadId: activeId }); 
-            } else {
-                await req('/api/claim', 'POST', { threadId: activeId }); 
-            }
-        }
-
         function notifyTyping() { 
-            if (activeId) {
-                socket.emit('staff_typing', { threadId: activeId }); 
-            }
+            if (activeId) socket.emit('staff_typing', { threadId: activeId }); 
         }
 
-        // --- MACROS & CRM LOGIC ---
+        // --- MACROS & CRM ---
         async function toggleMacros() { 
             const menu = document.getElementById('macro-menu'); 
-            
-            if (menu.classList.contains('hidden')) { 
+            if(menu.classList.contains('hidden')) { 
                 menu.classList.remove('hidden'); 
                 const res = await req('/api/macros'); 
-                
                 document.getElementById('macro-list').innerHTML = res.map(m => `
                     <button onclick="insertMacro('${m.content.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-2 text-[10px] hover:bg-slate-800 border-b border-slate-800 text-slate-300 truncate">
                         ${m.title}
@@ -567,14 +462,10 @@
 
         function insertMacro(text) { 
             const input = document.getElementById('msg-input'); 
-            // Auto-Fill User Name
             const smartText = text.replace(/{user}/gi, currentUser); 
-            
-            // Insert at Cursor Position
             const start = input.selectionStart; 
             const end = input.selectionEnd; 
             input.value = input.value.substring(0, start) + smartText + input.value.substring(end); 
-            
             document.getElementById('macro-menu').classList.add('hidden'); 
             input.focus(); 
             input.selectionStart = input.selectionEnd = start + smartText.length; 
@@ -594,7 +485,7 @@
             const title = document.getElementById('macro-title').value;
             const content = document.getElementById('macro-content').value;
             
-            if (await (await req('/api/admin/macros/add', 'POST', { title, content })).success) { 
+            if(await (await req('/api/admin/macros/add', 'POST', { title, content })).success) { 
                 document.getElementById('macro-title').value = ''; 
                 document.getElementById('macro-content').value = ''; 
                 loadAdminMacros(); 
@@ -602,7 +493,7 @@
         }
 
         async function deleteMacro(id) { 
-            if (confirm("Delete Macro?")) { 
+            if(confirm("Delete Macro?")) { 
                 await req('/api/admin/macros/delete', 'POST', { id }); 
                 loadAdminMacros(); 
             } 
@@ -610,14 +501,12 @@
         
         async function loadCRM(userId) { 
             document.getElementById('crm-history').innerHTML = '...'; 
-            
             const res = await req(`/api/crm/user/${userId}`); 
             document.getElementById('crm-note').value = res.note || ""; 
-            
             const h = document.getElementById('crm-history'); 
             h.innerHTML = ''; 
             
-            if (!res.history || res.history.length === 0) {
+            if(!res.history || res.history.length === 0) {
                 h.innerHTML = '<div class="text-[10px] text-slate-600 italic border border-slate-800 rounded p-2 text-center">No Archives</div>';
             } else {
                 res.history.forEach(f => { 
@@ -637,12 +526,8 @@
         }
 
         async function saveNote() { 
-            if (activeUserId) { 
-                await req('/api/crm/note', 'POST', { 
-                    userId: activeUserId, 
-                    note: document.getElementById('crm-note').value 
-                }); 
-                
+            if(activeUserId) { 
+                await req('/api/crm/note', 'POST', { userId: activeUserId, note: document.getElementById('crm-note').value }); 
                 const s = document.getElementById('note-status'); 
                 s.classList.remove('hidden'); 
                 setTimeout(()=>s.classList.add('hidden'), 2000); 
@@ -655,10 +540,7 @@
             c.innerHTML = 'Reading...'; 
             
             const res = await req(`/api/crm/transcript/${userId}/${filename}`); 
-            if (res.error) { 
-                c.innerText = "Error reading transcript file."; 
-                return; 
-            } 
+            if(res.error) { c.innerText = "Error"; return; } 
             
             c.innerHTML = ''; 
             res.messages.forEach(m => { 
@@ -677,9 +559,8 @@
 
         // --- ADMIN FUNCTIONS ---
         async function loadAdminData() { 
-            // 1. Staff Statistics
             const stats = await req('/api/admin/stats'); 
-            if (!stats.error) {
+            if(!stats.error) {
                 document.getElementById('staff-stats').innerHTML = stats.map(s => { 
                     const avg = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : "N/A"; 
                     return `
@@ -697,13 +578,13 @@
                 }).join(''); 
             }
             
-            // 2. Server List (With Bot Name)
+            // Server List (Bot Fleet)
             const srvs = await req('/api/admin/servers');
             document.getElementById('srv-list').innerHTML = srvs.map(s => `
                 <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded text-xs border border-slate-800">
                     <div class="flex flex-col">
                         <span class="font-bold text-slate-300">${s.name}</span>
-                        <span class="text-[9px] text-slate-500">${s.members} Mem | <span class="text-blue-400">🤖 ${s.botName}</span></span>
+                        <span class="text-[9px] text-slate-500">${s.members} members | <span class="text-blue-400">🤖 ${s.botName}</span></span>
                     </div>
                     <div class="flex space-x-1">
                         <button onclick="createInv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded text-[9px]">LINK</button>
@@ -736,7 +617,7 @@
             const resBox = document.getElementById('lic-result'); 
             resBox.classList.remove('hidden'); 
             
-            if (res.success) { 
+            if(res.success) { 
                 resBox.innerHTML = `<span class="text-green-400">SUCCESS</span> ID: ${res.data.id}`; 
                 resBox.className = "text-[10px] font-mono p-2 bg-green-900/20 rounded border border-green-500/20 text-center text-green-200 mt-2 block"; 
             } else { 
@@ -746,18 +627,18 @@
         }
 
         async function addStaff() { 
-            if (await (await req('/api/admin/staff/add', 'POST', { 
+            if(await (await req('/api/admin/staff/add', 'POST', { 
                 username: document.getElementById('add-user').value, 
                 discordId: document.getElementById('add-discord').value, 
                 adminStatus: document.getElementById('add-is-admin').checked 
             })).success) { 
-                alert("Staff Added"); 
+                alert("Added"); 
                 loadAdminData(); 
             } 
         }
 
         async function deleteStaff(id) { 
-            if (confirm("Revoke Staff Access?")) { 
+            if(confirm("Remove?")) { 
                 await req('/api/admin/staff/delete', 'POST', { staffId: id }); 
                 loadAdminData(); 
             } 
@@ -769,65 +650,70 @@
         }
         
         async function leaveSrv(serverId, botId) { 
-            if (confirm("Disconnect Bot from this server?")) { 
+            if (confirm("Disconnect Bot?")) { 
                 await req('/api/admin/leave-server', 'POST', { serverId, botId }); 
                 loadAdminData(); 
             } 
         }
         
         async function dmOwner(serverId, botId) { 
-            const message = prompt("Message to Server Owner:"); 
+            const message = prompt("Owner Message:"); 
             if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); 
         }
         
         async function sendBulk() { 
             const message = document.getElementById('bulk-msg').value; 
-            if (message && confirm("Confirm GLOBAL Broadcast to ALL server owners?")) { 
+            if (message && confirm("Broadcast?")) { 
                 const res = await req('/api/admin/bulk-message', 'POST', { message }); 
-                alert(`Broadcast sent to ${res.sentTo} owners.`); 
+                alert(`Sent to ${res.sentTo} owners.`); 
             } 
         }
         
         async function sendManualDM() { 
-            if (await (await req('/api/admin/manual-dm', 'POST', { 
+            if(await (await req('/api/admin/manual-dm', 'POST', { 
                 discordId: document.getElementById('dm-id').value, 
                 content: document.getElementById('dm-content').value 
             })).success) { 
-                alert("Message Sent & Ticket Opened"); 
+                alert("Sent"); 
                 document.getElementById('dm-content').value = ''; 
             } 
         }
 
-        // --- SOCKET EVENT HANDLERS ---
+        // --- SOCKET HANDLERS ---
         socket.on('new_message', (d) => { 
             if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); 
             
             if (threadStore[d.threadId]) { 
                 threadStore[d.threadId].messages.push(d); 
                 
-                // If viewing this thread, render msg
                 if (activeId === d.threadId) renderChat(); 
-                
-                // Update list timestamp
                 loadThreads(); 
             } else {
-                // New thread entirely
                 loadThreads(); 
             }
         });
 
-        socket.on('thread_update', (d) => { 
-            if (threadStore[d.threadId]) { 
-                threadStore[d.threadId].claimedBy = d.claimedBy; 
-                if (activeId === d.threadId) updateClaimUI(threadStore[d.threadId]); 
-            } 
+        // Update Viewer Display
+        socket.on('viewers_updated', (viewers) => {
+            const badge = document.getElementById('viewer-display');
+            if (viewers.length > 0) {
+                // Filter out self
+                const others = viewers.filter(v => v !== currentUser);
+                if (others.length > 0) {
+                    badge.innerText = `👀 Viewing: ${others.join(', ')}`;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } else {
+                badge.classList.add('hidden');
+            }
         });
 
         socket.on('user_typing', (d) => { 
             if (activeUserId && activeUserId === d.userId) { 
                 const i = document.getElementById('typing-indicator'); 
                 const s = document.getElementById('status-sub'); 
-                
                 i.classList.remove('hidden'); 
                 s.classList.add('hidden'); 
                 
@@ -842,14 +728,11 @@
         // --- INITIALIZATION ---
         (async () => { 
             const data = await req('/api/threads'); 
-            if (!data.error) { 
+            if(!data.error) { 
                 document.getElementById('login-view').classList.add('hidden'); 
                 loadThreads(); 
-                
                 const adminStats = await req('/api/admin/stats'); 
-                if (!adminStats.error) {
-                    document.getElementById('nav-admin').classList.remove('hidden'); 
-                }
+                if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden'); 
             } 
         })();
     </script>
