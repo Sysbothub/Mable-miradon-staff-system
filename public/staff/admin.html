@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body{background:#020617;color:white;font-family:monospace} input{background:#0f172a;border:1px solid #334155;padding:5px;width:100%;color:white}</style>
+</head>
+<body class="p-6">
+    <nav class="mb-6 flex justify-between items-center">
+        <span class="font-bold text-amber-500 text-lg">MIRAIDON TRADE SERVICES / ADMIN</span>
+        <a href="/staff/dashboard.html" class="text-xs text-slate-400 hover:text-white">BACK TO DASHBOARD</a>
+    </nav>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div class="p-4 border border-indigo-900 rounded bg-slate-900/50">
+            <h2 class="text-indigo-400 font-bold mb-3 border-b border-indigo-900 pb-1">LICENSE ACTIVATION</h2>
+            
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Customer Details</label>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <input id="lk" placeholder="License Key (from Customer)">
+                <input id="ld" placeholder="Discord User ID">
+            </div>
+            <input id="li" placeholder="Instance ID / HWID" class="mb-3">
+
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Server Details (For Tracking)</label>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <input id="sn" placeholder="Server Name">
+                <input id="sid" placeholder="Server ID">
+            </div>
+
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Plan Details</label>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <select id="dur" class="bg-slate-950 border border-slate-700 text-xs p-1 text-white">
+                    <option value="30 Days">30 Days</option>
+                    <option value="90 Days">90 Days</option>
+                    <option value="365 Days">365 Days</option>
+                    <option value="Lifetime">Lifetime</option>
+                </select>
+                <select id="type" class="bg-slate-950 border border-slate-700 text-xs p-1 text-white">
+                    <option value="Premium Subscription">Premium Subscription</option>
+                    <option value="Professor Mable Rental">Professor Mable Rental</option>
+                </select>
+            </div>
+
+            <button onclick="lic()" class="w-full bg-indigo-600 hover:bg-indigo-500 p-2 rounded font-bold text-xs mt-1 transition">ACTIVATE LICENSE</button>
+        </div>
+
+        <div class="p-4 border border-amber-900 rounded bg-slate-900/50">
+            <h2 class="text-amber-400 font-bold mb-2">STAFF MANAGEMENT</h2>
+            <div id="staff" class="h-20 overflow-y-auto mb-2 text-xs border border-slate-800 p-2 rounded"></div>
+            <div class="grid grid-cols-2 gap-2">
+                <input id="su" placeholder="Username">
+                <input id="sd" placeholder="Discord ID">
+            </div>
+            <div class="mt-2 flex justify-between items-center">
+                <label class="text-xs text-slate-400 flex items-center gap-2"><input type="checkbox" id="sa"> Grant Admin</label>
+                <button onclick="addS()" class="bg-amber-600 hover:bg-amber-500 px-4 py-1 rounded font-bold text-xs">ADD</button>
+            </div>
+        </div>
+
+        <div class="p-4 border border-pink-900 rounded bg-slate-900/50">
+            <h2 class="text-pink-400 font-bold mb-2">FAQ EDITOR</h2>
+            <input id="fq" placeholder="Question" class="mb-2">
+            <textarea id="fa" placeholder="Answer" class="bg-[#0f172a] border border-[#334155] p-2 w-full text-white text-xs h-16 mb-2"></textarea>
+            <button onclick="faq()" class="w-full bg-pink-600 hover:bg-pink-500 p-2 rounded font-bold text-xs">ADD FAQ</button>
+        </div>
+
+        <div class="p-4 border border-slate-700 rounded bg-slate-900/50">
+            <h2 class="text-slate-400 font-bold mb-2">BROADCAST</h2>
+            <input id="bm" placeholder="Message to ALL owners..." class="mb-2">
+            <button onclick="broadcast()" class="w-full bg-red-600 hover:bg-red-500 p-2 rounded font-bold text-xs">SEND BROADCAST</button>
+        </div>
+    </div>
+
+    <script>
+        const req = async (u,m='GET',b) => (await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null})).json();
+        
+        async function load() {
+            document.getElementById('staff').innerHTML = (await req('/api/admin/stats')).map(s=>`<div class="flex justify-between border-b border-slate-800 p-1"><span>${s.username} ${s.isAdmin?'(A)':''}</span><button onclick="delS('${s._id}')" class="text-red-500 font-bold">x</button></div>`).join('');
+        }
+        
+        async function lic() { 
+            const btn = event.target; btn.innerText = "Processing..."; btn.disabled = true;
+            try {
+                await req('/api/admin/license/activate','POST',{
+                    license_key: document.getElementById('lk').value,
+                    discord_id: document.getElementById('ld').value,
+                    instance_name: document.getElementById('li').value,
+                    server_name: document.getElementById('sn').value,
+                    server_id: document.getElementById('sid').value,
+                    type: document.getElementById('type').value,
+                    duration: document.getElementById('dur').value,
+                    channel_id: '000'
+                }); 
+                alert("License Activated & User Notified");
+                // Clear inputs
+                ['lk','ld','li','sn','sid'].forEach(id => document.getElementById(id).value = '');
+            } catch(e) {
+                alert("Error activating license.");
+            }
+            btn.innerText = "ACTIVATE LICENSE"; btn.disabled = false;
+        }
+
+        async function addS() { 
+            await req('/api/admin/staff/add','POST',{
+                username:document.getElementById('su').value,
+                discordId:document.getElementById('sd').value,
+                adminStatus:document.getElementById('sa').checked
+            }); 
+            load(); 
+        }
+        
+        async function delS(id) { 
+            if(confirm("Remove staff?")) { await req('/api/admin/staff/delete','POST',{staffId:id}); load(); }
+        }
+        
+        async function faq() { 
+            await req('/api/admin/faq/add','POST',{
+                question:document.getElementById('fq').value,
+                answer:document.getElementById('fa').value
+            }); 
+            alert("Added"); 
+        }
+
+        async function broadcast() {
+            if(confirm("SEND TO ALL SERVER OWNERS?")) {
+                await req('/api/admin/bulk-message', 'POST', { message: document.getElementById('bm').value });
+                alert("Sent.");
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>

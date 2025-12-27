@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Features - Miraidon Trade Services</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #020617; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(148, 163, 184, 0.1); backdrop-filter: blur(5px); }
+        .cmd-box { background: #0f172a; border: 1px solid #334155; padding: 1rem; border-radius: 0.5rem; font-family: monospace; color: #a5b4fc; margin-top: 0.5rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="p-6 flex justify-between items-center max-w-6xl mx-auto w-full z-10">
+        <a href="/" class="text-2xl font-bold text-indigo-400">MIRAIDON TRADE SERVICES</a>
+        <div class="space-x-6 text-sm font-bold text-slate-300">
+            <a href="/" class="hover:text-white transition">HOME</a>
+            <a href="/features.html" class="text-white border-b-2 border-indigo-500">FEATURES</a>
+            <a href="/policies.html" class="hover:text-white transition">POLICIES</a>
+            <a href="/faq.html" class="hover:text-white transition">FAQ</a>
+            <a href="https://discord.gg/your-invite" class="hover:text-white transition">DISCORD</a>
+            <a href="/login.html" class="text-indigo-400 hover:text-indigo-300 transition">STAFF LOGIN</a>
+        </div>
+    </nav>
+
+    <div class="flex-1 max-w-5xl mx-auto w-full p-6 space-y-12">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-black text-white mb-4">BOT FEATURES</h1>
+            <p class="text-slate-400">Discover the advanced capabilities of our trading system.</p>
+        </header>
+
+        <section class="glass p-8 rounded-2xl">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="text-3xl">📦</span>
+                <h2 class="text-2xl font-bold text-cyan-400">Batch Trades</h2>
+            </div>
+            
+            <p class="mb-6 leading-relaxed">
+                The <strong>Batch Trades</strong> command is designed for efficiency, allowing you to request up to <strong>6 Pokémon</strong> in a single session. This is perfect for completing teams or moving multiple sets quickly.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-2">1. Using Showdown Text</h3>
+                    <p class="text-sm text-slate-400 mb-2">Copy your Pokémon sets from Pokémon Showdown and separate each individual Pokémon using three dashes (<code>---</code>).</p>
+                    <div class="cmd-box">$batchtrade Miraidon @ Choice Specs
+Ability: Hadron Engine
+...
+---
+Flutter Mane @ Booster Energy
+...</div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-2">2. Using a ZIP File</h3>
+                    <p class="text-sm text-slate-400 mb-2">If you have your Pokémon saved as <strong>.pk9</strong> files, bundle them into a single ZIP archive and upload it.</p>
+                    <div class="cmd-box">$bt (Upload .zip attachment)</div>
+                </div>
+            </div>
+
+            <div class="mt-8 border-t border-slate-700 pt-6">
+                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-widest mb-3">Key Rules</h3>
+                <ul class="list-disc list-inside space-y-2 text-slate-400 text-sm">
+                    <li><strong>Limit:</strong> Maximum of 6 Pokémon per batch.</li>
+                    <li><strong>Wait Times:</strong> Processes all Pokémon in one session. Ensure you have enough "fodder" Pokémon ready.</li>
+                    <li><strong>Legality:</strong> Every Pokémon must pass the legality check, or the entire batch may be rejected.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="glass p-8 rounded-2xl border border-indigo-500/30 relative overflow-hidden">
+            <div class="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">PREMIUM</div>
+            
+            <div class="flex items-center gap-4 mb-6">
+                <span class="text-3xl">🧬</span>
+                <h2 class="text-2xl font-bold text-indigo-400">Pokémon Cloning</h2>
+            </div>
+
+            <p class="mb-6 leading-relaxed">
+                The <code>$clone</code> command allows you to create an identical duplicate of any Pokémon you already own in Scarlet or Violet. This uses our <strong>"Safe-Scan"</strong> method—you never actually have to trade away your original Pokémon!
+                <br><br>
+                <em class="text-slate-500 text-xs">*Exclusive to Premium Users (or free with Professor Mable).</em>
+            </p>
+
+            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-700">
+                <h3 class="text-lg font-bold text-white mb-4">How to Use (Show & Copy Method)</h3>
+                <ol class="space-y-4 text-sm text-slate-300">
+                    <li class="flex gap-3">
+                        <span class="font-bold text-indigo-500">1. Initiate:</span>
+                        <span>Type <code>$clone</code> in the Discord channel.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="font-bold text-indigo-500">2. Join Trade:</span>
+                        <span>The bot will DM you a Link Code. Enter this in the Poke Portal.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="font-bold text-indigo-500">3. The Scan:</span>
+                        <span>Select the Pokémon you want to duplicate and choose <strong>"Show"</strong> (do not offer).</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="font-bold text-indigo-500">4. The Trade:</span>
+                        <span>Once scanned, the bot will immediately offer the clone.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="font-bold text-indigo-500">5. Result:</span>
+                        <span>Trade a junk Pokémon for the clone. You keep your original and get the copy!</span>
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <section class="glass p-8 rounded-2xl border border-green-500/20">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="text-3xl">🤝</span>
+                <h2 class="text-2xl font-bold text-green-400">Human Support</h2>
+            </div>
+
+            <p class="mb-6 leading-relaxed">
+                We provide a direct-to-developer support system. No automated answering services or crowded public help channels—everything is handled through our private staff panel.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                    <h3 class="font-bold text-white mb-2">How to Connect</h3>
+                    <p class="text-sm text-slate-400">
+                        Simply <strong>Direct Message (DM)</strong> any of our bots (Professor Mable or Miraidon). Your message is instantly routed to our internal dashboard.
+                    </p>
+                </div>
+
+                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                    <h3 class="font-bold text-white mb-2">Guaranteed Delivery</h3>
+                    <p class="text-sm text-slate-400">
+                        As long as the bot is "Online," your message is logged. Even if we aren't at our desks, your ticket enters a queue waiting for staff review.
+                    </p>
+                </div>
+
+                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800 md:col-span-2">
+                    <h3 class="font-bold text-white mb-2">Privacy & Security</h3>
+                    <p class="text-sm text-slate-400">
+                        This system is perfect for sensitive requests. Safely provide <strong>Server IDs</strong> for Premium Activations or request <strong>Professor Mable (ZA)</strong> access without exposing your data to a public server.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer class="p-8 text-center text-xs text-slate-600 border-t border-slate-900 mt-12">
+        &copy; 2025 Miraidon Trade Services. Not affiliated with Nintendo, Game Freak, or The Pokémon Company.
+    </footer>
+
+</body>
+</html>

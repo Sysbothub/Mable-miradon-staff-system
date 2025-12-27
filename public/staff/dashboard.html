@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TSP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background: #020617; color: white; font-family: monospace; }
+        .glass { background: rgba(15, 23, 42, 0.95); border: 1px solid #1e293b; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 5px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+    
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+
+    <header class="h-14 glass flex items-center justify-between px-4 shrink-0">
+        <div class="flex items-center gap-4">
+            <span class="font-bold text-blue-500 text-lg">MIRAIDON TRADE SERVICES / DASHBOARD</span>
+            <a href="/staff/admin.html" class="text-xs font-bold text-amber-500 hover:text-white hidden" id="admin-link">ADMIN PANEL</a>
+        </div>
+        <button onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/login.html')" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/20">LOGOUT</button>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <aside class="w-72 glass border-r border-slate-800 flex flex-col z-20">
+            <div class="p-3 border-b border-slate-800 text-xs font-bold text-slate-500">INBOX</div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-slate-950 relative z-10">
+            <div class="h-12 glass border-b border-slate-800 flex items-center justify-between px-4">
+                <div>
+                    <div id="active-tag" class="text-sm font-bold">Select Ticket</div>
+                    <div id="typing" class="text-[10px] text-blue-400 hidden">User is typing...</div>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <div id="viewers" class="text-[10px] text-slate-400 border border-slate-700 px-2 py-1 rounded hidden"></div>
+                    <button onclick="closeTicket()" class="text-[10px] bg-red-900/30 text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/50">ARCHIVE</button>
+                </div>
+            </div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+            <div class="p-3 glass border-t border-slate-800 flex gap-2">
+                <input type="file" id="file-in" class="hidden" onchange="fileSel()">
+                <button onclick="document.getElementById('file-in').click()" class="bg-slate-800 p-3 rounded text-blue-500 transition hover:bg-slate-700">+</button>
+                <div class="relative">
+                    <button onclick="toggleMacros()" class="bg-slate-800 p-3 rounded text-amber-500 transition hover:bg-slate-700">⚡</button>
+                    <div id="macro-menu" class="hidden absolute bottom-12 left-0 w-48 bg-slate-900 border border-slate-700 rounded shadow-xl max-h-48 overflow-y-auto"></div>
+                </div>
+                <input id="msg-in" class="flex-1 bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 outline-none" placeholder="Message..." oninput="isTyping()">
+                <button onclick="sendMsg()" class="bg-blue-600 px-6 rounded font-bold text-xs hover:bg-blue-500 transition">SEND</button>
+            </div>
+        </main>
+
+        <aside class="w-80 glass border-l border-slate-800 flex flex-col p-4 z-20">
+            <div class="text-xs font-bold text-slate-500 mb-2">USER NOTES</div>
+            <textarea id="crm-note" onblur="saveNote()" class="w-full h-32 bg-yellow-900/10 border border-yellow-700/50 p-2 text-xs rounded mb-4 text-yellow-100 outline-none focus:border-yellow-600" placeholder="Internal notes..."></textarea>
+            <div class="text-xs font-bold text-slate-500 mb-2">HISTORY</div>
+            <div id="crm-hist" class="flex-1 overflow-y-auto space-y-2"></div>
+        </aside>
+    </div>
+
+    <div id="modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+        <div class="bg-slate-900 w-full max-w-2xl h-[80vh] rounded border border-slate-700 flex flex-col">
+            <div class="p-3 border-b border-slate-700 flex justify-between">
+                <span class="font-bold text-slate-300">TRANSCRIPT</span>
+                <button onclick="document.getElementById('modal').classList.add('hidden')" class="text-red-500 font-bold">CLOSE</button>
+            </div>
+            <div id="modal-content" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let activeId = null, activeUser = null, currentUser = null;
+        let threadStore = {};
+        let selectedFile = null;
+        let typingTimeout = null;
+
+        async function req(url, method='GET', body=null) {
+            const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: body ? JSON.stringify(body) : null });
+            if (r.status === 401) window.location.href = '/login.html';
+            return r.json();
+        }
+
+        (async () => {
+            const u = await req('/api/auth/user');
+            currentUser = u.username;
+            if (u.isAdmin) document.getElementById('admin-link').classList.remove('hidden');
+            loadThreads();
+        })();
+
+        async function loadThreads() {
+            const list = await req('/api/threads');
+            const el = document.getElementById('thread-list');
+            el.innerHTML = '';
+            list.forEach(t => {
+                threadStore[t._id] = t;
+                const div = document.createElement('div');
+                div.className = `p-3 border-b border-slate-800 hover:bg-slate-800 cursor-pointer ${activeId === t._id ? 'bg-blue-900/20' : ''}`;
+                div.innerHTML = `<div class="flex justify-between"><span class="font-bold text-xs text-white">${t.userTag}</span><span class="text-[9px] text-slate-500">${t.botName}</span></div>`;
+                div.onclick = () => openThread(t._id, t.userId, t.userTag);
+                el.appendChild(div);
+            });
+        }
+
+        function openThread(id, uid, tag) {
+            if (activeId) socket.emit('leave_ticket_room');
+            activeId = id; activeUser = uid;
+            socket.emit('join_ticket_room', { threadId: id, username: currentUser });
+            document.getElementById('active-tag').innerText = tag;
+            renderChat();
+            loadCRM(uid);
+            loadThreads();
+        }
+
+        function renderChat() {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+            const t = threadStore[activeId];
+            if (!t || !t.messages) return;
+            
+            t.messages.forEach(m => {
+                const d = document.createElement('div');
+                d.className = `flex flex-col max-w-[85%] ${m.fromBot ? 'self-end items-end' : 'self-start items-start'}`;
+                let c = `<div class="px-3 py-2 rounded text-xs border ${m.fromBot ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}">${m.content}</div>`;
+                if(m.attachments) m.attachments.forEach(a => c += `<img src="${a}" class="mt-2 max-w-[150px] rounded border border-slate-700 cursor-pointer hover:opacity-80" onclick="window.open('${a}')">`);
+                d.innerHTML = c + `<span class="text-[9px] text-slate-600 mt-1">${new Date(m.timestamp).toLocaleTimeString()}</span>`;
+                box.appendChild(d);
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function sendMsg() {
+            const i = document.getElementById('msg-in');
+            if(!activeId || (!i.value && !selectedFile)) return;
+            await req('/api/reply', 'POST', { threadId: activeId, content: i.value, fileBase64: selectedFile?.base64, fileName: selectedFile?.name });
+            i.value = ''; selectedFile = null;
+        }
+
+        async function closeTicket() {
+            if(activeId && confirm("Archive Ticket?")) {
+                await req('/api/close-thread', 'POST', { threadId: activeId });
+                activeId = null; 
+                document.getElementById('chat-box').innerHTML = '';
+                loadThreads();
+            }
+        }
+
+        function fileSel() {
+            const f = document.getElementById('file-in').files[0];
+            const r = new FileReader();
+            r.onload = e => selectedFile = { base64: e.target.result, name: f.name };
+            r.readAsDataURL(f);
+        }
+
+        async function toggleMacros() {
+            const m = document.getElementById('macro-menu');
+            if(m.classList.contains('hidden')) {
+                m.classList.remove('hidden');
+                const list = await req('/api/macros');
+                m.innerHTML = list.map(x => `<div onclick="insMac('${x.content.replace(/'/g,"\\'")}')" class="p-2 hover:bg-slate-800 cursor-pointer text-xs border-b border-slate-800 text-slate-300">${x.title}</div>`).join('');
+            } else m.classList.add('hidden');
+        }
+        function insMac(txt) {
+            const i = document.getElementById('msg-in');
+            i.value += txt.replace(/{user}/gi, currentUser);
+            document.getElementById('macro-menu').classList.add('hidden');
+            i.focus();
+        }
+
+        async function loadCRM(uid) {
+            const d = await req(`/api/crm/user/${uid}`);
+            document.getElementById('crm-note').value = d.note;
+            document.getElementById('crm-hist').innerHTML = d.history.map(h => 
+                `<div onclick="viewTrans('${uid}','${h.filename}')" class="p-2 bg-slate-900 border border-slate-800 rounded text-xs cursor-pointer hover:bg-slate-800 mb-1 text-slate-400">${new Date(h.closedAt).toLocaleDateString()}</div>`
+            ).join('');
+        }
+        async function saveNote() {
+            if(activeUser) await req('/api/crm/note', 'POST', { userId: activeUser, note: document.getElementById('crm-note').value });
+        }
+        async function viewTrans(uid, file) {
+            const d = await req(`/api/crm/transcript/${uid}/${file}`);
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal-content').innerHTML = d.messages.map(m => `<div class="p-2 border-b border-slate-800 text-xs text-slate-300"><b>${m.authorTag}</b>: ${m.content}</div>`).join('');
+        }
+
+        function isTyping() { if(activeId) socket.emit('staff_typing', { threadId: activeId }); }
+        
+        socket.on('new_message', d => {
+            if(d.notif_sound) document.getElementById('notif-sound').play();
+            if(threadStore[d.threadId]) {
+                threadStore[d.threadId].messages.push(d);
+                if(activeId === d.threadId) renderChat();
+                loadThreads();
+            } else loadThreads();
+        });
+
+        socket.on('user_typing', d => {
+            if(activeUser === d.userId) {
+                const el = document.getElementById('typing');
+                el.classList.remove('hidden');
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => el.classList.add('hidden'), 3000);
+            }
+        });
+
+        socket.on('viewers_updated', v => {
+            const el = document.getElementById('viewers');
+            const others = v.filter(x => x !== currentUser);
+            if(others.length) {
+                el.innerText = `👀 ${others.join(', ')}`;
+                el.classList.remove('hidden');
+            } else el.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
