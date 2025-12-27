@@ -54,26 +54,39 @@
                     <label class="text-[10px] text-slate-400 flex items-center gap-2 mt-1"><input type="checkbox" id="sa" style="width:auto"> Grant Admin</label>
                 </div>
 
-                <div class="p-4 border border-pink-900 rounded bg-slate-900/50">
-                    <h2 class="text-pink-400 font-bold mb-2">FAQ EDITOR</h2>
+                <div class="p-4 border border-blue-900 rounded bg-slate-900/50">
+                    <h2 class="text-blue-400 font-bold mb-2">MANUAL TICKET / DM</h2>
+                    <input id="md-id" placeholder="Target Discord User ID" class="mb-2">
                     <div class="flex gap-2">
-                        <input id="fq" placeholder="Question">
-                        <input id="fa" placeholder="Answer">
-                        <button onclick="faq()" class="bg-pink-600 hover:bg-pink-500 w-24 rounded font-bold text-xs">ADD</button>
+                        <input id="md-msg" placeholder="Opening Message...">
+                        <button onclick="openTicket()" class="bg-blue-600 hover:bg-blue-500 w-24 rounded font-bold text-xs">OPEN</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="p-4 border border-slate-700 rounded bg-slate-900/50">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                <h2 class="text-slate-300 font-bold">ACTIVE FLEET & SERVERS</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="p-4 border border-pink-900 rounded bg-slate-900/50">
+                <h2 class="text-pink-400 font-bold mb-2">FAQ EDITOR</h2>
+                <div class="flex gap-2 mb-2">
+                    <input id="fq" placeholder="Question">
+                    <button onclick="faq()" class="bg-pink-600 hover:bg-pink-500 w-24 rounded font-bold text-xs">ADD</button>
+                </div>
+                <textarea id="fa" placeholder="Answer" class="h-16"></textarea>
+            </div>
+
+            <div class="p-4 border border-red-900 rounded bg-slate-900/50">
+                <h2 class="text-red-400 font-bold mb-2">GLOBAL BROADCAST</h2>
+                <p class="text-[10px] text-slate-400 mb-2">Sends a DM to the owner of every server the bot is in.</p>
                 <div class="flex gap-2">
-                    <input id="bm" placeholder="Global Broadcast Message..." style="width: 300px;">
-                    <button onclick="broadcast()" class="bg-red-600 hover:bg-red-500 px-4 py-1 rounded font-bold text-xs">BROADCAST</button>
+                    <input id="bm" placeholder="Message...">
+                    <button onclick="broadcast()" class="bg-red-600 hover:bg-red-500 w-32 rounded font-bold text-xs">SEND ALL</button>
                 </div>
             </div>
-            
+        </div>
+
+        <div class="p-4 border border-slate-700 rounded bg-slate-900/50">
+            <h2 class="text-slate-300 font-bold mb-4 border-b border-slate-700 pb-2">ACTIVE FLEET & SERVERS</h2>
             <div id="server-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
                 <div class="text-center text-slate-500 col-span-full py-4">Loading Servers...</div>
             </div>
@@ -144,6 +157,22 @@
         async function delS(id) { if(confirm("Delete staff?")) { await req('/api/admin/staff/delete','POST',{staffId:id}); load(); } }
         async function faq() { await req('/api/admin/faq/add','POST',{question:document.getElementById('fq').value,answer:document.getElementById('fa').value}); alert("Added"); }
         
+        // NEW: MANUAL TICKET FUNCTION
+        async function openTicket() {
+            const id = document.getElementById('md-id').value;
+            const msg = document.getElementById('md-msg').value;
+            if(!id || !msg) return alert("Missing ID or Message");
+            
+            const btn = event.target; btn.innerText = "..."; btn.disabled = true;
+            try {
+                await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg });
+                alert("Ticket Opened!");
+                document.getElementById('md-id').value = '';
+                document.getElementById('md-msg').value = '';
+            } catch(e) { alert("Failed. Check ID."); }
+            btn.innerText = "OPEN"; btn.disabled = false;
+        }
+
         async function mkInv(sid, bid) { const r = await req('/api/admin/create-invite', 'POST', { serverId: sid, botId: bid }); if(r.url) prompt("Invite URL:", r.url); else alert("Bot lacks permission."); }
         async function leave(sid, bid) { if(confirm("Force bot to leave server?")) { await req('/api/admin/leave-server', 'POST', { serverId: sid, botId: bid }); load(); } }
         async function dmOwn(sid, bid) { const m = prompt("Message to Server Owner:"); if(m) await req('/api/admin/dm-owner', 'POST', { serverId: sid, botId: bid, message: m }); }
