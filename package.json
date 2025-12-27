@@ -1,6 +1,6 @@
 {
   "name": "miraidon-trade-services",
-  "version": "7.6.0",
+  "version": "7.9.0",
   "description": "Full Web Portal and Staff Panel",
   "main": "server.js",
   "scripts": {
