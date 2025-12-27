@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TRADE SERVICES PANEL</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <style>
         body { 
             background: #020617; 
@@ -266,6 +264,8 @@
                 isUserAdmin = res.isAdmin; 
             } 
         } 
+        
+        // Start identification immediately
         identifyUser();
         
         async function doLogin() { 
@@ -653,7 +653,7 @@
                 <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded text-xs border border-slate-800">
                     <div class="flex flex-col">
                         <span class="font-bold text-slate-300">${s.name}</span>
-                        <span class="text-[9px] text-slate-500">${s.members} Mem | <span class="text-blue-400">🤖 ${s.botName}</span></span>
+                        <span class="text-[9px] text-slate-500">${s.members} members | <span class="text-blue-400">🤖 ${s.botName}</span></span>
                     </div>
                     <div class="flex space-x-1">
                         <button onclick="createInv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded text-[9px]">LINK</button>
