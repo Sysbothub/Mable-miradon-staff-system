@@ -5,14 +5,72 @@
     <title>Admin Console - Miraidon Trade Services</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #020617; color: white; font-family: 'Courier New', Courier, monospace; }
-        input, select, textarea { background-color: #0f172a; border: 1px solid #334155; padding: 8px; width: 100%; color: white; outline: none; border-radius: 4px; font-size: 12px; }
-        input:focus, select:focus, textarea:focus { border-color: #6366f1; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        .section-header { font-weight: bold; margin-bottom: 12px; padding-bottom: 4px; border-bottom: 1px solid; display: flex; justify-content: space-between; align-items: center; }
-        .stat-value { font-size: 14px; color: #f8fafc; font-weight: bold; }
+        /* * STYLING ARCHITECTURE
+         * Expanded CSS to ensure UI consistency and maximum readability.
+         */
+        body { 
+            background-color: #020617; 
+            color: white; 
+            font-family: 'Courier New', Courier, monospace; 
+        }
+        
+        /* Form Element Styling */
+        input, select, textarea { 
+            background-color: #0f172a; 
+            border: 1px solid #334155; 
+            padding: 8px; 
+            width: 100%; 
+            color: white; 
+            outline: none; 
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        input:focus, select:focus, textarea:focus { 
+            border-color: #6366f1; 
+            background-color: #1e293b;
+        }
+
+        /* Container Custom Scrollbars */
+        ::-webkit-scrollbar { 
+            width: 8px; 
+        }
+        ::-webkit-scrollbar-track { 
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb { 
+            background: #334155; 
+            border-radius: 4px; 
+        }
+        ::-webkit-scrollbar-thumb:hover { 
+            background: #475569; 
+        }
+
+        /* Layout Component Classes */
+        .section-header { 
+            font-weight: bold; 
+            margin-bottom: 12px; 
+            padding-bottom: 4px; 
+            border-bottom: 1px solid; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .stat-value { 
+            font-size: 14px; 
+            color: #f8fafc; 
+            font-weight: bold; 
+        }
+
+        .action-btn {
+            font-size: 9px;
+            font-weight: 900;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
     </style>
 </head>
 <body class="p-6 h-screen flex flex-col overflow-hidden">
@@ -20,124 +78,428 @@
     <nav class="mb-6 flex justify-between items-center shrink-0">
         <div class="flex flex-col">
             <span class="font-bold text-amber-500 text-xl tracking-wider uppercase">Miraidon Console</span>
-            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Admin v10.5</span>
+            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Admin Control v10.9</span>
         </div>
-        <a href="/staff/dashboard.html" class="text-xs text-slate-400 hover:text-white border border-slate-700 px-4 py-2 rounded transition hover:bg-slate-800">← DASHBOARD</a>
+        <a href="/staff/dashboard.html" class="text-xs text-slate-400 hover:text-white border border-slate-700 px-4 py-2 rounded transition hover:bg-slate-800">
+            ← BACK TO DASHBOARD
+        </a>
     </nav>
     
     <div class="flex-1 overflow-y-auto space-y-8 pr-2 pb-10">
 
-        <div class="p-6 border border-slate-700 rounded bg-slate-900/30">
-            <h2 class="section-header text-slate-300 border-slate-700">STAFF PERFORMANCE <button onclick="load()" class="text-[10px] bg-slate-800 px-3 py-1 rounded">REFRESH</button></h2>
+        <div class="p-6 border border-slate-700 rounded bg-slate-900/30 shadow-xl">
+            <h2 class="section-header text-slate-300 border-slate-700">
+                <span>STAFF PERFORMANCE DATA</span>
+                <button onclick="load()" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded transition border border-slate-600 uppercase">Refresh Stats</button>
+            </h2>
+            
             <div class="grid grid-cols-5 gap-4 px-4 py-2 bg-slate-950 border border-slate-800 rounded-t text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                <div>User</div><div class="text-center">Closed</div><div class="text-center">Replies</div><div class="text-center">Avg Rating</div><div class="text-right">Actions</div>
+                <div>Team Member</div>
+                <div class="text-center">Closed</div>
+                <div class="text-center">Replies</div>
+                <div class="text-center">Avg Rating</div>
+                <div class="text-right">Actions</div>
             </div>
-            <div id="staff-stats-container" class="bg-slate-900/50 border-x border-b border-slate-800 rounded-b divide-y divide-slate-800"></div>
+            
+            <div id="staff-stats-container" class="bg-slate-900/50 border-x border-b border-slate-800 rounded-b divide-y divide-slate-800">
+                </div>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="p-6 border border-teal-900 rounded bg-slate-900/50">
-                <h2 class="section-header text-teal-400 border-teal-900">SYSTEM STATUS</h2>
+            
+            <div class="p-6 border border-amber-900 rounded bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-amber-400 border-amber-900 uppercase">Provision New Staff</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Username</label>
+                        <input id="su" placeholder="Display Name">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Discord User ID</label>
+                        <input id="sd" placeholder="18-digit identifier">
+                    </div>
+                    <div class="flex items-center gap-2 p-3 bg-slate-950 rounded border border-slate-800">
+                        <input type="checkbox" id="sa" style="width:auto" class="w-4 h-4 cursor-pointer">
+                        <label for="sa" class="text-xs font-bold text-slate-300 uppercase cursor-pointer">Assign Administrator Permissions</label>
+                    </div>
+                    
+                    <button onclick="addS()" class="w-full bg-amber-600 hover:bg-amber-500 text-white p-3 rounded font-bold text-xs transition shadow-lg shadow-amber-900/20 uppercase">
+                        Create Staff Account
+                    </button>
+                    <p class="text-[9px] text-slate-500 italic text-center uppercase tracking-tighter">System will automatically DM the login key to the provided Discord ID.</p>
+                </div>
+            </div>
+
+            <div class="p-6 border border-blue-900 rounded bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-blue-400 border-blue-900 uppercase">Manual Outbound Message</h2>
+                
+                <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Target Discord ID</label>
+                <input id="md-id" placeholder="000000000000000000" class="mb-4">
+                
+                <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Initial Message</label>
+                <textarea id="md-msg" placeholder="Start the conversation..." class="h-24 mb-4"></textarea>
+                
+                <button onclick="openTicket()" class="w-full bg-blue-600 hover:bg-blue-500 text-white p-3 rounded font-bold text-xs transition uppercase">
+                    Initialize Thread
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <div class="p-6 border border-teal-900 rounded bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-teal-400 border-teal-900 uppercase">Service Controls</h2>
+                
                 <div class="flex items-center justify-between mb-4 bg-slate-950 p-4 rounded border border-slate-800">
-                    <label class="text-sm font-bold text-slate-200 uppercase">Master Service Toggle</label>
-                    <input type="checkbox" id="cfg-online" class="w-6 h-6 accent-teal-500">
+                    <label class="text-sm font-bold text-slate-200 uppercase tracking-tighter">Global Support Toggle</label>
+                    <input type="checkbox" id="cfg-online" class="w-6 h-6 accent-teal-500 cursor-pointer">
                 </div>
+
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div><label class="text-[10px] text-slate-400 font-bold block mb-1">OPEN (AST)</label><input type="time" id="cfg-open"></div>
-                    <div><label class="text-[10px] text-slate-400 font-bold block mb-1">CLOSE (AST)</label><input type="time" id="cfg-close"></div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Open (AST)</label>
+                        <input type="time" id="cfg-open">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Close (AST)</label>
+                        <input type="time" id="cfg-close">
+                    </div>
                 </div>
-                <input id="cfg-note" class="mb-6" placeholder="Public maintenance notice...">
-                <button onclick="saveConfig()" class="w-full bg-teal-600 hover:bg-teal-500 text-white p-3 rounded font-bold text-xs">COMMIT CONFIG</button>
+
+                <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Public Offline Notice</label>
+                <input id="cfg-note" class="mb-6" placeholder="Maintenance message...">
+                
+                <button onclick="saveConfig()" class="w-full bg-teal-600 hover:bg-teal-500 text-white p-3 rounded font-bold text-xs transition uppercase">
+                    Commit Changes
+                </button>
             </div>
 
-            <div class="p-6 border border-indigo-900 rounded bg-slate-900/50">
-                <h2 class="section-header text-indigo-400 border-indigo-900">LICENSE ACTIVATION</h2>
-                <div class="grid grid-cols-2 gap-4 mb-4"><input id="lk" placeholder="Key"><input id="ld" placeholder="User ID"></div>
-                <input id="li" placeholder="Instance ID" class="mb-4">
-                <div class="grid grid-cols-2 gap-4 mb-4"><input id="sn" placeholder="Server Name"><input id="sid" placeholder="Server ID"></div>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <select id="dur"><option value="30 Days">30 Days</option><option value="Lifetime">Lifetime</option></select>
-                    <select id="type"><option value="Premium Bundle">Premium Bundle</option><option value="Mable Rental">Mable Rental</option></select>
+            <div class="p-6 border border-indigo-900 rounded bg-slate-900/50 shadow-lg shadow-indigo-900/10">
+                <h2 class="section-header text-indigo-400 border-indigo-900 uppercase">License Engine</h2>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <input id="lk" placeholder="License Key">
+                    <input id="ld" placeholder="Discord User ID">
                 </div>
-                <button onclick="lic()" class="w-full bg-indigo-600 p-3 rounded font-bold text-xs uppercase transition">Activate License</button>
+                <input id="li" placeholder="Instance identifier" class="mb-4">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <input id="sn" placeholder="Server Name">
+                    <input id="sid" placeholder="Server ID">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <select id="dur">
+                        <option value="30 Days">30 Days</option>
+                        <option value="90 Days">90 Days</option>
+                        <option value="Lifetime">Lifetime</option>
+                    </select>
+                    <select id="type">
+                        <option value="Premium Bundle">Premium Bundle</option>
+                        <option value="Mable Rental">Mable Rental</option>
+                    </select>
+                </div>
+                <button onclick="lic()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded font-bold text-xs transition uppercase">
+                    Activate Product
+                </button>
             </div>
         </div>
 
-        <div class="p-6 border border-slate-700 rounded bg-slate-900/50">
-            <h2 class="section-header text-slate-300 border-slate-700">ACTIVE FLEET CONTROL</h2>
-            <div id="server-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto"></div>
+        <div class="p-6 border border-slate-700 rounded bg-slate-900/30 shadow-lg">
+            <h2 class="section-header text-slate-300 border-slate-700 uppercase">Active Fleet Control</h2>
+            <div id="server-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="p-6 border border-purple-900 rounded bg-slate-900/50">
-                <h2 class="section-header text-purple-400 border-purple-900 uppercase tracking-widest">Macro Response Library</h2>
+            
+            <div class="p-6 border border-purple-900 rounded bg-slate-900/50 shadow-lg shadow-purple-900/10">
+                <h2 class="section-header text-purple-400 border-purple-900 uppercase">Canned Responses</h2>
                 <div id="macro-list" class="h-32 overflow-y-auto mb-4 text-xs border border-slate-800 p-2 rounded bg-slate-950 divide-y divide-slate-800"></div>
+                
                 <input id="mt" placeholder="Response Title" class="mb-2">
                 <textarea id="mc" placeholder="Message content..." class="h-20 mb-2"></textarea>
-                <button onclick="addMacro()" class="w-full bg-purple-600 p-2 rounded font-bold text-xs uppercase">Save Response</button>
+                <button onclick="addMacro()" class="w-full bg-purple-600 hover:bg-purple-500 text-white p-2 rounded font-bold text-xs transition uppercase">Save Macro</button>
             </div>
-            <div class="p-6 border border-pink-900 rounded bg-slate-900/50">
-                <h2 class="section-header text-pink-400 border-pink-900">FAQ DATABASE</h2>
+
+            <div class="p-6 border border-pink-900 rounded bg-slate-900/50 shadow-lg shadow-pink-900/10">
+                <h2 class="section-header text-pink-400 border-pink-900 uppercase">Knowledge Base</h2>
                 <input id="fq" placeholder="Question..." class="mb-4">
-                <textarea id="fa" placeholder="Answer (Markdown)..." class="h-32 mb-4"></textarea>
-                <button onclick="addFaq()" class="w-full bg-pink-600 p-3 rounded font-bold text-xs uppercase tracking-widest">Append FAQ</button>
+                <textarea id="fa" placeholder="Detailed Answer..." class="h-32 mb-4"></textarea>
+                <button onclick="addFaq()" class="w-full bg-pink-600 hover:bg-pink-500 text-white p-3 rounded font-bold text-xs transition uppercase">Save Entry</button>
             </div>
         </div>
+
+        <div class="p-6 border border-red-900 rounded bg-slate-900/50 shadow-xl max-w-2xl mx-auto">
+            <h2 class="section-header text-red-400 border-red-900 uppercase">Service Broadcast</h2>
+            <p class="text-[10px] text-red-500 mb-4 bg-red-950/30 p-2 border border-red-900/50 font-black uppercase tracking-tighter">
+                ⚠️ DANGER: Sends DM to ALL server owners. Use for emergency downtime or major updates only.
+            </p>
+            <textarea id="bm" placeholder="Broadcast text..." class="h-24 mb-4"></textarea>
+            <button onclick="broadcast()" class="w-full bg-red-600 hover:bg-red-500 text-white p-3 rounded font-bold text-xs transition uppercase tracking-widest">
+                Execute Mass Dispatch
+            </button>
+        </div>
+
     </div>
 
     <script>
-        async function req(u, m, b) {
-            const o = { method: m || 'GET', headers: { 'Content-Type': 'application/json' } };
-            if (b) o.body = JSON.stringify(b);
-            const r = await fetch(u, o);
-            if (r.status === 401) window.location.href = '/login.html';
-            return await r.json();
+        /**
+         * Function: req
+         * Core API wrapper for administrative tasks.
+         */
+        async function req(url, method, body) {
+            if (method === undefined) { method = 'GET'; }
+            const options = { 
+                method: method, 
+                headers: { 'Content-Type': 'application/json' } 
+            };
+            if (body !== undefined && body !== null) { 
+                options.body = JSON.stringify(body); 
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                if (response.status === 401) { 
+                    window.location.href = '/login.html'; 
+                    return null;
+                }
+                const json = await response.json();
+                return json;
+            } catch (err) {
+                console.error("API Call Failed: " + err.message);
+                return { error: true };
+            }
         }
 
+        /**
+         * Function: load
+         * Re-aggregates all system data and refreshes the UI components.
+         */
         async function load() {
+            // 1. Refresh System Health Configuration
             try {
                 const config = await req('/api/admin/config');
-                document.getElementById('cfg-online').checked = config.supportOnline;
-                document.getElementById('cfg-note').value = config.offlineNote;
-                document.getElementById('cfg-open').value = config.openTime;
-                document.getElementById('cfg-close').value = config.closeTime;
+                if (config) {
+                    document.getElementById('cfg-online').checked = config.supportOnline;
+                    document.getElementById('cfg-note').value = config.offlineNote;
+                    document.getElementById('cfg-open').value = config.openTime;
+                    document.getElementById('cfg-close').value = config.closeTime;
+                }
+            } catch(e) { console.error("Config fetch error."); }
 
-                const st = await req('/api/admin/stats');
-                document.getElementById('staff-stats-container').innerHTML = st.map(m => {
-                    const avg = m.ratingCount > 0 ? (m.ratingSum / m.ratingCount).toFixed(2) : 'N/A';
-                    return `<div class="grid grid-cols-5 gap-4 px-4 py-3 items-center hover:bg-slate-800/30">
-                        <div class="flex items-center gap-3"><img src="${m.avatar}" class="w-8 h-8 rounded-full border border-slate-700"><div><span class="font-bold text-xs block">${m.username}</span><span class="text-[9px] text-slate-500 uppercase">${m.isAdmin ? 'Admin' : 'Staff'}</span></div></div>
-                        <div class="text-center stat-value">${m.ticketsClosed}</div>
-                        <div class="text-center stat-value">${m.repliesSent}</div>
-                        <div class="text-center"><span class="stat-value text-amber-400">${avg}</span><span class="text-[9px] text-slate-600 block">Reviews: ${m.ratingCount}</span></div>
-                        <div class="text-right flex justify-end gap-2"><button onclick="resetPass('${m._id}')" class="text-[9px] bg-blue-900/40 text-blue-400 px-2 py-1 rounded">RE-KEY</button><button onclick="delS('${m._id}')" class="text-[9px] bg-red-900/40 text-red-400 px-2 py-1 rounded">PURGE</button></div>
-                    </div>`;
+            // 2. Aggregate Performance Statistics
+            const stats = await req('/api/admin/stats');
+            const performanceContainer = document.getElementById('staff-stats-container');
+            
+            if (stats && stats.length > 0) {
+                performanceContainer.innerHTML = stats.map(function(m) {
+                    let avgRating = 0;
+                    if (m.ratingCount > 0) {
+                        avgRating = (m.ratingSum / m.ratingCount).toFixed(2);
+                    }
+                    
+                    return `
+                        <div class="grid grid-cols-5 gap-4 px-4 py-3 items-center hover:bg-slate-800/30 transition">
+                            <div class="flex items-center gap-3">
+                                <img src="${m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-8 h-8 rounded-full border border-slate-700">
+                                <div class="flex flex-col min-w-0">
+                                    <span class="font-bold text-white text-xs truncate">${m.username}</span>
+                                    <span class="text-[9px] text-slate-500 uppercase">${m.isAdmin ? 'Admin' : 'Staff'}</span>
+                                </div>
+                            </div>
+                            <div class="text-center stat-value">${m.ticketsClosed || 0}</div>
+                            <div class="text-center stat-value">${m.repliesSent || 0}</div>
+                            <div class="text-center">
+                                <span class="stat-value text-amber-400">${avgRating}</span>
+                                <span class="text-[9px] text-slate-600 block uppercase tracking-tighter">Reviews: ${m.ratingCount || 0}</span>
+                            </div>
+                            <div class="text-right flex justify-end gap-2">
+                                <button onclick="resetPass('${m._id}')" class="action-btn bg-blue-900/40 text-blue-400 border border-blue-900/50 hover:bg-blue-600 hover:text-white">RE-KEY</button>
+                                <button onclick="delS('${m._id}')" class="action-btn bg-red-900/40 text-red-400 border border-red-900/50 hover:bg-red-600 hover:text-white">PURGE</button>
+                            </div>
+                        </div>`;
                 }).join('');
+            }
 
-                const mc = await req('/api/macros');
-                document.getElementById('macro-list').innerHTML = mc.map(m => `<div class="flex justify-between p-2 hover:bg-slate-900 transition"><span>${m.title}</span><button onclick="delMacro('${m._id}')" class="text-red-500 font-bold px-2">✕</button></div>`).join('');
-
-                const sv = await req('/api/admin/servers');
-                document.getElementById('server-list').innerHTML = sv.map(s => {
-                    const botState = config.botFleetStatus.find(b => b.botId === s.botId);
-                    const isT = botState ? botState.tradingActive : true;
-                    return `<div class="p-4 bg-slate-950 border border-slate-800 rounded group">
-                        <div class="flex justify-between items-start mb-2"><div class="font-bold text-sm truncate uppercase">${s.name}</div>
-                        <button onclick="toggleBotTrading('${s.botId}', ${!isT})" class="text-[9px] font-black px-2 py-1 rounded border ${isT ? 'border-green-900 text-green-500' : 'border-red-900 text-red-500'} tracking-tighter uppercase">${isT ? 'TRADING: ON' : 'TRADING: OFF'}</button></div>
-                        <div class="text-[10px] text-slate-500 font-bold uppercase">👥 ${s.members} 🤖 Client: ${s.botName}</div>
-                        <div class="flex gap-1 mt-4 opacity-50 group-hover:opacity-100 transition"><button onclick="mkInv('${s.id}','${s.botId}')" class="flex-1 bg-blue-900/50 py-1 text-[9px] font-bold border border-blue-900">INVITE</button><button onclick="leaveS('${s.id}','${s.botId}')" class="flex-1 bg-red-900/50 py-1 text-[9px] font-bold border border-red-900">EJECT</button></div>
+            // 3. Refresh Macros
+            const macros = await req('/api/macros');
+            document.getElementById('macro-list').innerHTML = macros.map(function(m) {
+                return `
+                    <div class="flex justify-between p-2 hover:bg-slate-900 transition">
+                        <span class="font-bold tracking-tight">${m.title}</span>
+                        <button onclick="delMacro('${m._id}')" class="text-red-500 font-black px-2 hover:text-white transition">✕</button>
                     </div>`;
-                }).join('');
-            } catch (e) {}
+            }).join('');
+
+            // 4. Refresh Fleet Inventory
+            const servers = await req('/api/admin/servers');
+            const configDataForFleet = await req('/api/admin/config');
+            
+            document.getElementById('server-list').innerHTML = servers.map(function(s) {
+                const botStatus = configDataForFleet.botFleetStatus.find(b => b.botId === s.botId);
+                const isActive = botStatus ? botStatus.tradingActive : true;
+                
+                return `
+                    <div class="p-4 bg-slate-950 border border-slate-800 rounded flex flex-col justify-between group">
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="font-bold text-sm truncate uppercase text-white">${s.name}</div>
+                                <button onclick="toggleBotTrading('${s.botId}', ${!isActive})" 
+                                        class="text-[9px] font-black px-2 py-1 rounded border transition ${isActive ? 'border-green-900 text-green-500 hover:bg-green-900/20' : 'border-red-900 text-red-500 hover:bg-red-900/20'}">
+                                    ${isActive ? 'TRADING: ON' : 'TRADING: OFF'}
+                                </button>
+                            </div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">
+                                <span>👥 ${s.members} Members</span>
+                                <span class="text-indigo-400 block mt-1">🤖 Client: ${s.botName}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-1 mt-4 opacity-50 group-hover:opacity-100 transition">
+                            <button onclick="mkInv('${s.id}','${s.botId}')" class="flex-1 bg-blue-900/50 py-1 text-[9px] font-bold border border-blue-900 uppercase">Invite</button>
+                            <button onclick="dmOwn('${s.id}','${s.botId}')" class="flex-1 bg-amber-900/50 py-1 text-[9px] font-bold border border-amber-900 uppercase">Notify</button>
+                            <button onclick="leaveS('${s.id}','${s.botId}')" class="flex-1 bg-red-900/50 py-1 text-[9px] font-bold border border-red-900 uppercase">Eject</button>
+                        </div>
+                    </div>`;
+            }).join('');
         }
 
-        async function toggleBotTrading(id, status) { await req('/api/admin/fleet/toggle-trading', 'POST', { botId: id, status: status }); load(); }
-        async function saveConfig() { await req('/api/admin/config/toggle', 'POST', { status: document.getElementById('cfg-online').checked, note: document.getElementById('cfg-note').value, openTime: document.getElementById('cfg-open').value, closeTime: document.getElementById('cfg-close').value }); alert("Config Saved."); }
-        async function resetPass(id) { if(confirm("Reset Key?")) { await req('/api/admin/staff/reset', 'POST', { staffId: id }); alert("New key sent."); } }
-        async function delS(id) { if(confirm("Purge?")) { await req('/api/admin/staff/delete', 'POST', { staffId: id }); load(); } }
-        async function addMacro() { await req('/api/admin/macros/add', 'POST', { title: document.getElementById('mt').value, content: document.getElementById('mc').value }); load(); }
-        async function delMacro(id) { await req('/api/admin/macros/delete', 'POST', { id: id }); load(); }
-        async function lic() { await req('/api/admin/license/activate', 'POST', { license_key: document.getElementById('lk').value, discord_id: document.getElementById('ld').value, instance_name: document.getElementById('li').value, server_name: document.getElementById('sn').value, server_id: document.getElementById('sid').value, type: document.getElementById('type').value, duration: document.getElementById('dur').value, channel_id: '000' }); alert("Provisioned."); }
+        // --- CORE ACTIONS ---
+
+        async function saveConfig() {
+            await req('/api/admin/config/toggle', 'POST', {
+                status: document.getElementById('cfg-online').checked,
+                note: document.getElementById('cfg-note').value,
+                openTime: document.getElementById('cfg-open').value,
+                closeTime: document.getElementById('cfg-close').value
+            });
+            alert("Settings Persistence Confirmed.");
+            load();
+        }
+
+        async function addS() {
+            const username = document.getElementById('su').value;
+            const discordId = document.getElementById('sd').value;
+            const isAdminFlag = document.getElementById('sa').checked;
+            
+            if(!username || !discordId) {
+                return alert("Identification fields required.");
+            }
+            
+            const response = await req('/api/admin/staff/add', 'POST', {
+                username: username,
+                discordId: discordId,
+                adminStatus: isAdminFlag
+            });
+            
+            if (response.success) {
+                alert("Account provisioned and key dispatched.");
+                document.getElementById('su').value = '';
+                document.getElementById('sd').value = '';
+                load();
+            }
+        }
+
+        async function toggleBotTrading(botId, newStatus) {
+            await req('/api/admin/fleet/toggle-trading', 'POST', { botId: botId, status: newStatus });
+            load();
+        }
+
+        async function delS(id) {
+            if(confirm("Confirm account purge? Action irreversible.")) {
+                await req('/api/admin/staff/delete', 'POST', { staffId: id });
+                load();
+            }
+        }
+
+        async function resetPass(id) {
+            if(confirm("Generate new secure key for this technician?")) {
+                await req('/api/admin/staff/reset', 'POST', { staffId: id });
+                alert("New key successfully DM'd.");
+            }
+        }
+
+        async function lic() {
+            await req('/api/admin/license/activate', 'POST', {
+                license_key: document.getElementById('lk').value,
+                discord_id: document.getElementById('ld').value,
+                instance_name: document.getElementById('li').value,
+                server_name: document.getElementById('sn').value,
+                server_id: document.getElementById('sid').value,
+                type: document.getElementById('type').value,
+                duration: document.getElementById('dur').value,
+                channel_id: '000'
+            });
+            alert("Service activation complete.");
+            load();
+        }
+
+        async function addMacro() {
+            await req('/api/admin/macros/add', 'POST', {
+                title: document.getElementById('mt').value,
+                content: document.getElementById('mc').value
+            });
+            document.getElementById('mt').value = '';
+            document.getElementById('mc').value = '';
+            load();
+        }
+
+        async function delMacro(id) {
+            if(confirm("Delete response macro?")) {
+                await req('/api/admin/macros/delete', 'POST', { id: id });
+                load();
+            }
+        }
+
+        async function addFaq() {
+            await req('/api/admin/faq/add', 'POST', {
+                question: document.getElementById('fq').value,
+                answer: document.getElementById('fa').value
+            });
+            alert("FAQ Database Updated.");
+            document.getElementById('fq').value = '';
+            document.getElementById('fa').value = '';
+        }
+
+        async function openTicket() {
+            const id = document.getElementById('md-id').value;
+            const msg = document.getElementById('md-msg').value;
+            if(!id || !msg) return alert("Target ID and Message required.");
+            const res = await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg });
+            if(res.success) {
+                alert("Thread successfully initialized.");
+                document.getElementById('md-id').value = '';
+                document.getElementById('md-msg').value = '';
+            }
+        }
+
+        async function mkInv(s, b) {
+            const res = await req('/api/admin/create-invite', 'POST', { serverId: s, botId: b });
+            if(res.url) prompt("Secure Invitation URL:", res.url);
+        }
+
+        async function dmOwn(s, b) {
+            const m = prompt("Enter notice for Server Owner:");
+            if(m) await req('/api/admin/dm-owner', 'POST', { serverId: s, botId: b, message: m });
+        }
+
+        async function leaveS(s, b) {
+            if(confirm("FORCE bot to leave this server?")) {
+                await req('/api/admin/leave-server', 'POST', { serverId: s, botId: b });
+                load();
+            }
+        }
+
+        async function broadcast() {
+            const msg = document.getElementById('bm').value;
+            if(!msg) return alert("Message body empty.");
+            if(confirm("⚠️ CONFIRM GLOBAL BROADCAST TO ALL SERVERS?")) {
+                const res = await req('/api/admin/bulk-message', 'POST', { message: msg });
+                alert("Sequence complete. Sent to " + res.sentTo + " owners.");
+                document.getElementById('bm').value = '';
+            }
+        }
+
+        // Initialize heartbeat on entry
         load();
     </script>
 </body>
