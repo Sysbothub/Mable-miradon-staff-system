@@ -7,10 +7,22 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { background: #020617; color: white; font-family: monospace; }
-        .glass { background: rgba(15, 23, 42, 0.95); border: 1px solid #1e293b; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 5px; }
+        body { 
+            background: #020617; 
+            color: white; 
+            font-family: monospace; 
+        }
+        .glass { 
+            background: rgba(15, 23, 42, 0.95); 
+            border: 1px solid #1e293b; 
+        }
+        ::-webkit-scrollbar { 
+            width: 5px; 
+        }
+        ::-webkit-scrollbar-thumb { 
+            background: #3b82f6; 
+            border-radius: 5px; 
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -22,13 +34,20 @@
             <span class="font-bold text-blue-500 text-lg">MIRAIDON TRADE SERVICES / DASHBOARD</span>
             <a href="/staff/admin.html" class="text-xs font-bold text-amber-500 hover:text-white hidden" id="admin-link">ADMIN PANEL</a>
         </div>
-        <button onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/login.html')" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/20">LOGOUT</button>
+        
+        <div class="flex gap-2">
+            <button onclick="document.getElementById('pw-modal').classList.remove('hidden')" class="text-xs text-slate-400 border border-slate-700 px-3 py-1 rounded hover:text-white transition">CHANGE PASS</button>
+            
+            <button onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/login.html')" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/20 transition">LOGOUT</button>
+        </div>
     </header>
 
     <div class="flex-1 flex overflow-hidden">
+        
         <aside class="w-72 glass border-r border-slate-800 flex flex-col z-20">
             <div class="p-3 border-b border-slate-800 text-xs font-bold text-slate-500">INBOX</div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                </div>
         </aside>
 
         <main class="flex-1 flex flex-col bg-slate-950 relative z-10">
@@ -42,14 +61,18 @@
                     <button onclick="closeTicket()" class="text-[10px] bg-red-900/30 text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/50">ARCHIVE</button>
                 </div>
             </div>
+            
             <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+            
             <div class="p-3 glass border-t border-slate-800 flex gap-2">
                 <input type="file" id="file-in" class="hidden" onchange="fileSel()">
-                <button onclick="document.getElementById('file-in').click()" class="bg-slate-800 p-3 rounded text-blue-500 transition hover:bg-slate-700">+</button>
+                <button onclick="document.getElementById('file-in').click()" class="bg-slate-800 p-3 rounded text-blue-500 transition hover:bg-slate-700" title="Upload File">+</button>
+                
                 <div class="relative">
-                    <button onclick="toggleMacros()" class="bg-slate-800 p-3 rounded text-amber-500 transition hover:bg-slate-700">⚡</button>
+                    <button onclick="toggleMacros()" class="bg-slate-800 p-3 rounded text-amber-500 transition hover:bg-slate-700" title="Quick Replies">⚡</button>
                     <div id="macro-menu" class="hidden absolute bottom-12 left-0 w-48 bg-slate-900 border border-slate-700 rounded shadow-xl max-h-48 overflow-y-auto"></div>
                 </div>
+                
                 <input id="msg-in" class="flex-1 bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 outline-none" placeholder="Message..." oninput="isTyping()">
                 <button onclick="sendMsg()" class="bg-blue-600 px-6 rounded font-bold text-xs hover:bg-blue-500 transition">SEND</button>
             </div>
@@ -58,6 +81,7 @@
         <aside class="w-80 glass border-l border-slate-800 flex flex-col p-4 z-20">
             <div class="text-xs font-bold text-slate-500 mb-2">USER NOTES</div>
             <textarea id="crm-note" onblur="saveNote()" class="w-full h-32 bg-yellow-900/10 border border-yellow-700/50 p-2 text-xs rounded mb-4 text-yellow-100 outline-none focus:border-yellow-600" placeholder="Internal notes..."></textarea>
+            
             <div class="text-xs font-bold text-slate-500 mb-2">HISTORY</div>
             <div id="crm-hist" class="flex-1 overflow-y-auto space-y-2"></div>
         </aside>
@@ -73,19 +97,48 @@
         </div>
     </div>
 
+    <div id="pw-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <div class="bg-slate-900 w-96 rounded border border-slate-700 p-6 shadow-2xl">
+            <h2 class="text-blue-500 font-bold mb-4 text-lg">CHANGE PASSWORD</h2>
+            
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Current Password</label>
+            <input type="password" id="pw-old" class="w-full bg-slate-950 border border-slate-800 p-2 rounded mb-4 text-white focus:border-blue-500 outline-none">
+            
+            <label class="text-[10px] text-slate-400 uppercase font-bold">New Password</label>
+            <input type="password" id="pw-new" class="w-full bg-slate-950 border border-slate-800 p-2 rounded mb-2 text-white focus:border-blue-500 outline-none">
+            
+            <div class="text-[10px] text-slate-500 mb-6 bg-slate-950 p-2 rounded border border-slate-800">
+                <strong>Policy:</strong> Minimum 8 characters. Must contain 1 Capital Letter, 1 Number, and 1 Symbol.
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="changePW()" class="flex-1 bg-blue-600 hover:bg-blue-500 rounded p-2 text-xs font-bold transition">UPDATE</button>
+                <button onclick="document.getElementById('pw-modal').classList.add('hidden')" class="flex-1 bg-slate-800 hover:bg-slate-700 rounded p-2 text-xs transition">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const socket = io();
-        let activeId = null, activeUser = null, currentUser = null;
+        let activeId = null;
+        let activeUser = null;
+        let currentUser = null;
         let threadStore = {};
         let selectedFile = null;
         let typingTimeout = null;
 
+        // Generic API Request Helper
         async function req(url, method='GET', body=null) {
-            const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: body ? JSON.stringify(body) : null });
+            const r = await fetch(url, { 
+                method, 
+                headers: {'Content-Type':'application/json'}, 
+                body: body ? JSON.stringify(body) : null 
+            });
             if (r.status === 401) window.location.href = '/login.html';
             return r.json();
         }
 
+        // Initialize Dashboard
         (async () => {
             const u = await req('/api/auth/user');
             currentUser = u.username;
@@ -93,6 +146,7 @@
             loadThreads();
         })();
 
+        // Load Active Threads
         async function loadThreads() {
             const list = await req('/api/threads');
             const el = document.getElementById('thread-list');
@@ -107,9 +161,11 @@
             });
         }
 
+        // Open Specific Thread
         function openThread(id, uid, tag) {
             if (activeId) socket.emit('leave_ticket_room');
-            activeId = id; activeUser = uid;
+            activeId = id; 
+            activeUser = uid;
             socket.emit('join_ticket_room', { threadId: id, username: currentUser });
             document.getElementById('active-tag').innerText = tag;
             renderChat();
@@ -117,6 +173,7 @@
             loadThreads();
         }
 
+        // Render Messages in Chat Box
         function renderChat() {
             const box = document.getElementById('chat-box');
             box.innerHTML = '';
@@ -134,15 +191,18 @@
             box.scrollTop = box.scrollHeight;
         }
 
+        // Send Message
         async function sendMsg() {
             const i = document.getElementById('msg-in');
             if(!activeId || (!i.value && !selectedFile)) return;
             await req('/api/reply', 'POST', { threadId: activeId, content: i.value, fileBase64: selectedFile?.base64, fileName: selectedFile?.name });
-            i.value = ''; selectedFile = null;
+            i.value = ''; 
+            selectedFile = null;
         }
 
+        // Archive Ticket
         async function closeTicket() {
-            if(activeId && confirm("Archive Ticket?")) {
+            if(activeId && confirm("Archive Ticket? This will save the transcript and close the thread.")) {
                 await req('/api/close-thread', 'POST', { threadId: activeId });
                 activeId = null; 
                 document.getElementById('chat-box').innerHTML = '';
@@ -150,6 +210,7 @@
             }
         }
 
+        // Handle File Selection
         function fileSel() {
             const f = document.getElementById('file-in').files[0];
             const r = new FileReader();
@@ -157,6 +218,7 @@
             r.readAsDataURL(f);
         }
 
+        // Toggle Macro Menu
         async function toggleMacros() {
             const m = document.getElementById('macro-menu');
             if(m.classList.contains('hidden')) {
@@ -165,6 +227,8 @@
                 m.innerHTML = list.map(x => `<div onclick="insMac('${x.content.replace(/'/g,"\\'")}')" class="p-2 hover:bg-slate-800 cursor-pointer text-xs border-b border-slate-800 text-slate-300">${x.title}</div>`).join('');
             } else m.classList.add('hidden');
         }
+
+        // Insert Macro
         function insMac(txt) {
             const i = document.getElementById('msg-in');
             i.value += txt.replace(/{user}/gi, currentUser);
@@ -172,6 +236,7 @@
             i.focus();
         }
 
+        // Load CRM Data (Notes + History)
         async function loadCRM(uid) {
             const d = await req(`/api/crm/user/${uid}`);
             document.getElementById('crm-note').value = d.note;
@@ -179,17 +244,50 @@
                 `<div onclick="viewTrans('${uid}','${h.filename}')" class="p-2 bg-slate-900 border border-slate-800 rounded text-xs cursor-pointer hover:bg-slate-800 mb-1 text-slate-400">${new Date(h.closedAt).toLocaleDateString()}</div>`
             ).join('');
         }
+
+        // Save CRM Note
         async function saveNote() {
             if(activeUser) await req('/api/crm/note', 'POST', { userId: activeUser, note: document.getElementById('crm-note').value });
         }
+
+        // View Transcript Modal
         async function viewTrans(uid, file) {
             const d = await req(`/api/crm/transcript/${uid}/${file}`);
             document.getElementById('modal').classList.remove('hidden');
             document.getElementById('modal-content').innerHTML = d.messages.map(m => `<div class="p-2 border-b border-slate-800 text-xs text-slate-300"><b>${m.authorTag}</b>: ${m.content}</div>`).join('');
         }
 
+        // PASSWORD CHANGE LOGIC (Calls Backend with Strict Validation)
+        async function changePW() {
+            const oldP = document.getElementById('pw-old').value;
+            const newP = document.getElementById('pw-new').value;
+            
+            if(!oldP || !newP) return alert("Please fill in both fields.");
+
+            try {
+                const res = await fetch('/api/staff/change-password', { 
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({ currentPassword: oldP, newPassword: newP }) 
+                });
+                
+                const data = await res.json();
+                
+                if(res.ok) {
+                    alert("Password Updated Successfully! Please login again.");
+                    window.location.href = '/login.html';
+                } else {
+                    alert("Update Failed: " + data.error);
+                }
+            } catch(e) {
+                alert("Network Error");
+            }
+        }
+
+        // Emit Typing
         function isTyping() { if(activeId) socket.emit('staff_typing', { threadId: activeId }); }
         
+        // Socket: New Message
         socket.on('new_message', d => {
             if(d.notif_sound) document.getElementById('notif-sound').play();
             if(threadStore[d.threadId]) {
@@ -199,6 +297,7 @@
             } else loadThreads();
         });
 
+        // Socket: User Typing
         socket.on('user_typing', d => {
             if(activeUser === d.userId) {
                 const el = document.getElementById('typing');
@@ -208,6 +307,7 @@
             }
         });
 
+        // Socket: Viewers
         socket.on('viewers_updated', v => {
             const el = document.getElementById('viewers');
             const others = v.filter(x => x !== currentUser);
