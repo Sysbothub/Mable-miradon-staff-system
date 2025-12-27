@@ -5,9 +5,23 @@
     <title>Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body{background:#020617;color:white;font-family:monospace} 
-        input, select, textarea{background:#0f172a;border:1px solid #334155;padding:5px;width:100%;color:white;outline:none}
-        input:focus, select:focus, textarea:focus{border-color:#6366f1}
+        body { 
+            background: #020617; 
+            color: white; 
+            font-family: monospace; 
+        }
+        input, select, textarea { 
+            background: #0f172a; 
+            border: 1px solid #334155; 
+            padding: 5px; 
+            width: 100%; 
+            color: white; 
+            outline: none; 
+        }
+        input:focus, select:focus, textarea:focus { 
+            border-color: #6366f1; 
+        }
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -15,6 +29,7 @@
     </style>
 </head>
 <body class="p-6 h-screen flex flex-col overflow-hidden">
+    
     <nav class="mb-4 flex justify-between items-center shrink-0">
         <span class="font-bold text-amber-500 text-lg">MIRAIDON TRADE SERVICES / ADMIN</span>
         <a href="/staff/dashboard.html" class="text-xs text-slate-400 hover:text-white border border-slate-700 px-3 py-1 rounded">BACK TO DASHBOARD</a>
@@ -23,28 +38,57 @@
     <div class="flex-1 overflow-y-auto space-y-6 pr-2">
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
             <div class="p-4 border border-indigo-900 rounded bg-slate-900/50">
                 <h2 class="text-indigo-400 font-bold mb-3 border-b border-indigo-900 pb-1">LICENSE ACTIVATION</h2>
-                <div class="grid grid-cols-2 gap-2 mb-2"><input id="lk" placeholder="License Key"><input id="ld" placeholder="Discord User ID"></div>
-                <input id="li" placeholder="Instance ID / HWID" class="mb-2">
-                <div class="grid grid-cols-2 gap-2 mb-2"><input id="sn" placeholder="Server Name"><input id="sid" placeholder="Server ID"></div>
+                
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Customer Details</label>
                 <div class="grid grid-cols-2 gap-2 mb-2">
-                    <select id="dur"><option>30 Days</option><option>90 Days</option><option>365 Days</option><option>Lifetime</option></select>
-                    <select id="type"><option>Premium Subscription</option><option>Professor Mable Rental</option></select>
+                    <input id="lk" placeholder="License Key">
+                    <input id="ld" placeholder="Discord User ID">
+                </div>
+                <input id="li" placeholder="Instance ID / HWID" class="mb-3">
+                
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Server Tracking</label>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <input id="sn" placeholder="Server Name">
+                    <input id="sid" placeholder="Server ID">
+                </div>
+                
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Plan</label>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <select id="dur">
+                        <option value="30 Days">30 Days</option>
+                        <option value="90 Days">90 Days</option>
+                        <option value="365 Days">365 Days</option>
+                        <option value="Lifetime">Lifetime</option>
+                    </select>
+                    <select id="type">
+                        <option value="Premium Subscription">Premium Subscription</option>
+                        <option value="Professor Mable Rental">Professor Mable Rental</option>
+                    </select>
                 </div>
                 <button onclick="lic()" class="w-full bg-indigo-600 hover:bg-indigo-500 p-2 rounded font-bold text-xs mt-1 transition">ACTIVATE LICENSE</button>
             </div>
 
             <div class="space-y-6">
                 <div class="p-4 border border-amber-900 rounded bg-slate-900/50">
-                    <h2 class="text-amber-400 font-bold mb-2 flex justify-between">STAFF TEAM <button onclick="load()" class="text-[10px] text-slate-500 hover:text-white">REFRESH</button></h2>
-                    <div id="staff" class="h-24 overflow-y-auto mb-2 text-xs border border-slate-800 p-2 rounded bg-slate-950"></div>
+                    <h2 class="text-amber-400 font-bold mb-2 flex justify-between">
+                        STAFF TEAM 
+                        <button onclick="load()" class="text-[10px] text-slate-500 hover:text-white">REFRESH</button>
+                    </h2>
+                    
+                    <div id="staff" class="h-24 overflow-y-auto mb-2 text-xs border border-slate-800 p-2 rounded bg-slate-950">
+                        </div>
+                    
                     <div class="flex gap-2">
                         <input id="su" placeholder="Username" class="w-1/3">
                         <input id="sd" placeholder="Discord ID" class="w-1/3">
                         <button onclick="addS()" class="bg-amber-600 hover:bg-amber-500 w-1/3 rounded font-bold text-xs">ADD</button>
                     </div>
-                    <label class="text-[10px] text-slate-400 flex items-center gap-2 mt-1"><input type="checkbox" id="sa" style="width:auto"> Grant Admin</label>
+                    <label class="text-[10px] text-slate-400 flex items-center gap-2 mt-1">
+                        <input type="checkbox" id="sa" style="width:auto"> Grant Admin
+                    </label>
                 </div>
 
                 <div class="p-4 border border-blue-900 rounded bg-slate-900/50">
@@ -61,14 +105,20 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="p-4 border border-pink-900 rounded bg-slate-900/50">
                 <h2 class="text-pink-400 font-bold mb-2">FAQ EDITOR</h2>
-                <div class="flex gap-2 mb-2"><input id="fq" placeholder="Question"><button onclick="faq()" class="bg-pink-600 hover:bg-pink-500 w-24 rounded font-bold text-xs">ADD</button></div>
+                <div class="flex gap-2 mb-2">
+                    <input id="fq" placeholder="Question">
+                    <button onclick="faq()" class="bg-pink-600 hover:bg-pink-500 w-24 rounded font-bold text-xs">ADD</button>
+                </div>
                 <textarea id="fa" placeholder="Answer" class="h-16"></textarea>
             </div>
 
             <div class="p-4 border border-red-900 rounded bg-slate-900/50">
                 <h2 class="text-red-400 font-bold mb-2">GLOBAL BROADCAST</h2>
                 <p class="text-[10px] text-slate-400 mb-2">Sends a DM to the owner of every server the bot is in.</p>
-                <div class="flex gap-2"><input id="bm" placeholder="Message..."><button onclick="broadcast()" class="bg-red-600 hover:bg-red-500 w-32 rounded font-bold text-xs">SEND ALL</button></div>
+                <div class="flex gap-2">
+                    <input id="bm" placeholder="Message...">
+                    <button onclick="broadcast()" class="bg-red-600 hover:bg-red-500 w-32 rounded font-bold text-xs">SEND ALL</button>
+                </div>
             </div>
         </div>
 
@@ -85,7 +135,7 @@
         const req = async (u,m='GET',b) => (await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null})).json();
         
         async function load() {
-            // Load Staff
+            // Load Staff List with RESET & DELETE buttons
             const staff = await req('/api/admin/stats');
             document.getElementById('staff').innerHTML = staff.map(s => `
                 <div class="flex justify-between items-center p-1 border-b border-slate-800 last:border-0">
@@ -97,9 +147,10 @@
                 </div>
             `).join('');
 
-            // Load Servers
+            // Load Server Fleet List
             const servers = await req('/api/admin/servers');
             const sList = document.getElementById('server-list');
+            
             if (servers.length === 0) {
                 sList.innerHTML = '<div class="text-center text-slate-500 col-span-full">No active servers found.</div>';
             } else {
@@ -122,6 +173,9 @@
             }
         }
 
+        // --- ACTIONS ---
+
+        // LICENSE ACTIVATION
         async function lic() { 
             const btn = event.target; btn.innerText="..."; btn.disabled=true;
             try {
@@ -137,35 +191,79 @@
                 }); 
                 alert("Activated & User Notified");
                 ['lk','ld','li','sn','sid'].forEach(i=>document.getElementById(i).value='');
-            } catch(e){ alert("Error"); }
+            } catch(e){ alert("Error activation license."); }
             btn.innerText="ACTIVATE LICENSE"; btn.disabled=false;
         }
 
-        async function addS() { await req('/api/admin/staff/add','POST',{username:document.getElementById('su').value,discordId:document.getElementById('sd').value,adminStatus:document.getElementById('sa').checked}); load(); }
-        async function delS(id) { if(confirm("Delete staff?")) { await req('/api/admin/staff/delete','POST',{staffId:id}); load(); } }
-        async function faq() { await req('/api/admin/faq/add','POST',{question:document.getElementById('fq').value,answer:document.getElementById('fa').value}); alert("Added"); }
-        
-        // NEW: RESET PASS FUNCTION
+        // STAFF ADD
+        async function addS() { 
+            await req('/api/admin/staff/add','POST',{
+                username:document.getElementById('su').value,
+                discordId:document.getElementById('sd').value,
+                adminStatus:document.getElementById('sa').checked
+            }); 
+            load(); 
+        }
+
+        // STAFF DELETE
+        async function delS(id) { 
+            if(confirm("Delete staff member?")) { 
+                await req('/api/admin/staff/delete','POST',{staffId:id}); 
+                load(); 
+            } 
+        }
+
+        // STAFF RESET PASSWORD (NEW)
         async function resetPass(id) {
-            if(confirm("Force reset password for this user? They will be DM'd the new key.")) {
+            if(confirm("Force reset password for this user? They will be DM'd a new secure key.")) {
                 const res = await req('/api/admin/staff/reset', 'POST', { staffId: id });
-                if(res.success) alert("Password reset and DM sent.");
+                if(res.success) alert("Password reset and DM sent to user.");
                 else alert("Error: " + res.error);
             }
         }
 
+        // FAQ ADD
+        async function faq() { 
+            await req('/api/admin/faq/add','POST',{
+                question:document.getElementById('fq').value,
+                answer:document.getElementById('fa').value
+            }); 
+            alert("Added"); 
+        }
+        
+        // MANUAL TICKET OPEN
         async function openTicket() {
             const id = document.getElementById('md-id').value;
             const msg = document.getElementById('md-msg').value;
             if(!id || !msg) return alert("Missing ID or Message");
+            
             const btn = event.target; btn.innerText = "..."; btn.disabled = true;
-            try { await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg }); alert("Ticket Opened!"); document.getElementById('md-id').value = ''; document.getElementById('md-msg').value = ''; } catch(e) { alert("Failed. Check ID."); }
+            try {
+                await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg });
+                alert("Ticket Opened!");
+                document.getElementById('md-id').value = '';
+                document.getElementById('md-msg').value = '';
+            } catch(e) { alert("Failed. Check ID."); }
             btn.innerText = "OPEN"; btn.disabled = false;
         }
 
-        async function mkInv(sid, bid) { const r = await req('/api/admin/create-invite', 'POST', { serverId: sid, botId: bid }); if(r.url) prompt("Invite URL:", r.url); else alert("Bot lacks permission."); }
-        async function leave(sid, bid) { if(confirm("Force bot to leave server?")) { await req('/api/admin/leave-server', 'POST', { serverId: sid, botId: bid }); load(); } }
-        async function dmOwn(sid, bid) { const m = prompt("Message to Server Owner:"); if(m) await req('/api/admin/dm-owner', 'POST', { serverId: sid, botId: bid, message: m }); }
+        // FLEET ACTIONS
+        async function mkInv(sid, bid) { 
+            const r = await req('/api/admin/create-invite', 'POST', { serverId: sid, botId: bid }); 
+            if(r.url) prompt("Invite URL:", r.url); else alert("Bot lacks permission."); 
+        }
+        
+        async function leave(sid, bid) { 
+            if(confirm("Force bot to leave server?")) { 
+                await req('/api/admin/leave-server', 'POST', { serverId: sid, botId: bid }); 
+                load(); 
+            } 
+        }
+        
+        async function dmOwn(sid, bid) { 
+            const m = prompt("Message to Server Owner:"); 
+            if(m) await req('/api/admin/dm-owner', 'POST', { serverId: sid, botId: bid, message: m }); 
+        }
         
         async function broadcast() {
             const msg = document.getElementById('bm').value;
