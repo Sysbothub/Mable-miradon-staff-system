@@ -2,571 +2,665 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Miraidon Staff Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HQ TERMINAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #020617; color: #f1f5f9; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid #1e293b; }
-        .attachment-preview { max-width: 250px; border-radius: 8px; margin-top: 5px; border: 1px solid #334155; }
+        body { background: #020617; color: #f1f5f9; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border: 1px solid #1e293b; }
+        .attachment-preview { max-width: 200px; border-radius: 8px; margin-top: 5px; border: 1px solid #334155; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
         .hidden { display: none !important; }
+        /* Mobile Tweaks */
+        @media (max-width: 768px) { 
+            .glass { border-radius: 0; border-left: 0; border-right: 0; } 
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden bg-[#020617]">
 
     <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
 
-    <div id="reset-view" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 hidden">
-        <div class="glass p-8 rounded-2xl w-[90%] max-w-sm">
-            <h2 class="text-xl font-bold text-blue-500 mb-4">Update Security Key</h2>
-            <p class="text-[10px] text-slate-400 mb-4">Set your own custom password for future logins.</p>
-            
-            <input type="password" id="new-pw-input" placeholder="New Password..." class="w-full bg-slate-900 border border-slate-800 p-3 rounded mb-4 text-xs text-white outline-none focus:border-blue-500 transition" onkeyup="validatePassword()">
-            
-            <div class="text-[10px] space-y-1 mb-6 font-mono transition-all">
-                <div id="req-len" class="text-slate-500">○ 8+ Characters</div>
-                <div id="req-upper" class="text-slate-500">○ 1 Uppercase Letter</div>
-                <div id="req-num" class="text-slate-500">○ 1 Number</div>
-                <div id="req-sym" class="text-slate-500">○ 1 Symbol (!@#$%^&*)</div>
-            </div>
-
-            <div class="flex space-x-3">
-                <button onclick="closeResetModal()" class="flex-1 py-3 rounded text-xs font-bold text-slate-400 hover:text-white transition">CANCEL</button>
-                <button id="btn-save-pw" onclick="submitNewPassword()" disabled class="flex-1 bg-blue-600/20 text-white/20 py-3 rounded text-xs font-bold uppercase transition cursor-not-allowed">Save Key</button>
-            </div>
+    <div id="login-view" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
+        <div class="glass p-8 rounded-2xl w-[90%] max-w-sm text-center border border-slate-800">
+            <h1 class="text-3xl font-black text-blue-500 mb-8 italic tracking-tighter">HQ TERMINAL</h1>
+            <input type="text" id="l-user" placeholder="IDENTIFIER" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-4 outline-none text-sm text-center transition focus:border-blue-500 text-white">
+            <input type="password" id="l-pass" placeholder="SECURITY KEY" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-6 outline-none text-sm text-center transition focus:border-blue-500 text-white">
+            <button id="login-btn" onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl font-bold uppercase text-sm tracking-widest shadow-lg shadow-blue-900/20">Establish Link</button>
+            <button onclick="requestRecovery()" class="text-xs text-slate-500 mt-4 hover:text-white uppercase font-bold">Lost Key? Recover via Discord</button>
         </div>
     </div>
 
-    <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
-        <div class="glass p-8 rounded-2xl w-[90%] max-w-sm text-center">
-            <h1 class="text-2xl font-black text-blue-500 mb-6 italic">HQ TERMINAL</h1>
-            
-            <div id="login-section">
-                <input type="text" id="l-user" placeholder="IDENTIFIER" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-4 outline-none text-xs">
-                <input type="password" id="l-pass" placeholder="SECURITY KEY" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-2 outline-none text-xs">
-                <div class="text-right mb-6">
-                    <button onclick="toggleRecovery(true)" class="text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold transition">Key Recovery</button>
-                </div>
-                <button id="login-btn" onclick="doLogin()" class="w-full bg-blue-600 p-3 rounded-lg font-bold uppercase text-xs">Establish Link</button>
-            </div>
-
-            <div id="recovery-section" class="hidden">
-                <p class="text-[10px] text-slate-400 mb-4 uppercase font-bold italic">Terminal Recovery: Discord ID Required</p>
-                <input type="text" id="r-discord" placeholder="DISCORD ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg mb-6 outline-none text-xs">
-                <button onclick="requestRecovery()" class="w-full bg-amber-600 p-3 rounded-lg font-bold uppercase text-xs mb-4">Send New Key</button>
-                <button onclick="toggleRecovery(false)" class="text-[10px] text-slate-500 hover:text-white uppercase font-bold transition">Return</button>
-            </div>
-        </div>
-    </div>
-
-    <header class="h-16 glass flex items-center justify-between px-4 md:px-8 z-40 relative bg-[#020617]">
-        <div class="flex items-center space-x-4 md:space-x-6">
-            <span class="font-black text-blue-500 italic text-sm md:text-base">HQ</span>
-            <button onclick="showView('chat')" class="text-xs font-bold uppercase hover:text-blue-400 transition">Tickets</button>
+    <header class="h-14 md:h-16 glass flex items-center justify-between px-4 z-50 shrink-0">
+        <div class="flex items-center space-x-4">
+            <span class="font-black text-blue-500 italic text-lg">HQ</span>
+            <div class="h-6 w-px bg-slate-800 mx-2"></div>
+            <button onclick="showView('chat')" class="text-xs font-bold uppercase text-slate-300 hover:text-white transition">Tickets</button>
             <button id="nav-admin" onclick="showView('admin')" class="hidden text-xs font-bold uppercase text-amber-500 hover:text-amber-400 transition">Admin</button>
         </div>
-        <div class="flex items-center space-x-2 md:space-x-4">
-            <button onclick="selfReset()" class="text-[10px] text-slate-500 hover:text-white border border-slate-800 px-2 py-1 rounded transition uppercase">Reset Key</button>
-            <button onclick="doLogout()" class="text-xs text-red-500 border border-red-500/30 px-3 py-1 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold italic">DC</button>
-        </div>
+        <button onclick="doLogout()" class="text-[10px] md:text-xs text-red-500 border border-red-900/50 bg-red-900/10 px-3 py-1.5 rounded-lg hover:bg-red-600 hover:text-white transition uppercase font-bold">Disconnect</button>
     </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="flex-1 relative overflow-hidden">
         
-        <div id="view-chat" class="flex flex-1 w-full h-full relative">
+        <div id="view-chat" class="absolute inset-0 flex w-full h-full">
             
-            <aside id="thread-list" class="w-full md:w-80 glass border-t-0 border-l-0 overflow-y-auto bg-[#020617] md:block z-10"></aside>
-            
-            <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 w-full h-full absolute md:static inset-0 z-20">
-                
-                <div class="h-12 glass border-x-0 border-t-0 flex items-center justify-between px-4 md:px-6">
-                    <div class="flex items-center">
-                        <button onclick="goBackToList()" class="md:hidden mr-3 text-slate-400 hover:text-white p-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                        </button>
-                        <span id="active-tag" class="text-xs font-bold text-slate-500 uppercase italic">Idle...</span>
+            <aside id="thread-list" class="w-full md:w-72 glass border-r border-slate-800 overflow-y-auto bg-[#020617] z-20 flex flex-col">
+                <div class="p-4 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#020617]/95 backdrop-blur">Active Frequencies</div>
+                <div id="thread-container" class="space-y-1 p-2">
                     </div>
-                    <button onclick="closeTicket()" class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold uppercase">Archive</button>
+            </aside>
+            
+            <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 w-full h-full absolute md:static inset-0 z-30">
+                
+                <div class="h-14 glass border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
+                    <div class="flex items-center">
+                        <button onclick="closeChatMobile()" class="md:hidden mr-4 text-slate-400 hover:text-white p-2 -ml-2">←</button>
+                        <div>
+                            <div id="active-tag" class="text-sm font-bold text-white flex items-center gap-2">Select Ticket</div>
+                            <div id="typing-indicator" class="text-[10px] text-blue-400 font-bold uppercase animate-pulse hidden">User is typing...</div>
+                            <div id="status-sub" class="text-[10px] text-slate-500 uppercase font-bold">Live Secure Channel</div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 items-center">
+                        <button id="btn-claim" onclick="toggleClaim()" class="hidden text-[10px] font-bold uppercase px-3 py-1.5 rounded border transition"></button>
+                        <button onclick="toggleCRM()" class="md:hidden p-2 text-slate-400 hover:text-yellow-400 font-bold border border-slate-700 rounded px-3">CRM</button>
+                        <button onclick="closeTicket()" class="text-[10px] bg-red-600/10 text-red-500 border border-red-600/50 px-3 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold">Archive</button>
+                    </div>
                 </div>
 
-                <div id="chat-box" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col"></div>
-                
-                <div class="p-4 glass border-x-0 border-b-0">
-                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase italic">📎 Ready</div>
-                    <form onsubmit="sendReply(event)" class="flex space-x-2 md:space-x-4 items-end">
+                <div id="lock-overlay" class="hidden bg-slate-900/90 border-b border-red-900/50 p-2 text-center text-[10px] text-red-400 font-bold uppercase">
+                    🔒 Ticket Locked
+                </div>
+
+                <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-slate-950/50"></div>
+
+                <div class="p-3 md:p-4 glass border-t border-slate-800 shrink-0 pb-safe">
+                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached
+                    </div>
+                    <form onsubmit="sendReply(event)" class="flex space-x-2 items-end">
                         <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
-                        <button type="button" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                        </button>
-                        <textarea id="msg-input" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none text-sm h-16 md:h-24 resize-none"></textarea>
-                        <button class="bg-blue-600 px-4 md:px-6 py-3 rounded-xl font-bold uppercase text-xs h-[48px]">Send</button>
+                        
+                        <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                        
+                        <div class="relative group">
+                            <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1 disabled:opacity-50 disabled:cursor-not-allowed">⚡</button>
+                            <div id="macro-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+                                <div id="macro-list" class="max-h-48 overflow-y-auto">Loading...</div>
+                            </div>
+                        </div>
+                        
+                        <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-950"></textarea>
+                        
+                        <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-800">Send</button>
                     </form>
                 </div>
             </main>
+
+            <aside id="crm-panel" class="hidden md:flex w-80 glass border-l border-slate-800 flex-col bg-[#020617] absolute md:static right-0 inset-y-0 z-40 shadow-2xl md:shadow-none translate-x-full md:translate-x-0 transition-transform duration-300">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center md:hidden">
+                    <span class="font-bold text-slate-400">USER DOSSIER</span>
+                    <button onclick="toggleCRM()" class="text-slate-500">✕</button>
+                </div>
+                
+                <div class="p-4 flex-1 overflow-y-auto">
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sticky Notes</h3>
+                            <span id="note-status" class="text-[9px] text-green-500 font-bold hidden">SAVED</span>
+                        </div>
+                        <textarea id="crm-note" onblur="saveNote()" class="w-full h-40 bg-yellow-900/5 border border-yellow-700/20 text-yellow-100/90 p-3 text-xs rounded-xl resize-none focus:outline-none focus:border-yellow-600/50 transition placeholder-yellow-800/50" placeholder="Internal staff notes..."></textarea>
+                    </div>
+
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Ticket History</h3>
+                    <div id="crm-history" class="space-y-2"></div>
+                </div>
+            </aside>
+            <div id="crm-overlay" onclick="toggleCRM()" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"></div>
         </div>
 
-        <div id="view-admin" class="hidden flex-1 overflow-y-auto p-4 md:p-10 space-y-8 w-full bg-slate-950 absolute inset-0 md:static z-30">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="glass p-6 rounded-xl">
-                    <h2 class="text-blue-500 font-bold mb-4 uppercase text-xs italic underline">Provision Staff</h2>
-                    <input type="text" id="add-user" placeholder="USERNAME" class="w-full bg-slate-900 border border-slate-800 p-3 rounded text-xs mb-2 outline-none">
-                    <input type="text" id="add-discord" placeholder="DISCORD ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded text-xs mb-4 outline-none">
-                    <label class="flex items-center space-x-2 mb-6 text-[10px] uppercase font-bold text-slate-500">
-                        <input type="checkbox" id="add-is-admin" class="w-4 h-4 rounded border-slate-800 bg-slate-900"> <span>Admin</span>
-                    </label>
-                    <button onclick="addStaff()" class="w-full bg-blue-600 text-[10px] font-bold py-3 rounded uppercase">Authorize Staff</button>
-                </div>
-                <div class="glass p-6 rounded-xl overflow-hidden flex flex-col h-[300px]">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-amber-500 font-bold uppercase text-xs italic underline">Staff Registry</h2>
-                        <div class="flex items-center space-x-2">
-                            <div id="status-indicator" class="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span id="status-text" class="text-[10px] font-bold text-green-500 uppercase">ONLINE</span>
-                            <button onclick="toggleSupport()" class="ml-2 text-[8px] border border-slate-700 px-2 py-1 rounded hover:bg-slate-800 transition uppercase">TOGGLE</button>
+        <div id="view-admin" class="hidden absolute inset-0 bg-slate-950 overflow-y-auto z-20 pb-20">
+            <div class="p-4 md:p-10 space-y-6 max-w-6xl mx-auto">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass p-5 rounded-2xl border border-indigo-500/20">
+                        <h2 class="text-indigo-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-indigo-500/10 pb-2">License Generator</h2>
+                        <div class="space-y-3">
+                            <input type="text" id="lic-key" placeholder="License Key" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
+                            <input type="text" id="lic-disc-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
+                            <input type="text" id="lic-id" placeholder="HWID / Instance ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white">
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="lic-type" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
+                                    <option value="Professor Mable Rental">Rental</option>
+                                    <option value="Premium Subscription">Premium</option>
+                                </select>
+                                <select id="lic-duration" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
+                                    <option value="30 Days">30 Days</option>
+                                    <option value="Lifetime">Lifetime</option>
+                                </select>
+                            </div>
+                            <button onclick="activateLicense()" class="w-full bg-indigo-600 hover:bg-indigo-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest mt-2">Activate License</button>
+                            <div id="lic-result" class="hidden text-[10px] font-mono p-2 bg-slate-900 rounded border border-slate-800 text-center text-white"></div>
                         </div>
                     </div>
-                    <div id="staff-stats" class="space-y-2 overflow-y-auto flex-1"></div>
-                </div>
-            </div>
-            
-            <div class="glass p-6 rounded-xl border border-indigo-500/30">
-                <h2 class="text-indigo-400 font-bold mb-4 uppercase text-xs italic underline">License Activation Terminal</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div class="md:col-span-2">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">License Key</label>
-                        <input type="text" id="lic-key" placeholder="Key String..." class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Log Note / Type</label>
-                        <select id="lic-type" class="w-full bg-slate-900 border border-slate-800 px-2 rounded outline-none text-xs text-indigo-100 h-[40px] cursor-pointer">
-                            <option value="Professor Mable Rental">Mable Rental</option>
-                            <option value="Premium Subscription">Premium Sub</option>
-                            <option value="Other / Replacement">Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Duration</label>
-                        <select id="lic-duration" class="w-full bg-slate-900 border border-slate-800 px-2 rounded outline-none text-xs text-indigo-100 h-[40px] cursor-pointer">
-                            <option value="30 Days">30 Days</option>
-                            <option value="90 Days">90 Days</option>
-                            <option value="365 Days">365 Days</option>
-                            <option value="Lifetime">Lifetime</option>
-                        </select>
+
+                    <div class="glass p-5 rounded-2xl border border-amber-500/20">
+                        <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Staff Roster</h2>
+                        <div class="h-40 overflow-y-auto mb-4 space-y-2 pr-2" id="staff-stats"></div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="add-user" placeholder="Username" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                            <input type="text" id="add-discord" placeholder="Discord ID" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <label class="text-[10px] text-slate-400 font-bold flex items-center"><input type="checkbox" id="add-is-admin" class="mr-2"> GRANT ADMIN</label>
+                            <button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold uppercase text-[10px]">Add</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Server Name</label>
-                        <input type="text" id="lic-srv-name" placeholder="Name" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100">
+                <div class="glass p-5 rounded-2xl border border-amber-500/20 mt-4">
+                    <h2 class="text-amber-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Response Macros</h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="macro-title" placeholder="Title" class="w-1/3 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
+                        <input type="text" id="macro-content" placeholder="Content ({user} for name)..." class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
+                        <button onclick="addMacro()" class="bg-amber-600 px-4 rounded font-bold text-xs uppercase">Add</button>
                     </div>
-                    <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Server ID</label>
-                        <input type="text" id="lic-srv-id" placeholder="ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Channel ID</label>
-                        <input type="text" id="lic-chan-id" placeholder="ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">User Discord ID</label>
-                        <input type="text" id="lic-disc-id" placeholder="ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
-                    </div>
+                    <div id="admin-macro-list" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
                 </div>
 
-                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-end">
-                    <div class="w-full flex-1">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase mb-1 block">Instance Identifier</label>
-                        <input type="text" id="lic-id" placeholder="HWID / Email" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 h-[42px]">
-                    </div>
-                    <button onclick="activateLicense()" class="w-full md:w-40 bg-indigo-600 hover:bg-indigo-500 transition px-6 py-3 rounded font-bold uppercase text-[10px] h-[42px]">Activate</button>
-                </div>
-                <div id="lic-result" class="hidden mt-4 p-3 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono"></div>
             </div>
+        </div>
+    </div>
 
-            <div class="glass p-6 rounded-xl border border-blue-500/30">
-                <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs italic underline">Direct Messaging / Ticket Opener</h2>
-                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-start">
-                    <div class="w-full md:w-1/3">
-                        <input type="text" id="dm-id" placeholder="Discord User ID" class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 font-mono">
-                    </div>
-                    <div class="w-full flex-1">
-                        <textarea id="dm-content" placeholder="Type message to send..." class="w-full bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs text-indigo-100 h-[80px] resize-none"></textarea>
-                    </div>
-                    <button onclick="sendManualDM()" class="w-full md:w-32 bg-blue-600 hover:bg-blue-500 transition px-6 py-3 rounded font-bold uppercase text-[10px] h-[80px]">Send & Open</button>
-                </div>
+    <div id="history-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/95 hidden p-4">
+        <div class="glass w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl border border-slate-700 overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50">
+                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-widest">Transcript Viewer</h2>
+                <button onclick="document.getElementById('history-modal').classList.add('hidden')" class="text-red-400 font-bold text-xs px-3 py-1 rounded border border-red-900/50">CLOSE</button>
             </div>
-
-            <div class="glass p-6 rounded-xl">
-                <h2 class="text-red-500 font-bold mb-4 uppercase text-xs italic underline">Global Broadcast</h2>
-                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                    <input type="text" id="bulk-msg" placeholder="Broadcast Content..." class="flex-1 bg-slate-900 border border-slate-800 p-3 rounded outline-none text-xs">
-                    <button onclick="sendBulk()" class="bg-red-600 px-6 py-3 rounded font-bold uppercase text-[10px]">Execute</button>
-                </div>
-            </div>
-
-            <div class="glass p-6 rounded-xl">
-                <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs italic underline">Bot Fleet</h2>
-                <div id="srv-list" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-            </div>
+            <div id="history-content" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950"></div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        let activeId = null;
-        let threadStore = {};
-        let selectedFile = null;
+        const socket = io(); 
+        let activeId = null; 
+        let activeUserId = null; 
+        let currentUser = "Staff"; 
+        let isUserAdmin = false; 
+        let threadStore = {}; 
+        let selectedFile = null; 
+        let typingTimeout = null;
 
-        async function req(url, method = 'GET', body = null) {
+        async function req(url, method = 'GET', body = null) { 
             const res = await fetch(url, { 
                 method, 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: body ? JSON.stringify(body) : null 
-            });
-            if (res.status === 401 && !url.includes('/api/login')) {
-                document.getElementById('login-view').classList.remove('hidden');
-                return { error: 'Unauthorized' };
-            }
-            return res.json();
+            }); 
+            if (res.status === 401 && !url.includes('/api/login')) { 
+                document.getElementById('login-view').classList.remove('hidden'); 
+                return { error: 'Unauthorized' }; 
+            } 
+            return res.json(); 
         }
 
-        async function doLogin() {
-            const btn = document.getElementById('login-btn');
-            btn.disabled = true; btn.innerText = "AUTHENTICATING...";
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+        async function identifyUser() { 
+            const res = await req('/api/auth/user'); 
+            if(res.username) { 
+                currentUser = res.username; 
+                isUserAdmin = res.isAdmin; 
+            } 
+        } 
+        identifyUser();
+        
+        // --- AUTH ---
+        async function doLogin() { 
+            const btn = document.getElementById('login-btn'); 
+            btn.innerText = "LINKING..."; 
+            btn.disabled = true; 
+            const res = await fetch('/api/login', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ 
                     username: document.getElementById('l-user').value, 
                     password: document.getElementById('l-pass').value 
-                })
-            });
-            if (res.ok) { window.location.reload(); } else { alert("ACCESS DENIED"); btn.disabled = false; btn.innerText = "Establish Link"; }
+                }) 
+            }); 
+            if (res.ok) { window.location.reload(); } 
+            else { alert("ACCESS DENIED"); btn.innerText = "Establish Link"; btn.disabled = false; } 
         }
 
-        async function doLogout() {
-            const res = await fetch('/api/logout', { method: 'POST' });
-            if (res.ok) { window.location.reload(); } else { document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; window.location.reload(); }
+        async function doLogout() { 
+            if(await (await fetch('/api/logout', { method: 'POST' })).ok) window.location.reload(); 
         }
 
-        function toggleRecovery(show) {
-            document.getElementById('login-section').classList.toggle('hidden', show);
-            document.getElementById('recovery-section').classList.toggle('hidden', !show);
+        async function requestRecovery() { 
+            const user = prompt("Enter your Discord ID:"); 
+            if(user) { 
+                await req('/api/public/request-reset', 'POST', { discordId: user }); 
+                alert("Check DMs."); 
+            } 
         }
 
-        async function requestRecovery() {
-            const res = await req('/api/public/request-reset', 'POST', { discordId: document.getElementById('r-discord').value });
-            if(res.success) { alert("New Key Dispatched to Discord."); toggleRecovery(false); }
+        // --- NAVIGATION ---
+        function showView(v) { 
+            document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat'); 
+            document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin'); 
+            if(v === 'chat' && window.innerWidth < 768) closeChatMobile(); 
+            if(v === 'admin') { loadAdminData(); loadAdminMacros(); } 
         }
 
-        function selfReset() {
-            document.getElementById('reset-view').classList.remove('hidden');
-            document.getElementById('new-pw-input').value = '';
-            validatePassword();
+        function closeChatMobile() { 
+            document.getElementById('thread-list').classList.remove('hidden'); 
+            document.getElementById('chat-area').classList.add('hidden'); 
+            document.getElementById('chat-area').classList.remove('flex'); 
+            activeId = null; 
         }
 
-        function closeResetModal() { document.getElementById('reset-view').classList.add('hidden'); }
-
-        function validatePassword() {
-            const pass = document.getElementById('new-pw-input').value;
-            const btn = document.getElementById('btn-save-pw');
-            const hasLen = pass.length >= 8;
-            const hasUpper = /[A-Z]/.test(pass);
-            const hasNum = /\d/.test(pass);
-            const hasSym = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
-
-            updateReq('req-len', hasLen);
-            updateReq('req-upper', hasUpper);
-            updateReq('req-num', hasNum);
-            updateReq('req-sym', hasSym);
-
-            if(hasLen && hasUpper && hasNum && hasSym) {
-                btn.disabled = false;
-                btn.classList.remove('bg-blue-600/20', 'text-white/20', 'cursor-not-allowed');
-                btn.classList.add('bg-blue-600', 'text-white', 'cursor-pointer');
-            } else {
-                btn.disabled = true;
-                btn.classList.add('bg-blue-600/20', 'text-white/20', 'cursor-not-allowed');
-                btn.classList.remove('bg-blue-600', 'text-white', 'cursor-pointer');
-            }
+        function openChatMobile() { 
+            document.getElementById('thread-list').classList.add('hidden'); 
+            document.getElementById('chat-area').classList.remove('hidden'); 
+            document.getElementById('chat-area').classList.add('flex'); 
         }
 
-        function updateReq(id, met) {
-            const el = document.getElementById(id);
-            if(met) {
-                el.classList.remove('text-slate-500');
-                el.classList.add('text-green-400', 'font-bold');
-                el.innerText = el.innerText.replace('○', '●');
-            } else {
-                el.classList.add('text-slate-500');
-                el.classList.remove('text-green-400', 'font-bold');
-                el.innerText = el.innerText.replace('●', '○');
-            }
+        function toggleCRM() { 
+            const p = document.getElementById('crm-panel'); 
+            const o = document.getElementById('crm-overlay'); 
+            if(p.classList.contains('hidden') || p.classList.contains('translate-x-full')) { 
+                p.classList.remove('hidden', 'translate-x-full'); 
+                p.classList.add('translate-x-0'); 
+                o.classList.remove('hidden'); 
+            } else { 
+                p.classList.add('translate-x-full'); 
+                setTimeout(() => { if(window.innerWidth < 768) p.classList.add('hidden'); }, 300); 
+                o.classList.add('hidden'); 
+            } 
         }
 
-        async function submitNewPassword() {
-            const pass = document.getElementById('new-pw-input').value;
-            const btn = document.getElementById('btn-save-pw');
-            btn.innerText = "UPDATING..."; btn.disabled = true;
-            const res = await req('/api/staff/self-reset', 'POST', { newPassword: pass });
-            if(res.success) { alert("Success. Login with new key."); closeResetModal(); doLogout(); } else { alert(res.error); btn.innerText = "SAVE KEY"; validatePassword(); }
-        }
-
-        function showView(v) {
-            const chatView = document.getElementById('view-chat');
-            const adminView = document.getElementById('view-admin');
-            
-            if(v === 'chat') {
-                chatView.classList.remove('hidden');
-                adminView.classList.add('hidden');
-                
-                // FORCE RESET VISIBILITY ON TAB SWITCH
-                if(window.innerWidth < 768) {
-                    // Mobile: Show List, Hide Chat
-                    document.getElementById('thread-list').classList.remove('hidden');
-                    document.getElementById('chat-area').classList.add('hidden');
-                    document.getElementById('chat-area').classList.remove('flex');
-                } else {
-                    // Desktop: Show Both
-                    document.getElementById('thread-list').classList.remove('hidden');
-                    document.getElementById('chat-area').classList.remove('hidden');
-                    document.getElementById('chat-area').classList.add('flex');
-                }
-            } else {
-                chatView.classList.add('hidden');
-                adminView.classList.remove('hidden');
-                loadAdminData();
-            }
-        }
-
-        // Listener to fix layout when resizing window (e.g. rotating tablet/mobile or resizing browser)
-        window.addEventListener('resize', () => {
-            const threadList = document.getElementById('thread-list');
-            const chatArea = document.getElementById('chat-area');
-            const isAdmin = !document.getElementById('view-admin').classList.contains('hidden');
-
-            if(isAdmin) return;
-
-            if(window.innerWidth >= 768) {
-                // FORCE DESKTOP LAYOUT
-                threadList.classList.remove('hidden');
-                chatArea.classList.remove('hidden');
-                chatArea.classList.add('flex');
-            } else {
-                // FORCE MOBILE LAYOUT
-                if(activeId) {
-                    threadList.classList.add('hidden');
-                    chatArea.classList.remove('hidden');
-                    chatArea.classList.add('flex');
-                } else {
-                    threadList.classList.remove('hidden');
-                    chatArea.classList.add('hidden');
-                    chatArea.classList.remove('flex');
-                }
-            }
-        });
-
-        function goBackToList() {
-            document.getElementById('thread-list').classList.remove('hidden');
-            document.getElementById('chat-area').classList.add('hidden');
-            document.getElementById('chat-area').classList.remove('flex');
-            activeId = null;
-        }
-
+        // --- CORE CHAT LOGIC ---
         async function loadThreads() {
-            const data = await req('/api/threads');
+            const data = await req('/api/threads'); 
             if(!data || data.error) return;
-            const list = document.getElementById('thread-list');
-            list.innerHTML = '';
+            
+            const list = document.getElementById('thread-container'); 
+            list.innerHTML = data.length === 0 ? '<div class="text-center text-slate-600 text-[10px] mt-10">NO ACTIVE SIGNALS</div>' : '';
+            
             data.forEach(t => {
                 threadStore[t._id] = t;
                 const d = document.createElement('div');
-                d.className = `p-4 border-b border-slate-900 cursor-pointer hover:bg-slate-900 transition ${activeId === t._id ? 'bg-slate-900 border-l-4 border-blue-500' : ''}`;
-                d.innerHTML = `<div class="font-bold text-xs">${t.userTag}</div><div class="text-[9px] text-slate-500 uppercase">${t.botName}</div>`;
+                const lastMsg = t.messages[t.messages.length - 1]; 
+                const preview = lastMsg ? (lastMsg.content.substring(0, 30) + (lastMsg.content.length > 30 ? '...' : '')) : 'New Ticket';
+                
+                d.className = `p-3 rounded-xl cursor-pointer transition border border-transparent ${activeId === t._id ? 'bg-blue-900/20 border-blue-500/30' : 'hover:bg-slate-800'}`;
+                
+                d.innerHTML = `
+                    <div class="flex flex-col mb-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-xs text-slate-200">${t.userTag}</span>
+                            <span class="text-[9px] text-slate-500">${new Date(t.lastMessageAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        <span class="text-[9px] text-slate-600 font-mono select-all tracking-tighter">${t.userId}</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-[10px] text-slate-400 truncate w-24">${preview}</span>
+                        <span class="text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded uppercase">${t.botName}</span>
+                    </div>
+                `;
                 d.onclick = () => { 
                     activeId = t._id; 
+                    activeUserId = t.userId; 
                     renderChat(); 
-                    
-                    // ON CLICK LOGIC
-                    const chatArea = document.getElementById('chat-area');
-                    const threadList = document.getElementById('thread-list');
-
-                    // Always ensure chat area is visible when clicked
-                    chatArea.classList.remove('hidden');
-                    chatArea.classList.add('flex');
-
-                    // Only hide list on mobile
-                    if(window.innerWidth < 768) {
-                        threadList.classList.add('hidden');
-                    }
+                    loadCRM(t.userId); 
+                    if(window.innerWidth < 768) openChatMobile(); 
                 };
                 list.appendChild(d);
             });
         }
 
         function renderChat() {
-            const box = document.getElementById('chat-box');
-            box.innerHTML = '';
+            const box = document.getElementById('chat-box'); 
+            box.innerHTML = ''; 
             if (!activeId || !threadStore[activeId]) return;
-            document.getElementById('active-tag').innerText = threadStore[activeId].userTag;
-            threadStore[activeId].messages.forEach(m => {
-                const d = document.createElement('div');
-                d.className = `max-w-[75%] p-3 rounded-xl text-[11px] ${m.fromBot ? 'bg-blue-600 self-end font-bold' : 'bg-slate-800 self-start'}`;
-                let html = `<div class="whitespace-pre-wrap">${m.content}</div>`;
-                if (m.attachments) m.attachments.forEach(url => html += `<img src="${url}" class="attachment-preview" onclick="window.open('${url}')">`);
-                const ts = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-                html += `<div class="text-[9px] text-right mt-1 opacity-50">${ts}</div>`;
-                d.innerHTML = html;
+            
+            const cur = threadStore[activeId]; 
+            document.getElementById('active-tag').innerHTML = `${cur.userTag} <span class="text-slate-600 text-[10px] ml-2 font-mono select-all">${cur.userId}</span>`;
+            
+            updateClaimUI(cur);
+            
+            cur.messages.forEach(m => {
+                const d = document.createElement('div'); 
+                d.className = `flex flex-col max-w-[85%] ${m.fromBot ? 'self-end items-end' : 'self-start items-start'}`;
+                
+                let bubble = `
+                    <div class="px-4 py-2 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed border ${
+                        m.fromBot 
+                        ? 'bg-blue-600 text-white border-blue-500 rounded-tr-sm' 
+                        : 'bg-slate-800 text-slate-200 border-slate-700 rounded-tl-sm'
+                    }">${m.content}</div>
+                `;
+                
+                if (m.attachments) {
+                    m.attachments.forEach(url => {
+                        bubble += `<img src="${url}" class="mt-2 max-w-[200px] rounded-lg border border-slate-700 cursor-pointer hover:opacity-90" onclick="window.open('${url}')">`;
+                    });
+                }
+                
+                d.innerHTML = bubble + `<span class="text-[9px] text-slate-600 mt-1 px-1">${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>`;
                 box.appendChild(d);
             });
             box.scrollTop = box.scrollHeight;
         }
 
-        async function loadAdminData() {
-            const stats = await req('/api/admin/stats');
-            const srvs = await req('/api/admin/servers');
-            const cfg = await req('/api/admin/config');
-            if(!stats || stats.error) return;
+        function handleFileSelect() { 
+            const file = document.getElementById('file-input').files[0]; 
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                selectedFile = { base64: e.target.result, name: file.name }; 
+                document.getElementById('file-indicator').classList.remove('hidden'); 
+            }; 
+            reader.readAsDataURL(file); 
+        }
+
+        async function sendReply(event) { 
+            event.preventDefault(); 
+            const input = document.getElementById('msg-input'); 
+            if (!activeId) return; 
             
-            const ind = document.getElementById('status-indicator');
-            const txt = document.getElementById('status-text');
-            if(cfg && cfg.supportOnline === false) {
-                ind.classList.replace('bg-green-500', 'bg-red-500');
-                txt.classList.replace('text-green-500', 'text-red-500');
-                txt.innerText = "OFFLINE";
+            await req('/api/reply', 'POST', { 
+                threadId: activeId, 
+                content: input.value, 
+                fileBase64: selectedFile?.base64, 
+                fileName: selectedFile?.name 
+            }); 
+            
+            input.value = ''; 
+            selectedFile = null; 
+            document.getElementById('file-indicator').classList.add('hidden'); 
+        }
+
+        async function closeTicket() { 
+            if (activeId && confirm("Archive?")) { 
+                await req('/api/close-thread', 'POST', { threadId: activeId }); 
+                activeId = null; 
+                loadThreads(); 
+                document.getElementById('chat-box').innerHTML = ''; 
+                if(window.innerWidth < 768) closeChatMobile(); 
+            } 
+        }
+
+        // --- CLAIMING & TYPING ---
+        async function toggleClaim() { 
+            if(!activeId) return; 
+            const t = threadStore[activeId]; 
+            if(t.claimedBy === currentUser) {
+                await req('/api/unclaim', 'POST', { threadId: activeId }); 
             } else {
-                ind.classList.replace('bg-red-500', 'bg-green-500');
-                txt.classList.replace('text-red-500', 'text-green-500');
-                txt.innerText = "ONLINE";
+                await req('/api/claim', 'POST', { threadId: activeId }); 
             }
-
-            document.getElementById('staff-stats').innerHTML = stats.map(s => `
-                <div class="flex items-center justify-between border-b border-slate-800 py-2">
-                    <div class="flex flex-col text-[10px]">
-                        <span class="font-bold text-blue-400">${s.username} ${s.isAdmin ? '[ADMIN]' : ''}</span>
-                        <span class="text-slate-500">CLOSED: ${s.ticketsClosed} | REPLIES: ${s.repliesSent}</span>
-                    </div>
-                    <div class="flex space-x-1">
-                        <button onclick="adminResetKey('${s._id}')" class="text-[8px] border border-blue-500 px-2 py-1 rounded">RESET</button>
-                        <button onclick="deleteStaff('${s._id}')" class="text-[8px] border border-red-500 px-2 py-1 rounded">DEL</button>
-                    </div>
-                </div>
-            `).join('');
-
-            document.getElementById('srv-list').innerHTML = srvs.map(s => `
-                <div class="glass p-3 rounded-lg text-[10px]">
-                    <div class="font-bold text-blue-400 truncate">${s.name}</div>
-                    <div class="text-slate-500 mb-2">${s.members} Members | via ${s.botName}</div>
-                    <div class="flex space-x-1">
-                        <button onclick="createInv('${s.id}', '${s.botId}')" class="bg-blue-600 px-2 py-1 rounded font-bold uppercase">Invite</button>
-                        <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="bg-red-600 px-2 py-1 rounded font-bold uppercase">Leave</button>
-                        <button onclick="dmOwner('${s.id}', '${s.botId}')" class="bg-slate-700 px-2 py-1 rounded font-bold uppercase">DM</button>
-                    </div>
-                </div>
-            `).join('');
         }
 
-        async function addStaff() {
-            const res = await req('/api/admin/staff/add', 'POST', { username: document.getElementById('add-user').value, discordId: document.getElementById('add-discord').value, adminStatus: document.getElementById('add-is-admin').checked });
-            if(res.success) { alert("Staff Authorized."); loadAdminData(); }
+        function updateClaimUI(t) {
+            const btn = document.getElementById('btn-claim'); 
+            const overlay = document.getElementById('lock-overlay');
+            btn.classList.remove('hidden');
+            
+            if(!t.claimedBy) { 
+                btn.innerText = "CLAIM"; 
+                btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-green-500/50 text-green-500 hover:bg-green-900/20 transition"; 
+                enableInputs(true); 
+            }
+            else if(t.claimedBy === currentUser) { 
+                btn.innerText = "UNCLAIM"; 
+                btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-yellow-500/50 text-yellow-500 hover:bg-yellow-900/20 transition"; 
+                enableInputs(true); 
+            }
+            else { 
+                btn.innerText = isUserAdmin ? "OVERRIDE" : `LOCKED: ${t.claimedBy}`; 
+                btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-red-500/50 text-red-500 cursor-not-allowed"; 
+                enableInputs(isUserAdmin); 
+                overlay.classList.toggle('hidden', isUserAdmin); 
+            }
         }
 
-        async function deleteStaff(staffId) { if (confirm("Revoke access?")) { await req('/api/admin/staff/delete', 'POST', { staffId }); loadAdminData(); } }
-        async function adminResetKey(staffId) { if (confirm("Force Key Reset?")) await req('/api/admin/staff/reset-password', 'POST', { staffId }); }
-        async function createInv(serverId, botId) { const res = await req('/api/admin/create-invite', 'POST', { serverId, botId }); if (res.url) prompt("Invite URL:", res.url); }
-        async function leaveSrv(serverId, botId) { if (confirm("Disconnect Bot?")) { await req('/api/admin/leave-server', 'POST', { serverId, botId }); loadAdminData(); } }
-        async function dmOwner(serverId, botId) { const message = prompt("Owner Message:"); if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); }
+        function enableInputs(enable) { 
+            const els = ['msg-input','btn-send','btn-macro','btn-add-file'].map(id=>document.getElementById(id)); 
+            els.forEach(e => e.disabled = !enable); 
+            document.getElementById('lock-overlay').classList.toggle('hidden', enable); 
+        }
+
+        function notifyTyping() { 
+            if(activeId) socket.emit('staff_typing', { threadId: activeId }); 
+        }
+
+        // --- MACROS & CRM ---
+        async function toggleMacros() { 
+            const menu = document.getElementById('macro-menu'); 
+            if(menu.classList.contains('hidden')) { 
+                menu.classList.remove('hidden'); 
+                const res = await req('/api/macros'); 
+                document.getElementById('macro-list').innerHTML = res.map(m => `
+                    <button onclick="insertMacro('${m.content.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-2 text-[10px] hover:bg-slate-800 border-b border-slate-800 text-slate-300 truncate">
+                        ${m.title}
+                    </button>
+                `).join(''); 
+            } else { 
+                menu.classList.add('hidden'); 
+            } 
+        }
+
+        function insertMacro(text) { 
+            const input = document.getElementById('msg-input'); 
+            const smartText = text.replace(/{user}/gi, currentUser); 
+            const start = input.selectionStart; 
+            const end = input.selectionEnd; 
+            input.value = input.value.substring(0, start) + smartText + input.value.substring(end); 
+            document.getElementById('macro-menu').classList.add('hidden'); 
+            input.focus(); 
+            input.selectionStart = input.selectionEnd = start + smartText.length; 
+        }
+
+        async function loadAdminMacros() { 
+            const res = await req('/api/macros'); 
+            document.getElementById('admin-macro-list').innerHTML = res.map(m => `
+                <div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800">
+                    <span class="text-[10px] text-amber-500 font-bold truncate">${m.title}</span>
+                    <button onclick="deleteMacro('${m._id}')" class="text-red-500 hover:text-white text-[10px]">✕</button>
+                </div>
+            `).join(''); 
+        }
+
+        async function addMacro() { 
+            if(await (await req('/api/admin/macros/add', 'POST', { 
+                title: document.getElementById('macro-title').value, 
+                content: document.getElementById('macro-content').value 
+            })).success) { 
+                document.getElementById('macro-title').value = ''; 
+                document.getElementById('macro-content').value = ''; 
+                loadAdminMacros(); 
+            } 
+        }
+
+        async function deleteMacro(id) { 
+            if(confirm("Delete?")) { 
+                await req('/api/admin/macros/delete', 'POST', { id }); 
+                loadAdminMacros(); 
+            } 
+        }
         
-        async function toggleSupport() {
-            const statusText = document.getElementById('status-text').innerText;
-            const isOnline = statusText === 'ONLINE';
-            let note = null;
-            if(isOnline) { note = prompt("Optional: Reason for going offline?"); if(note === null) return; }
-            const res = await req('/api/admin/config/toggle', 'POST', { note });
-            if(res.success) loadAdminData();
-        }
-
-        async function sendBulk() {
-            const message = document.getElementById('bulk-msg').value;
-            if (message && confirm("Confirm global broadcast?")) {
-                const res = await req('/api/admin/bulk-message', 'POST', { message });
-                alert(`Broadcast Successful. Targets: ${res.sentTo}`);
-                document.getElementById('bulk-msg').value = '';
+        async function loadCRM(userId) { 
+            document.getElementById('crm-history').innerHTML = '...'; 
+            const res = await req(`/api/crm/user/${userId}`); 
+            document.getElementById('crm-note').value = res.note || ""; 
+            const h = document.getElementById('crm-history'); 
+            h.innerHTML = ''; 
+            
+            if(!res.history || res.history.length === 0) {
+                h.innerHTML = '<div class="text-[10px] text-slate-600 italic border border-slate-800 rounded p-2 text-center">No Archives</div>';
+            } else {
+                res.history.forEach(f => { 
+                    const el = document.createElement('div'); 
+                    el.className = "flex justify-between items-center p-2 bg-slate-900/50 border border-slate-800/50 rounded hover:bg-slate-800 cursor-pointer group"; 
+                    el.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-slate-300 font-bold">${new Date(f.closedAt).toLocaleDateString()}</span>
+                            <span class="text-[9px] text-slate-600">by ${f.closedBy}</span>
+                        </div>
+                        <span class="text-[9px] text-blue-500 opacity-0 group-hover:opacity-100 font-bold">></span>
+                    `; 
+                    el.onclick = () => openHistoryFile(userId, f.filename); 
+                    h.appendChild(el); 
+                }); 
             }
         }
 
-        async function activateLicense() {
-            const key = document.getElementById('lic-key').value;
-            const instance = document.getElementById('lic-id').value;
-            const type = document.getElementById('lic-type').value; 
-            const duration = document.getElementById('lic-duration').value;
-            const srvName = document.getElementById('lic-srv-name').value;
-            const srvId = document.getElementById('lic-srv-id').value;
-            const chanId = document.getElementById('lic-chan-id').value;
-            const discId = document.getElementById('lic-disc-id').value;
-            const resBox = document.getElementById('lic-result');
-
-            if(!key || !instance || !discId || !srvName || !srvId || !chanId) return alert("All fields are required.");
-
-            const btn = event.target;
-            const ogText = btn.innerText;
-            btn.innerText = "PROCESSING..."; btn.disabled = true;
-
-            const res = await req('/api/admin/license/activate', 'POST', { license_key: key, instance_name: instance, activation_type: type, duration: duration, server_name: srvName, server_id: srvId, channel_id: chanId, discord_id: discId });
-
-            btn.innerText = ogText; btn.disabled = false; resBox.classList.remove('hidden');
-
-            if(res.success) {
-                resBox.innerHTML = `<span class="text-green-400 font-bold">SUCCESS:</span> ${type} Logged.<br><span class="text-slate-500">Instance ID: ${res.data.id}</span>`;
-                document.getElementById('lic-key').value = ''; document.getElementById('lic-id').value = ''; document.getElementById('lic-disc-id').value = '';
-            } else { resBox.innerHTML = `<span class="text-red-400 font-bold">ERROR:</span> ${res.error}`; }
+        async function saveNote() { 
+            if(activeUserId) { 
+                await req('/api/crm/note', 'POST', { userId: activeUserId, note: document.getElementById('crm-note').value }); 
+                const s = document.getElementById('note-status'); 
+                s.classList.remove('hidden'); 
+                setTimeout(()=>s.classList.add('hidden'), 2000); 
+            } 
         }
 
-        async function sendManualDM() {
-            const id = document.getElementById('dm-id').value;
-            const content = document.getElementById('dm-content').value;
-            if(!id || !content) return alert("ID and Message required");
-            if(!confirm("Send DM and open ticket?")) return;
-            const res = await req('/api/admin/manual-dm', 'POST', { discordId: id, content: content });
-            if(res.success) { alert("Message Sent & Ticket Opened!"); document.getElementById('dm-id').value = ''; document.getElementById('dm-content').value = ''; } else { alert("Error: " + res.error); }
+        async function openHistoryFile(userId, filename) { 
+            document.getElementById('history-modal').classList.remove('hidden'); 
+            const c = document.getElementById('history-content'); 
+            c.innerHTML = 'Reading...'; 
+            
+            const res = await req(`/api/crm/transcript/${userId}/${filename}`); 
+            if(res.error) { c.innerText = "Error"; return; } 
+            
+            c.innerHTML = ''; 
+            res.messages.forEach(m => { 
+                const d = document.createElement('div'); 
+                d.className = `p-3 rounded-lg text-xs border mb-2 ${m.fromBot ? 'bg-blue-900/10 border-blue-500/20 ml-4' : 'bg-slate-800/50 border-slate-700 mr-4'}`; 
+                d.innerHTML = `
+                    <div class="flex justify-between mb-1 text-[9px] uppercase font-bold text-slate-500">
+                        <span>${m.authorTag}</span>
+                        <span>${new Date(m.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="text-slate-300 whitespace-pre-wrap">${m.content}</div>
+                `; 
+                c.appendChild(d); 
+            }); 
         }
 
-        function handleFileSelect() {
-            const file = document.getElementById('file-input').files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => { selectedFile = { base64: e.target.result, name: file.name }; document.getElementById('file-indicator').classList.remove('hidden'); };
-            reader.readAsDataURL(file);
-        }
-
-        async function sendReply(event) {
-            event.preventDefault();
-            const content = document.getElementById('msg-input').value;
-            if (!activeId) return;
-            await req('/api/reply', 'POST', { threadId: activeId, content, fileBase64: selectedFile?.base64, fileName: selectedFile?.name });
-            document.getElementById('msg-input').value = ''; selectedFile = null; document.getElementById('file-indicator').classList.add('hidden');
-        }
-
-        async function closeTicket() {
-            if (activeId && confirm("Archive and close this session?")) {
-                await req('/api/close-thread', 'POST', { threadId: activeId });
-                activeId = null; loadThreads(); renderChat();
-                if(window.innerWidth < 768) goBackToList();
+        // --- ADMIN ---
+        async function loadAdminData() { 
+            const stats = await req('/api/admin/stats'); 
+            if(!stats.error) {
+                document.getElementById('staff-stats').innerHTML = stats.map(s => { 
+                    const avg = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : "N/A"; 
+                    return `
+                        <div class="flex items-center justify-between p-2 bg-slate-900/50 rounded mb-1">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-slate-300">${s.username} ${s.isAdmin?'(A)':''}</span>
+                                <span class="text-[8px] text-yellow-500 font-bold">★ ${avg} (${s.ratingCount})</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <span class="text-[9px] text-slate-500 mt-1">C:${s.ticketsClosed}</span>
+                                <button onclick="deleteStaff('${s._id}')" class="text-[9px] text-red-500 hover:text-white">✕</button>
+                            </div>
+                        </div>
+                    `; 
+                }).join(''); 
             }
         }
 
-        socket.on('new_message', (d) => {
-            if (d.notif_sound) document.getElementById('notif-sound').play().catch(() => {});
-            if (threadStore[d.threadId]) { threadStore[d.threadId].messages.push(d); if (activeId === d.threadId) renderChat(); } else loadThreads();
+        async function activateLicense() { 
+            const btn = event.target; 
+            const og = btn.innerText; 
+            btn.innerText = "..."; 
+            btn.disabled = true; 
+            
+            const res = await req('/api/admin/license/activate', 'POST', { 
+                license_key: document.getElementById('lic-key').value, 
+                instance_name: document.getElementById('lic-id').value, 
+                activation_type: document.getElementById('lic-type').value, 
+                duration: document.getElementById('lic-duration').value, 
+                server_name: "Manual", 
+                server_id: "000", 
+                channel_id: "000", 
+                discord_id: document.getElementById('lic-disc-id').value 
+            }); 
+            
+            btn.innerText = og; 
+            btn.disabled = false; 
+            const resBox = document.getElementById('lic-result'); 
+            resBox.classList.remove('hidden'); 
+            
+            if(res.success) { 
+                resBox.innerHTML = `<span class="text-green-400">SUCCESS</span> ID: ${res.data.id}`; 
+                resBox.className = "text-[10px] font-mono p-2 bg-green-900/20 rounded border border-green-500/20 text-center text-green-200 mt-2 block"; 
+            } else { 
+                resBox.innerText = res.error; 
+                resBox.className = "text-[10px] font-mono p-2 bg-red-900/20 rounded border border-red-500/20 text-center text-red-200 mt-2 block"; 
+            } 
+        }
+
+        async function addStaff() { 
+            if(await (await req('/api/admin/staff/add', 'POST', { 
+                username: document.getElementById('add-user').value, 
+                discordId: document.getElementById('add-discord').value, 
+                adminStatus: document.getElementById('add-is-admin').checked 
+            })).success) { 
+                alert("Added"); 
+                loadAdminData(); 
+            } 
+        }
+
+        async function deleteStaff(id) { 
+            if(confirm("Remove?")) { 
+                await req('/api/admin/staff/delete', 'POST', { staffId: id }); 
+                loadAdminData(); 
+            } 
+        }
+
+        // --- INIT ---
+        socket.on('new_message', (d) => { 
+            if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); 
+            if (threadStore[d.threadId]) { 
+                threadStore[d.threadId].messages.push(d); 
+                if (activeId === d.threadId) renderChat(); 
+                loadThreads(); 
+            } else {
+                loadThreads(); 
+            }
         });
 
-        (async () => {
-            const data = await req('/api/threads');
-            if(!data.error) { document.getElementById('login-view').classList.add('hidden'); loadThreads(); const adminStats = await req('/api/admin/stats'); if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden'); }
+        socket.on('thread_update', (d) => { 
+            if(threadStore[d.threadId]) { 
+                threadStore[d.threadId].claimedBy = d.claimedBy; 
+                if(activeId === d.threadId) updateClaimUI(threadStore[d.threadId]); 
+            } 
+        });
+
+        socket.on('user_typing', (d) => { 
+            if (activeUserId && activeUserId === d.userId) { 
+                const i = document.getElementById('typing-indicator'); 
+                const s = document.getElementById('status-sub'); 
+                i.classList.remove('hidden'); 
+                s.classList.add('hidden'); 
+                clearTimeout(typingTimeout); 
+                typingTimeout = setTimeout(() => { 
+                    i.classList.add('hidden'); 
+                    s.classList.remove('hidden'); 
+                }, 3000); 
+            } 
+        });
+
+        (async () => { 
+            const data = await req('/api/threads'); 
+            if(!data.error) { 
+                document.getElementById('login-view').classList.add('hidden'); 
+                loadThreads(); 
+                const adminStats = await req('/api/admin/stats'); 
+                if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden'); 
+            } 
         })();
     </script>
 </body>
