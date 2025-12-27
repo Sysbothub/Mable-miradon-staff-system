@@ -40,9 +40,13 @@
     <div id="login-view" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
         <div class="glass p-8 rounded-2xl w-[90%] max-w-sm text-center border border-slate-800">
             <h1 class="text-3xl font-black text-blue-500 mb-8 italic tracking-tighter">TRADE SERVICES PANEL</h1>
+            
             <input type="text" id="l-user" placeholder="IDENTIFIER" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-4 outline-none text-sm text-center transition focus:border-blue-500 text-white">
+            
             <input type="password" id="l-pass" placeholder="SECURITY KEY" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-6 outline-none text-sm text-center transition focus:border-blue-500 text-white">
+            
             <button id="login-btn" onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl font-bold uppercase text-sm tracking-widest shadow-lg shadow-blue-900/20">Establish Link</button>
+            
             <button onclick="requestRecovery()" class="text-xs text-slate-500 mt-4 hover:text-white uppercase font-bold">Lost Key? Recover via Discord</button>
         </div>
     </div>
@@ -60,11 +64,15 @@
     <div class="flex-1 relative overflow-hidden">
         
         <div id="view-chat" class="absolute inset-0 flex w-full h-full">
+            
             <aside id="thread-list" class="w-full md:w-72 glass border-r border-slate-800 overflow-y-auto bg-[#020617] z-20 flex flex-col">
                 <div class="p-4 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#020617]/95 backdrop-blur">Active Frequencies</div>
-                <div id="thread-container" class="space-y-1 p-2"></div>
+                <div id="thread-container" class="space-y-1 p-2">
+                    </div>
             </aside>
+            
             <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 w-full h-full absolute md:static inset-0 z-30">
+                
                 <div class="h-14 glass border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
                     <div class="flex items-center">
                         <button onclick="closeChatMobile()" class="md:hidden mr-4 text-slate-400 hover:text-white p-2 -ml-2">←</button>
@@ -74,33 +82,57 @@
                             <div id="status-sub" class="text-[10px] text-slate-500 uppercase font-bold">Live Secure Channel</div>
                         </div>
                     </div>
+                    
                     <div class="flex items-center space-x-2">
                         <div id="viewer-display" class="hidden text-[10px] text-slate-400 font-bold mr-2 border border-slate-700 rounded px-2 py-1 bg-slate-900/50"></div>
+                        
                         <button onclick="toggleCRM()" class="md:hidden p-2 text-slate-400 hover:text-yellow-400 font-bold border border-slate-700 rounded px-3">CRM</button>
+                        
                         <button onclick="closeTicket()" class="text-[10px] bg-red-600/10 text-red-500 border border-red-600/50 px-3 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold">Archive</button>
                     </div>
                 </div>
+
                 <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-slate-950/50"></div>
+
                 <div class="p-3 md:p-4 glass border-t border-slate-800 shrink-0 pb-safe">
-                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached</div>
+                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached
+                    </div>
+                    
                     <form onsubmit="sendReply(event)" class="flex space-x-2 items-end">
                         <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
+                        
                         <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700">+</button>
+                        
                         <div class="relative group">
                             <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1">⚡</button>
                             <div id="macro-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
                                 <div id="macro-list" class="max-h-48 overflow-y-auto">Loading...</div>
                             </div>
                         </div>
+                        
                         <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white"></textarea>
+                        
                         <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20">Send</button>
                     </form>
                 </div>
             </main>
+
             <aside id="crm-panel" class="hidden md:flex w-80 glass border-l border-slate-800 flex-col bg-[#020617] absolute md:static right-0 inset-y-0 z-40 shadow-2xl md:shadow-none translate-x-full md:translate-x-0 transition-transform duration-300">
-                <div class="p-4 border-b border-slate-800 flex justify-between items-center md:hidden"><span class="font-bold text-slate-400">USER DOSSIER</span><button onclick="toggleCRM()" class="text-slate-500">✕</button></div>
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center md:hidden">
+                    <span class="font-bold text-slate-400">USER DOSSIER</span>
+                    <button onclick="toggleCRM()" class="text-slate-500">✕</button>
+                </div>
+                
                 <div class="p-4 flex-1 overflow-y-auto">
-                    <div class="mb-6"><div class="flex justify-between items-center mb-2"><h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sticky Notes</h3><span id="note-status" class="text-[9px] text-green-500 font-bold hidden">SAVED</span></div><textarea id="crm-note" onblur="saveNote()" class="w-full h-40 bg-yellow-900/5 border border-yellow-700/20 text-yellow-100/90 p-3 text-xs rounded-xl resize-none focus:outline-none focus:border-yellow-600/50 transition placeholder-yellow-800/50" placeholder="Internal staff notes..."></textarea></div>
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sticky Notes</h3>
+                            <span id="note-status" class="text-[9px] text-green-500 font-bold hidden">SAVED</span>
+                        </div>
+                        <textarea id="crm-note" onblur="saveNote()" class="w-full h-40 bg-yellow-900/5 border border-yellow-700/20 text-yellow-100/90 p-3 text-xs rounded-xl resize-none focus:outline-none focus:border-yellow-600/50 transition placeholder-yellow-800/50" placeholder="Internal staff notes..."></textarea>
+                    </div>
+
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Ticket History</h3>
                     <div id="crm-history" class="space-y-2"></div>
                 </div>
@@ -110,6 +142,7 @@
 
         <div id="view-admin" class="hidden absolute inset-0 bg-slate-950 overflow-y-auto z-20 pb-20">
             <div class="p-4 md:p-10 space-y-6 max-w-6xl mx-auto">
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="glass p-5 rounded-2xl border border-indigo-500/20">
                         <h2 class="text-indigo-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-indigo-500/10 pb-2">License Generator</h2>
@@ -117,24 +150,46 @@
                             <input type="text" id="lic-key" placeholder="License Key" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
                             <input type="text" id="lic-disc-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
                             <input type="text" id="lic-id" placeholder="HWID / Instance ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white">
-                            <div class="grid grid-cols-2 gap-2"><select id="lic-type" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300"><option value="Professor Mable Rental">Rental</option><option value="Premium Subscription">Premium</option></select><select id="lic-duration" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300"><option value="30 Days">30 Days</option><option value="Lifetime">Lifetime</option></select></div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="lic-type" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
+                                    <option value="Professor Mable Rental">Rental</option>
+                                    <option value="Premium Subscription">Premium</option>
+                                </select>
+                                <select id="lic-duration" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
+                                    <option value="30 Days">30 Days</option>
+                                    <option value="Lifetime">Lifetime</option>
+                                </select>
+                            </div>
                             <button onclick="activateLicense()" class="w-full bg-indigo-600 hover:bg-indigo-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest mt-2">Activate License</button>
                             <div id="lic-result" class="hidden text-[10px] font-mono p-2 bg-slate-900 rounded border border-slate-800 text-center text-white"></div>
                         </div>
                     </div>
+
                     <div class="glass p-5 rounded-2xl border border-amber-500/20">
                         <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Staff Roster</h2>
                         <div class="h-40 overflow-y-auto mb-4 space-y-2 pr-2" id="staff-stats"></div>
-                        <div class="flex space-x-2"><input type="text" id="add-user" placeholder="Username" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white"><input type="text" id="add-discord" placeholder="Discord ID" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white"></div>
-                        <div class="flex items-center justify-between mt-2"><label class="text-[10px] text-slate-400 font-bold flex items-center"><input type="checkbox" id="add-is-admin" class="mr-2"> GRANT ADMIN</label><button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold uppercase text-[10px]">Add</button></div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="add-user" placeholder="Username" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                            <input type="text" id="add-discord" placeholder="Discord ID" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <label class="text-[10px] text-slate-400 font-bold flex items-center"><input type="checkbox" id="add-is-admin" class="mr-2"> GRANT ADMIN</label>
+                            <button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold uppercase text-[10px]">Add</button>
+                        </div>
                     </div>
                 </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div class="glass p-5 rounded-2xl border border-amber-500/20">
                         <h2 class="text-amber-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Response Macros</h2>
-                        <div class="flex gap-2 mb-4"><input type="text" id="macro-title" placeholder="Title" class="w-1/3 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white"><input type="text" id="macro-content" placeholder="Content ({user} for name)..." class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white"><button onclick="addMacro()" class="bg-amber-600 px-4 rounded font-bold text-xs uppercase">Add</button></div>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="macro-title" placeholder="Title" class="w-1/3 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
+                            <input type="text" id="macro-content" placeholder="Content ({user} for name)..." class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
+                            <button onclick="addMacro()" class="bg-amber-600 px-4 rounded font-bold text-xs uppercase">Add</button>
+                        </div>
                         <div id="admin-macro-list" class="grid grid-cols-2 gap-2"></div>
                     </div>
+
                     <div class="glass p-5 rounded-2xl border border-blue-500/20">
                         <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-blue-500/10 pb-2">Manual Ticket Opening</h2>
                         <input type="text" id="dm-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white mb-2">
@@ -142,6 +197,7 @@
                         <button onclick="sendManualDM()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Open Ticket</button>
                     </div>
                 </div>
+
                 <div class="glass p-5 rounded-2xl border border-slate-700/50 mt-4">
                     <h2 class="text-slate-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-slate-700/50 pb-2">Bot Fleet & Broadcasts</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,16 +205,22 @@
                             <input type="text" id="bulk-msg" placeholder="Global Broadcast Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white mb-2">
                             <button onclick="sendBulk()" class="w-full bg-red-600 hover:bg-red-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Execute Global Broadcast</button>
                         </div>
-                        <div id="srv-list" class="space-y-2 max-h-48 overflow-y-auto">Loading Servers...</div>
+                        <div id="srv-list" class="space-y-2 max-h-48 overflow-y-auto">
+                            Loading Servers...
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
 
     <div id="history-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/95 hidden p-4">
         <div class="glass w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl border border-slate-700 overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50"><h2 class="text-sm font-bold text-slate-200 uppercase tracking-widest">Transcript Viewer</h2><button onclick="document.getElementById('history-modal').classList.add('hidden')" class="text-red-400 font-bold text-xs px-3 py-1 rounded border border-red-900/50">CLOSE</button></div>
+            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50">
+                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-widest">Transcript Viewer</h2>
+                <button onclick="document.getElementById('history-modal').classList.add('hidden')" class="text-red-400 font-bold text-xs px-3 py-1 rounded border border-red-900/50">CLOSE</button>
+            </div>
             <div id="history-content" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950"></div>
         </div>
     </div>
@@ -166,6 +228,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io(); 
+        
         let activeId = null; 
         let activeUserId = null; 
         let currentUser = "Staff"; 
@@ -176,15 +239,26 @@
 
         // --- HTTP REQUEST WRAPPER ---
         async function req(url, method = 'GET', body = null) { 
-            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : null }); 
-            if (res.status === 401 && !url.includes('/api/login')) { 
-                document.getElementById('login-view').classList.remove('hidden'); 
-                return { error: 'Unauthorized' }; 
-            } 
-            return res.json(); 
+            try {
+                const res = await fetch(url, { 
+                    method, 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: body ? JSON.stringify(body) : null 
+                }); 
+                
+                if (res.status === 401 && !url.includes('/api/login')) { 
+                    document.getElementById('login-view').classList.remove('hidden'); 
+                    return { error: 'Unauthorized' }; 
+                } 
+                
+                return await res.json();
+            } catch (e) {
+                console.error("Request Failed:", e);
+                return { error: "Network Error" };
+            }
         }
 
-        // --- AUTH & STARTUP ---
+        // --- AUTHENTICATION & STARTUP ---
         async function identifyUser() { 
             const res = await req('/api/auth/user'); 
             if(res.username) { 
@@ -198,29 +272,53 @@
             const btn = document.getElementById('login-btn'); 
             btn.innerText = "LINKING..."; 
             btn.disabled = true; 
-            const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: document.getElementById('l-user').value, password: document.getElementById('l-pass').value }) }); 
-            if (res.ok) { window.location.reload(); } 
-            else { alert("ACCESS DENIED"); btn.innerText = "Establish Link"; btn.disabled = false; } 
+            
+            const res = await fetch('/api/login', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    username: document.getElementById('l-user').value, 
+                    password: document.getElementById('l-pass').value 
+                }) 
+            }); 
+            
+            if (res.ok) { 
+                window.location.reload(); 
+            } else { 
+                alert("ACCESS DENIED"); 
+                btn.innerText = "Establish Link"; 
+                btn.disabled = false; 
+            } 
         }
 
         async function doLogout() { 
-            if(await (await fetch('/api/logout', { method: 'POST' })).ok) window.location.reload(); 
+            const res = await fetch('/api/logout', { method: 'POST' });
+            if (res.ok) {
+                window.location.reload(); 
+            }
         }
 
         async function requestRecovery() { 
             const user = prompt("Enter your Discord ID to receive a new key:"); 
-            if(user) { 
+            if (user) { 
                 await req('/api/public/request-reset', 'POST', { discordId: user }); 
                 alert("Check your DMs."); 
             } 
         }
 
-        // --- NAVIGATION ---
+        // --- NAVIGATION CONTROLS ---
         function showView(v) { 
             document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat'); 
             document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin'); 
-            if(v === 'chat' && window.innerWidth < 768) closeChatMobile(); 
-            if(v === 'admin') { loadAdminData(); loadAdminMacros(); } 
+            
+            if (v === 'chat' && window.innerWidth < 768) {
+                closeChatMobile(); 
+            }
+            
+            if (v === 'admin') { 
+                loadAdminData(); 
+                loadAdminMacros(); 
+            } 
         }
 
         function closeChatMobile() { 
@@ -240,13 +338,16 @@
         function toggleCRM() { 
             const p = document.getElementById('crm-panel'); 
             const o = document.getElementById('crm-overlay'); 
-            if(p.classList.contains('hidden') || p.classList.contains('translate-x-full')) { 
+            
+            if (p.classList.contains('hidden') || p.classList.contains('translate-x-full')) { 
                 p.classList.remove('hidden', 'translate-x-full'); 
                 p.classList.add('translate-x-0'); 
                 o.classList.remove('hidden'); 
             } else { 
                 p.classList.add('translate-x-full'); 
-                setTimeout(() => { if(window.innerWidth < 768) p.classList.add('hidden'); }, 300); 
+                setTimeout(() => { 
+                    if(window.innerWidth < 768) p.classList.add('hidden'); 
+                }, 300); 
                 o.classList.add('hidden'); 
             } 
         }
@@ -254,7 +355,7 @@
         // --- CORE CHAT LOGIC ---
         async function loadThreads() {
             const data = await req('/api/threads'); 
-            if(!data || data.error) return;
+            if (!data || data.error) return;
             
             const list = document.getElementById('thread-container'); 
             list.innerHTML = data.length === 0 ? '<div class="text-center text-slate-600 text-[10px] mt-10">NO ACTIVE SIGNALS</div>' : '';
@@ -267,6 +368,7 @@
                 
                 d.className = `p-3 rounded-xl cursor-pointer transition border border-transparent ${activeId === t._id ? 'bg-blue-900/20 border-blue-500/30' : 'hover:bg-slate-800'}`;
                 
+                // Safe UserID check
                 const uid = t.userId || 'Unknown';
                 
                 d.innerHTML = `
@@ -284,10 +386,15 @@
                 `;
                 
                 d.onclick = () => { 
+                    // Leave old room
                     if(activeId) socket.emit('leave_ticket_room');
+                    
                     activeId = t._id; 
                     activeUserId = t.userId; 
+                    
+                    // Join new room
                     socket.emit('join_ticket_room', { threadId: activeId, username: currentUser });
+                    
                     renderChat(); 
                     loadCRM(t.userId); 
                     if(window.innerWidth < 768) openChatMobile(); 
@@ -297,51 +404,257 @@
             });
         }
 
+        // --- SAFE RENDER CHAT ---
         function renderChat() {
             try {
-                const box = document.getElementById('chat-box'); box.innerHTML = ''; 
+                const box = document.getElementById('chat-box'); 
+                box.innerHTML = ''; 
+                
                 if (!activeId || !threadStore[activeId]) return;
+                
                 const cur = threadStore[activeId]; 
+                
+                // Ensure User ID Exists
                 const uid = cur.userId || 'Unknown';
+                
+                // Update Header
                 document.getElementById('active-tag').innerHTML = `${cur.userTag} <span class="text-slate-600 text-[10px] ml-2 font-mono select-all">${uid}</span>`;
                 
+                // Render Messages
                 if (cur.messages && Array.isArray(cur.messages)) {
                     cur.messages.forEach(m => {
-                        const d = document.createElement('div'); d.className = `flex flex-col max-w-[85%] ${m.fromBot ? 'self-end items-end' : 'self-start items-start'}`;
-                        let bubble = `<div class="px-4 py-2 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed border ${m.fromBot ? 'bg-blue-600 text-white border-blue-500 rounded-tr-sm' : 'bg-slate-800 text-slate-200 border-slate-700 rounded-tl-sm'}">${m.content}</div>`;
-                        if (m.attachments) m.attachments.forEach(url => bubble += `<img src="${url}" class="mt-2 max-w-[200px] rounded-lg border border-slate-700 cursor-pointer hover:opacity-90" onclick="window.open('${url}')">`);
+                        const d = document.createElement('div'); 
+                        d.className = `flex flex-col max-w-[85%] ${m.fromBot ? 'self-end items-end' : 'self-start items-start'}`;
+                        
+                        let bubble = `
+                            <div class="px-4 py-2 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed border ${
+                                m.fromBot 
+                                ? 'bg-blue-600 text-white border-blue-500 rounded-tr-sm' 
+                                : 'bg-slate-800 text-slate-200 border-slate-700 rounded-tl-sm'
+                            }">${m.content}</div>
+                        `;
+                        
+                        if (m.attachments) {
+                            m.attachments.forEach(url => {
+                                bubble += `<img src="${url}" class="mt-2 max-w-[200px] rounded-lg border border-slate-700 cursor-pointer hover:opacity-90" onclick="window.open('${url}')">`;
+                            });
+                        }
+                        
                         d.innerHTML = bubble + `<span class="text-[9px] text-slate-600 mt-1 px-1">${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>`;
                         box.appendChild(d);
                     });
                 }
+                
+                // Scroll to bottom
                 box.scrollTop = box.scrollHeight;
-            } catch (e) { console.error("Render error:", e); }
+                
+            } catch (err) {
+                console.error("CRITICAL UI ERROR IN RENDER CHAT:", err);
+            }
         }
 
-        function handleFileSelect() { const file = document.getElementById('file-input').files[0]; const reader = new FileReader(); reader.onload = (e) => { selectedFile = { base64: e.target.result, name: file.name }; document.getElementById('file-indicator').classList.remove('hidden'); }; reader.readAsDataURL(file); }
-        async function sendReply(event) { event.preventDefault(); const input = document.getElementById('msg-input'); if (!activeId) return; await req('/api/reply', 'POST', { threadId: activeId, content: input.value, fileBase64: selectedFile?.base64, fileName: selectedFile?.name }); input.value = ''; selectedFile = null; document.getElementById('file-indicator').classList.add('hidden'); }
-        async function closeTicket() { if (activeId && confirm("Archive?")) { await req('/api/close-thread', 'POST', { threadId: activeId }); activeId = null; loadThreads(); document.getElementById('chat-box').innerHTML = ''; if(window.innerWidth < 768) closeChatMobile(); } }
+        function handleFileSelect() { 
+            const file = document.getElementById('file-input').files[0]; 
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                selectedFile = { base64: e.target.result, name: file.name }; 
+                document.getElementById('file-indicator').classList.remove('hidden'); 
+            }; 
+            reader.readAsDataURL(file); 
+        }
 
-        function notifyTyping() { if(activeId) socket.emit('staff_typing', { threadId: activeId }); }
-
-        async function toggleMacros() { const menu = document.getElementById('macro-menu'); if(menu.classList.contains('hidden')) { menu.classList.remove('hidden'); const res = await req('/api/macros'); document.getElementById('macro-list').innerHTML = res.map(m => `<button onclick="insertMacro('${m.content.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-2 text-[10px] hover:bg-slate-800 border-b border-slate-800 text-slate-300 truncate">${m.title}</button>`).join(''); } else { menu.classList.add('hidden'); } }
-        function insertMacro(text) { const input = document.getElementById('msg-input'); const smartText = text.replace(/{user}/gi, currentUser); const start = input.selectionStart; const end = input.selectionEnd; input.value = input.value.substring(0, start) + smartText + input.value.substring(end); document.getElementById('macro-menu').classList.add('hidden'); input.focus(); input.selectionStart = input.selectionEnd = start + smartText.length; }
-        async function loadAdminMacros() { const res = await req('/api/macros'); document.getElementById('admin-macro-list').innerHTML = res.map(m => `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800"><span class="text-[10px] text-amber-500 font-bold truncate">${m.title}</span><button onclick="deleteMacro('${m._id}')" class="text-red-500 hover:text-white text-[10px]">✕</button></div>`).join(''); }
-        async function addMacro() { if(await (await req('/api/admin/macros/add', 'POST', { title: document.getElementById('macro-title').value, content: document.getElementById('macro-content').value })).success) { document.getElementById('macro-title').value = ''; document.getElementById('macro-content').value = ''; loadAdminMacros(); } }
-        async function deleteMacro(id) { if(confirm("Delete?")) { await req('/api/admin/macros/delete', 'POST', { id }); loadAdminMacros(); } }
-        
-        async function loadCRM(userId) { document.getElementById('crm-history').innerHTML = '...'; const res = await req(`/api/crm/user/${userId}`); document.getElementById('crm-note').value = res.note || ""; const h = document.getElementById('crm-history'); h.innerHTML = ''; if(!res.history || res.history.length === 0) h.innerHTML = '<div class="text-[10px] text-slate-600 italic border border-slate-800 rounded p-2 text-center">No Archives</div>'; else res.history.forEach(f => { const el = document.createElement('div'); el.className = "flex justify-between items-center p-2 bg-slate-900/50 border border-slate-800/50 rounded hover:bg-slate-800 cursor-pointer group"; el.innerHTML = `<div class="flex flex-col"><span class="text-[10px] text-slate-300 font-bold">${new Date(f.closedAt).toLocaleDateString()}</span><span class="text-[9px] text-slate-600">by ${f.closedBy}</span></div><span class="text-[9px] text-blue-500 opacity-0 group-hover:opacity-100 font-bold">></span>`; el.onclick = () => openHistoryFile(userId, f.filename); h.appendChild(el); }); }
-        async function saveNote() { if(activeUserId) { await req('/api/crm/note', 'POST', { userId: activeUserId, note: document.getElementById('crm-note').value }); const s = document.getElementById('note-status'); s.classList.remove('hidden'); setTimeout(()=>s.classList.add('hidden'), 2000); } }
-        async function openHistoryFile(userId, filename) { document.getElementById('history-modal').classList.remove('hidden'); const c = document.getElementById('history-content'); c.innerHTML = 'Reading...'; const res = await req(`/api/crm/transcript/${userId}/${filename}`); if(res.error) { c.innerText = "Error"; return; } c.innerHTML = ''; res.messages.forEach(m => { const d = document.createElement('div'); d.className = `p-3 rounded-lg text-xs border mb-2 ${m.fromBot ? 'bg-blue-900/10 border-blue-500/20 ml-4' : 'bg-slate-800/50 border-slate-700 mr-4'}`; d.innerHTML = `<div class="flex justify-between mb-1 text-[9px] uppercase font-bold text-slate-500"><span>${m.authorTag}</span><span>${new Date(m.timestamp).toLocaleTimeString()}</span></div><div class="text-slate-300 whitespace-pre-wrap">${m.content}</div>`; c.appendChild(d); }); }
-
-        async function loadAdminData() { 
-            const stats = await req('/api/admin/stats'); 
-            if(!stats.error) document.getElementById('staff-stats').innerHTML = stats.map(s => { const avg = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : "N/A"; return `<div class="flex items-center justify-between p-2 bg-slate-900/50 rounded mb-1"><div class="flex flex-col"><span class="text-[10px] font-bold text-slate-300">${s.username} ${s.isAdmin?'(A)':''}</span><span class="text-[8px] text-yellow-500 font-bold">★ ${avg} (${s.ratingCount})</span></div><div class="flex space-x-2"><span class="text-[9px] text-slate-500 mt-1">C:${s.ticketsClosed}</span><button onclick="deleteStaff('${s._id}')" class="text-[9px] text-red-500 hover:text-white">✕</button></div></div>`; }).join(''); 
+        async function sendReply(event) { 
+            event.preventDefault(); 
+            const input = document.getElementById('msg-input'); 
             
+            if (!activeId) return; 
+            
+            await req('/api/reply', 'POST', { 
+                threadId: activeId, 
+                content: input.value, 
+                fileBase64: selectedFile?.base64, 
+                fileName: selectedFile?.name 
+            }); 
+            
+            input.value = ''; 
+            selectedFile = null; 
+            document.getElementById('file-indicator').classList.add('hidden'); 
+        }
+
+        async function closeTicket() { 
+            if (activeId && confirm("Archive and close this session?")) { 
+                await req('/api/close-thread', 'POST', { threadId: activeId }); 
+                activeId = null; 
+                loadThreads(); 
+                document.getElementById('chat-box').innerHTML = ''; 
+                if(window.innerWidth < 768) closeChatMobile(); 
+            } 
+        }
+
+        function notifyTyping() { 
+            if (activeId) {
+                socket.emit('staff_typing', { threadId: activeId }); 
+            }
+        }
+
+        // --- MACROS & CRM LOGIC ---
+        async function toggleMacros() { 
+            const menu = document.getElementById('macro-menu'); 
+            
+            if (menu.classList.contains('hidden')) { 
+                menu.classList.remove('hidden'); 
+                const res = await req('/api/macros'); 
+                
+                document.getElementById('macro-list').innerHTML = res.map(m => `
+                    <button onclick="insertMacro('${m.content.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-2 text-[10px] hover:bg-slate-800 border-b border-slate-800 text-slate-300 truncate">
+                        ${m.title}
+                    </button>
+                `).join(''); 
+            } else { 
+                menu.classList.add('hidden'); 
+            } 
+        }
+
+        function insertMacro(text) { 
+            const input = document.getElementById('msg-input'); 
+            // Auto-Fill User Name
+            const smartText = text.replace(/{user}/gi, currentUser); 
+            
+            // Insert at Cursor Position
+            const start = input.selectionStart; 
+            const end = input.selectionEnd; 
+            input.value = input.value.substring(0, start) + smartText + input.value.substring(end); 
+            
+            document.getElementById('macro-menu').classList.add('hidden'); 
+            input.focus(); 
+            input.selectionStart = input.selectionEnd = start + smartText.length; 
+        }
+
+        async function loadAdminMacros() { 
+            const res = await req('/api/macros'); 
+            document.getElementById('admin-macro-list').innerHTML = res.map(m => `
+                <div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800">
+                    <span class="text-[10px] text-amber-500 font-bold truncate">${m.title}</span>
+                    <button onclick="deleteMacro('${m._id}')" class="text-red-500 hover:text-white text-[10px]">✕</button>
+                </div>
+            `).join(''); 
+        }
+
+        async function addMacro() { 
+            const title = document.getElementById('macro-title').value;
+            const content = document.getElementById('macro-content').value;
+            
+            if (await (await req('/api/admin/macros/add', 'POST', { title, content })).success) { 
+                document.getElementById('macro-title').value = ''; 
+                document.getElementById('macro-content').value = ''; 
+                loadAdminMacros(); 
+            } 
+        }
+
+        async function deleteMacro(id) { 
+            if (confirm("Delete Macro?")) { 
+                await req('/api/admin/macros/delete', 'POST', { id }); 
+                loadAdminMacros(); 
+            } 
+        }
+        
+        async function loadCRM(userId) { 
+            document.getElementById('crm-history').innerHTML = '...'; 
+            
+            const res = await req(`/api/crm/user/${userId}`); 
+            document.getElementById('crm-note').value = res.note || ""; 
+            
+            const h = document.getElementById('crm-history'); 
+            h.innerHTML = ''; 
+            
+            if (!res.history || res.history.length === 0) {
+                h.innerHTML = '<div class="text-[10px] text-slate-600 italic border border-slate-800 rounded p-2 text-center">No Archives</div>';
+            } else {
+                res.history.forEach(f => { 
+                    const el = document.createElement('div'); 
+                    el.className = "flex justify-between items-center p-2 bg-slate-900/50 border border-slate-800/50 rounded hover:bg-slate-800 cursor-pointer group"; 
+                    el.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-slate-300 font-bold">${new Date(f.closedAt).toLocaleDateString()}</span>
+                            <span class="text-[9px] text-slate-600">by ${f.closedBy}</span>
+                        </div>
+                        <span class="text-[9px] text-blue-500 opacity-0 group-hover:opacity-100 font-bold">></span>
+                    `; 
+                    el.onclick = () => openHistoryFile(userId, f.filename); 
+                    h.appendChild(el); 
+                }); 
+            }
+        }
+
+        async function saveNote() { 
+            if (activeUserId) { 
+                await req('/api/crm/note', 'POST', { 
+                    userId: activeUserId, 
+                    note: document.getElementById('crm-note').value 
+                }); 
+                
+                const s = document.getElementById('note-status'); 
+                s.classList.remove('hidden'); 
+                setTimeout(()=>s.classList.add('hidden'), 2000); 
+            } 
+        }
+
+        async function openHistoryFile(userId, filename) { 
+            document.getElementById('history-modal').classList.remove('hidden'); 
+            const c = document.getElementById('history-content'); 
+            c.innerHTML = 'Reading...'; 
+            
+            const res = await req(`/api/crm/transcript/${userId}/${filename}`); 
+            if (res.error) { 
+                c.innerText = "Error reading transcript file."; 
+                return; 
+            } 
+            
+            c.innerHTML = ''; 
+            res.messages.forEach(m => { 
+                const d = document.createElement('div'); 
+                d.className = `p-3 rounded-lg text-xs border mb-2 ${m.fromBot ? 'bg-blue-900/10 border-blue-500/20 ml-4' : 'bg-slate-800/50 border-slate-700 mr-4'}`; 
+                d.innerHTML = `
+                    <div class="flex justify-between mb-1 text-[9px] uppercase font-bold text-slate-500">
+                        <span>${m.authorTag}</span>
+                        <span>${new Date(m.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="text-slate-300 whitespace-pre-wrap">${m.content}</div>
+                `; 
+                c.appendChild(d); 
+            }); 
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        async function loadAdminData() { 
+            // 1. Staff Statistics
+            const stats = await req('/api/admin/stats'); 
+            if (!stats.error) {
+                document.getElementById('staff-stats').innerHTML = stats.map(s => { 
+                    const avg = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : "N/A"; 
+                    return `
+                        <div class="flex items-center justify-between p-2 bg-slate-900/50 rounded mb-1">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-slate-300">${s.username} ${s.isAdmin?'(A)':''}</span>
+                                <span class="text-[8px] text-yellow-500 font-bold">★ ${avg} (${s.ratingCount})</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <span class="text-[9px] text-slate-500 mt-1">C:${s.ticketsClosed}</span>
+                                <button onclick="deleteStaff('${s._id}')" class="text-[9px] text-red-500 hover:text-white">✕</button>
+                            </div>
+                        </div>
+                    `; 
+                }).join(''); 
+            }
+            
+            // 2. Server List (Bot Fleet)
             const srvs = await req('/api/admin/servers');
             document.getElementById('srv-list').innerHTML = srvs.map(s => `
                 <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded text-xs border border-slate-800">
-                    <div class="flex flex-col"><span class="font-bold text-slate-300">${s.name}</span><span class="text-[9px] text-slate-500">${s.members} members | <span class="text-blue-400">🤖 ${s.botName}</span></span></div>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-slate-300">${s.name}</span>
+                        <span class="text-[9px] text-slate-500">${s.members} Mem | <span class="text-blue-400">🤖 ${s.botName}</span></span>
+                    </div>
                     <div class="flex space-x-1">
                         <button onclick="createInv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded text-[9px]">LINK</button>
                         <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-red-900/50 hover:bg-red-600 text-red-200 rounded text-[9px]">LEAVE</button>
@@ -350,21 +663,156 @@
                 </div>
             `).join('');
         }
-        async function activateLicense() { const btn = event.target; const og = btn.innerText; btn.innerText = "..."; btn.disabled = true; const res = await req('/api/admin/license/activate', 'POST', { license_key: document.getElementById('lic-key').value, instance_name: document.getElementById('lic-id').value, activation_type: document.getElementById('lic-type').value, duration: document.getElementById('lic-duration').value, server_name: "Manual", server_id: "000", channel_id: "000", discord_id: document.getElementById('lic-disc-id').value }); btn.innerText = og; btn.disabled = false; const resBox = document.getElementById('lic-result'); resBox.classList.remove('hidden'); if(res.success) { resBox.innerHTML = `<span class="text-green-400">SUCCESS</span> ID: ${res.data.id}`; resBox.className = "text-[10px] font-mono p-2 bg-green-900/20 rounded border border-green-500/20 text-center text-green-200 mt-2 block"; } else { resBox.innerText = res.error; resBox.className = "text-[10px] font-mono p-2 bg-red-900/20 rounded border border-red-500/20 text-center text-red-200 mt-2 block"; } }
-        async function addStaff() { if(await (await req('/api/admin/staff/add', 'POST', { username: document.getElementById('add-user').value, discordId: document.getElementById('add-discord').value, adminStatus: document.getElementById('add-is-admin').checked })).success) { alert("Added"); loadAdminData(); } }
-        async function deleteStaff(id) { if(confirm("Remove?")) { await req('/api/admin/staff/delete', 'POST', { staffId: id }); loadAdminData(); } }
+
+        async function activateLicense() { 
+            const btn = event.target; 
+            const og = btn.innerText; 
+            btn.innerText = "..."; 
+            btn.disabled = true; 
+            
+            const res = await req('/api/admin/license/activate', 'POST', { 
+                license_key: document.getElementById('lic-key').value, 
+                instance_name: document.getElementById('lic-id').value, 
+                activation_type: document.getElementById('lic-type').value, 
+                duration: document.getElementById('lic-duration').value, 
+                server_name: "Manual", 
+                server_id: "000", 
+                channel_id: "000", 
+                discord_id: document.getElementById('lic-disc-id').value 
+            }); 
+            
+            btn.innerText = og; 
+            btn.disabled = false; 
+            const resBox = document.getElementById('lic-result'); 
+            resBox.classList.remove('hidden'); 
+            
+            if (res.success) { 
+                resBox.innerHTML = `<span class="text-green-400">SUCCESS</span> ID: ${res.data.id}`; 
+                resBox.className = "text-[10px] font-mono p-2 bg-green-900/20 rounded border border-green-500/20 text-center text-green-200 mt-2 block"; 
+            } else { 
+                resBox.innerText = res.error; 
+                resBox.className = "text-[10px] font-mono p-2 bg-red-900/20 rounded border border-red-500/20 text-center text-red-200 mt-2 block"; 
+            } 
+        }
+
+        async function addStaff() { 
+            if (await (await req('/api/admin/staff/add', 'POST', { 
+                username: document.getElementById('add-user').value, 
+                discordId: document.getElementById('add-discord').value, 
+                adminStatus: document.getElementById('add-is-admin').checked 
+            })).success) { 
+                alert("Staff Added"); 
+                loadAdminData(); 
+            } 
+        }
+
+        async function deleteStaff(id) { 
+            if (confirm("Revoke Staff Access?")) { 
+                await req('/api/admin/staff/delete', 'POST', { staffId: id }); 
+                loadAdminData(); 
+            } 
+        }
         
-        async function createInv(serverId, botId) { const res = await req('/api/admin/create-invite', 'POST', { serverId, botId }); if (res.url) prompt("Invite URL:", res.url); }
-        async function leaveSrv(serverId, botId) { if (confirm("Disconnect Bot?")) { await req('/api/admin/leave-server', 'POST', { serverId, botId }); loadAdminData(); } }
-        async function dmOwner(serverId, botId) { const message = prompt("Owner Message:"); if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); }
-        async function sendBulk() { const message = document.getElementById('bulk-msg').value; if (message && confirm("Broadcast?")) { const res = await req('/api/admin/bulk-message', 'POST', { message }); alert(`Sent to ${res.sentTo} owners.`); } }
-        async function sendManualDM() { if(await (await req('/api/admin/manual-dm', 'POST', { discordId: document.getElementById('dm-id').value, content: document.getElementById('dm-content').value })).success) { alert("Sent"); document.getElementById('dm-content').value = ''; } }
+        async function createInv(serverId, botId) { 
+            const res = await req('/api/admin/create-invite', 'POST', { serverId, botId }); 
+            if (res.url) prompt("Invite URL:", res.url); 
+        }
+        
+        async function leaveSrv(serverId, botId) { 
+            if (confirm("Disconnect Bot from this server?")) { 
+                await req('/api/admin/leave-server', 'POST', { serverId, botId }); 
+                loadAdminData(); 
+            } 
+        }
+        
+        async function dmOwner(serverId, botId) { 
+            const message = prompt("Message to Server Owner:"); 
+            if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); 
+        }
+        
+        async function sendBulk() { 
+            const message = document.getElementById('bulk-msg').value; 
+            if (message && confirm("Confirm GLOBAL Broadcast to ALL server owners?")) { 
+                const res = await req('/api/admin/bulk-message', 'POST', { message }); 
+                alert(`Broadcast sent to ${res.sentTo} owners.`); 
+            } 
+        }
+        
+        async function sendManualDM() { 
+            if (await (await req('/api/admin/manual-dm', 'POST', { 
+                discordId: document.getElementById('dm-id').value, 
+                content: document.getElementById('dm-content').value 
+            })).success) { 
+                alert("Message Sent & Ticket Opened"); 
+                document.getElementById('dm-content').value = ''; 
+            } 
+        }
 
-        socket.on('new_message', (d) => { if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); if (threadStore[d.threadId]) { threadStore[d.threadId].messages.push(d); if (activeId === d.threadId) renderChat(); loadThreads(); } else loadThreads(); });
-        socket.on('viewers_updated', (v) => { const b = document.getElementById('viewer-display'); if(v.length>0) { const o = v.filter(x=>x!==currentUser); if(o.length) { b.innerText = `👀 ${o.join(', ')}`; b.classList.remove('hidden'); } else b.classList.add('hidden'); } else b.classList.add('hidden'); });
-        socket.on('user_typing', (d) => { if (activeUserId && activeUserId === d.userId) { const i = document.getElementById('typing-indicator'); const s = document.getElementById('status-sub'); i.classList.remove('hidden'); s.classList.add('hidden'); clearTimeout(typingTimeout); typingTimeout = setTimeout(() => { i.classList.add('hidden'); s.classList.remove('hidden'); }, 3000); } });
+        // --- SOCKET EVENT HANDLERS ---
+        socket.on('new_message', (d) => { 
+            if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); 
+            
+            if (threadStore[d.threadId]) { 
+                threadStore[d.threadId].messages.push(d); 
+                
+                // If viewing this thread, render msg
+                if (activeId === d.threadId) renderChat(); 
+                
+                // Update list timestamp
+                loadThreads(); 
+            } else {
+                // New thread entirely
+                loadThreads(); 
+            }
+        });
 
-        (async () => { const data = await req('/api/threads'); if(!data.error) { document.getElementById('login-view').classList.add('hidden'); loadThreads(); const adminStats = await req('/api/admin/stats'); if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden'); } })();
+        // VIEWERS UPDATE
+        socket.on('viewers_updated', (viewers) => {
+            const badge = document.getElementById('viewer-display');
+            if (viewers.length > 0) {
+                // Filter out self
+                const others = viewers.filter(v => v !== currentUser);
+                if (others.length > 0) {
+                    badge.innerText = `👀 Viewing: ${others.join(', ')}`;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } else {
+                badge.classList.add('hidden');
+            }
+        });
+
+        socket.on('user_typing', (d) => { 
+            if (activeUserId && activeUserId === d.userId) { 
+                const i = document.getElementById('typing-indicator'); 
+                const s = document.getElementById('status-sub'); 
+                
+                i.classList.remove('hidden'); 
+                s.classList.add('hidden'); 
+                
+                clearTimeout(typingTimeout); 
+                typingTimeout = setTimeout(() => { 
+                    i.classList.add('hidden'); 
+                    s.classList.remove('hidden'); 
+                }, 3000); 
+            } 
+        });
+
+        // --- INITIALIZATION ---
+        (async () => { 
+            const data = await req('/api/threads'); 
+            if (!data.error) { 
+                document.getElementById('login-view').classList.add('hidden'); 
+                loadThreads(); 
+                
+                const adminStats = await req('/api/admin/stats'); 
+                // If user is admin, show admin button
+                if (!adminStats.error) {
+                    document.getElementById('nav-admin').classList.remove('hidden'); 
+                }
+            } 
+        })();
     </script>
 </body>
 </html>
