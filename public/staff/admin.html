@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel - Miraidon Trade Services</title>
+    <title>Admin Console - Miraidon Trade Services</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -10,8 +10,6 @@
             color: white; 
             font-family: 'Courier New', Courier, monospace; 
         }
-        
-        /* Input Field Styling */
         input, select, textarea { 
             background-color: #0f172a; 
             border: 1px solid #334155; 
@@ -22,561 +20,139 @@
             border-radius: 4px;
             font-size: 12px;
         }
-        
-        input:focus, select:focus, textarea:focus { 
-            border-color: #6366f1; 
-            background-color: #1e293b;
-        }
-
-        /* Custom Scrollbar for Containers */
-        ::-webkit-scrollbar { 
-            width: 8px; 
-        }
-        ::-webkit-scrollbar-track { 
-            background: #0f172a; 
-        }
-        ::-webkit-scrollbar-thumb { 
-            background: #334155; 
-            border-radius: 4px; 
-        }
-        ::-webkit-scrollbar-thumb:hover { 
-            background: #475569; 
-        }
-
-        /* Utility Classes */
-        .section-header {
-            font-weight: bold;
-            margin-bottom: 12px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        input:focus, select:focus, textarea:focus { border-color: #6366f1; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .section-header { font-weight: bold; margin-bottom: 12px; padding-bottom: 4px; border-bottom: 1px solid; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body class="p-6 h-screen flex flex-col overflow-hidden">
     
     <nav class="mb-6 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-2">
-            <span class="font-bold text-amber-500 text-xl tracking-wider">MIRAIDON TRADE SERVICES</span>
-            <span class="text-slate-500">/</span>
-            <span class="text-white font-bold">ADMIN CONSOLE</span>
-        </div>
-        <a href="/staff/dashboard.html" class="text-xs text-slate-400 hover:text-white border border-slate-700 px-4 py-2 rounded transition hover:bg-slate-800">
-            ← BACK TO DASHBOARD
-        </a>
+        <span class="font-bold text-amber-500 text-xl tracking-wider">MIRAIDON TRADE SERVICES / ADMIN</span>
+        <a href="/staff/dashboard.html" class="text-xs text-slate-400 hover:text-white border border-slate-700 px-4 py-2 rounded transition hover:bg-slate-800">← DASHBOARD</a>
     </nav>
     
     <div class="flex-1 overflow-y-auto space-y-8 pr-2 pb-10">
-        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            <div class="p-6 border border-teal-900 rounded bg-slate-900/50 shadow-lg shadow-teal-900/10">
-                <h2 class="section-header text-teal-400 border-teal-900">
-                    SYSTEM CONFIGURATION
-                </h2>
-                
-                <div class="flex items-center justify-between mb-6 bg-slate-950 p-3 rounded border border-slate-800">
-                    <label class="text-sm font-bold text-slate-300">SYSTEM ONLINE STATUS</label>
-                    <input type="checkbox" id="cfg-online" class="w-5 h-5 accent-teal-500 cursor-pointer">
+            <div class="p-6 border border-teal-900 rounded bg-slate-900/50">
+                <h2 class="section-header text-teal-400 border-teal-900">SYSTEM CONFIGURATION</h2>
+                <div class="flex items-center justify-between mb-4 bg-slate-950 p-3 rounded border border-slate-800">
+                    <label class="text-sm font-bold text-slate-300">SYSTEM ONLINE</label>
+                    <input type="checkbox" id="cfg-online" class="w-5 h-5 accent-teal-500">
                 </div>
-
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Open Time (AST)</label>
-                        <input type="time" id="cfg-open">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Close Time (AST)</label>
-                        <input type="time" id="cfg-close">
-                    </div>
+                    <div><label class="text-[10px] text-slate-400 font-bold block mb-1">OPEN (AST)</label><input type="time" id="cfg-open"></div>
+                    <div><label class="text-[10px] text-slate-400 font-bold block mb-1">CLOSE (AST)</label><input type="time" id="cfg-close"></div>
                 </div>
-
-                <div class="mb-6">
-                    <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Offline / Day Off Reason</label>
-                    <input id="cfg-note" placeholder="e.g. National Holiday - Back Tomorrow">
-                </div>
-
-                <button onclick="saveConfig()" class="w-full bg-teal-600 hover:bg-teal-500 text-white p-3 rounded font-bold text-xs transition shadow-lg shadow-teal-900/20">
-                    SAVE CONFIGURATION
-                </button>
+                <label class="text-[10px] text-slate-400 font-bold block mb-1">OFFLINE REASON</label>
+                <input id="cfg-note" class="mb-4" placeholder="Day off message...">
+                <button onclick="saveConfig()" class="w-full bg-teal-600 hover:bg-teal-500 text-white p-3 rounded font-bold text-xs transition">SAVE SETTINGS</button>
             </div>
-
             <div class="p-6 border border-indigo-900 rounded bg-slate-900/50 shadow-lg shadow-indigo-900/10">
-                <h2 class="section-header text-indigo-400 border-indigo-900">
-                    LICENSE ACTIVATION
-                </h2>
-                
+                <h2 class="section-header text-indigo-400 border-indigo-900">LICENSE ACTIVATION</h2>
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">License Key</label>
-                        <input id="lk" placeholder="XXXX-XXXX-XXXX">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Discord User ID</label>
-                        <input id="ld" placeholder="000000000000000000">
-                    </div>
+                    <input id="lk" placeholder="License Key">
+                    <input id="ld" placeholder="Discord User ID">
                 </div>
-
-                <div class="mb-4">
-                    <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Instance ID / HWID</label>
-                    <input id="li" placeholder="Provided by Sell.App">
-                </div>
-                
+                <input id="li" placeholder="Instance ID / HWID" class="mb-4">
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Server Name</label>
-                        <input id="sn" placeholder="My Pokémon Server">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Server ID</label>
-                        <input id="sid" placeholder="000000000000000000">
-                    </div>
+                    <input id="sn" placeholder="Server Name">
+                    <input id="sid" placeholder="Server ID">
                 </div>
-                
                 <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Duration</label>
-                        <select id="dur">
-                            <option value="30 Days">30 Days</option>
-                            <option value="90 Days">90 Days</option>
-                            <option value="365 Days">365 Days</option>
-                            <option value="Lifetime">Lifetime</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">License Type</label>
-                        <select id="type">
-                            <option value="Premium Subscription">Premium Subscription</option>
-                            <option value="Professor Mable Rental">Professor Mable Rental</option>
-                        </select>
-                    </div>
+                    <select id="dur"><option value="30 Days">30 Days</option><option value="90 Days">90 Days</option><option value="Lifetime">Lifetime</option></select>
+                    <select id="type"><option value="Premium Bundle">Premium Bundle</option><option value="Mable Rental">Mable Rental</option></select>
                 </div>
-
-                <button onclick="activateLicense()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded font-bold text-xs mt-1 transition shadow-lg shadow-indigo-900/20">
-                    ACTIVATE LICENSE & NOTIFY USER
-                </button>
+                <button onclick="lic()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded font-bold text-xs transition">ACTIVATE & NOTIFY</button>
             </div>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            <div class="p-6 border border-amber-900 rounded bg-slate-900/50 shadow-lg shadow-amber-900/10">
-                <h2 class="section-header text-amber-400 border-amber-900">
-                    <span>STAFF TEAM</span>
-                    <button onclick="loadData()" class="text-[10px] text-slate-500 hover:text-white border border-slate-700 px-2 py-1 rounded">REFRESH LIST</button>
-                </h2>
-                
-                <div id="staff-list" class="h-32 overflow-y-auto mb-4 text-xs border border-slate-800 p-2 rounded bg-slate-950 space-y-1">
-                    <div class="text-center text-slate-500 py-4">Loading Staff...</div>
-                </div>
-                
-                <div class="flex gap-2 mb-2">
-                    <input id="su" placeholder="New Username" class="w-1/3">
-                    <input id="sd" placeholder="Discord ID" class="w-1/3">
-                    <button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 text-white w-1/3 rounded font-bold text-xs transition">ADD USER</button>
-                </div>
-                
-                <label class="text-[10px] text-slate-400 flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" id="sa" style="width:auto"> 
-                    Grant Administrator Privileges
-                </label>
+            <div class="p-6 border border-amber-900 rounded bg-slate-900/50">
+                <h2 class="section-header text-amber-400 border-amber-900">STAFF MANAGEMENT <button onclick="load()" class="text-[10px] text-slate-500 hover:text-white border border-slate-700 px-2 py-1 rounded">REFRESH</button></h2>
+                <div id="staff" class="h-32 overflow-y-auto mb-4 text-xs border border-slate-800 p-2 rounded bg-slate-950"></div>
+                <div class="flex gap-2 mb-2"><input id="su" placeholder="User" class="w-1/3"><input id="sd" placeholder="ID" class="w-1/3"><button onclick="addS()" class="bg-amber-600 text-white w-1/3 rounded font-bold text-xs">ADD</button></div>
+                <label class="text-[10px] text-slate-400"><input type="checkbox" id="sa" style="width:auto"> Grant Admin</label>
             </div>
-
             <div class="p-6 border border-blue-900 rounded bg-slate-900/50 shadow-lg shadow-blue-900/10">
-                <h2 class="section-header text-blue-400 border-blue-900">
-                    MANUAL TICKET / DM
-                </h2>
-                <p class="text-xs text-slate-400 mb-4">
-                    Use this to open a support thread with a user who has not messaged the bot yet.
-                </p>
-
-                <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Target User</label>
+                <h2 class="section-header text-blue-400 border-blue-900">MANUAL TICKET</h2>
                 <input id="md-id" placeholder="Discord User ID" class="mb-4">
-                
-                <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Opening Message</label>
-                <div class="flex gap-2">
-                    <input id="md-msg" placeholder="Hello, I am contacting you regarding...">
-                    <button onclick="openTicket()" class="bg-blue-600 hover:bg-blue-500 text-white w-32 rounded font-bold text-xs transition">OPEN TICKET</button>
-                </div>
+                <div class="flex gap-2"><input id="md-msg" placeholder="Message content..."><button onclick="openTicket()" class="bg-blue-600 text-white w-32 rounded font-bold text-xs">OPEN</button></div>
             </div>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
+            <div class="p-6 border border-purple-900 rounded bg-slate-900/50 shadow-lg shadow-purple-900/10">
+                <h2 class="section-header text-purple-400 border-purple-900">MACRO EDITOR</h2>
+                <div id="macro-list" class="h-24 overflow-y-auto mb-4 text-xs border border-slate-800 p-2 rounded bg-slate-950"></div>
+                <div class="mb-2"><input id="mt" placeholder="Title"></div>
+                <div class="flex gap-2"><input id="mc" placeholder="Content..."><button onclick="addMacro()" class="bg-purple-600 text-white w-24 rounded font-bold text-xs">ADD</button></div>
+            </div>
             <div class="p-6 border border-pink-900 rounded bg-slate-900/50 shadow-lg shadow-pink-900/10">
-                <h2 class="section-header text-pink-400 border-pink-900">
-                    FAQ EDITOR
-                </h2>
-                
-                <div class="flex gap-2 mb-2">
-                    <input id="fq" placeholder="New Question">
-                    <button onclick="addFaq()" class="bg-pink-600 hover:bg-pink-500 text-white w-24 rounded font-bold text-xs transition">ADD</button>
-                </div>
-                <textarea id="fa" placeholder="New Answer (Markdown Supported)" class="h-24"></textarea>
-            </div>
-
-            <div class="p-6 border border-red-900 rounded bg-slate-900/50 shadow-lg shadow-red-900/10">
-                <h2 class="section-header text-red-400 border-red-900">
-                    GLOBAL BROADCAST SYSTEM
-                </h2>
-                <p class="text-xs text-slate-400 mb-4 bg-red-900/20 p-2 rounded border border-red-900/50">
-                    <strong>WARNING:</strong> This will send a Direct Message to the <strong>Owner</strong> of every server the bot is currently in. Use only for critical announcements.
-                </p>
-                
-                <div class="flex gap-2">
-                    <input id="bm" placeholder="Broadcast Message...">
-                    <button onclick="sendBroadcast()" class="bg-red-600 hover:bg-red-500 text-white w-32 rounded font-bold text-xs transition">SEND ALL</button>
-                </div>
+                <h2 class="section-header text-pink-400 border-pink-900">FAQ EDITOR</h2>
+                <div class="flex gap-2 mb-2"><input id="fq" placeholder="Question"><button onclick="addFaq()" class="bg-pink-600 text-white w-24 rounded font-bold text-xs transition">ADD</button></div>
+                <textarea id="fa" placeholder="Answer..." class="h-24"></textarea>
             </div>
         </div>
-
-        <div class="p-6 border border-slate-700 rounded bg-slate-900/50 shadow-lg">
-            <h2 class="section-header text-slate-300 border-slate-700">
-                ACTIVE FLEET & SERVERS
-            </h2>
-            
-            <div id="server-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto pr-2">
-                <div class="text-center text-slate-500 col-span-full py-12">Loading Active Server Fleet...</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="p-6 border border-red-900 rounded bg-slate-900/50">
+                <h2 class="section-header text-red-400 border-red-900">GLOBAL BROADCAST</h2>
+                <p class="text-xs text-slate-400 mb-4 bg-red-900/20 p-2 border border-red-900/50">DMs every single server owner Miraidon is in.</p>
+                <div class="flex gap-2"><input id="bm" placeholder="Message..."><button onclick="broadcast()" class="bg-red-600 text-white w-32 rounded font-bold text-xs">SEND ALL</button></div>
+            </div>
+            <div class="p-6 border border-slate-700 rounded bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-slate-300 border-slate-700">ACTIVE FLEET & SERVERS</h2>
+                <div id="server-list" class="grid grid-cols-1 gap-4 max-h-48 overflow-y-auto"></div>
             </div>
         </div>
-
     </div>
 
     <script>
-        /**
-         * Generic API Request Helper
-         * Fully expanded for clarity and debugging.
-         */
-        async function req(url, method = 'GET', body = null) {
-            try {
-                const options = {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                };
-
-                if (body) {
-                    options.body = JSON.stringify(body);
-                }
-
-                const response = await fetch(url, options);
-                
-                if (response.status === 401) {
-                    // Unauthorized - Redirect to Login
-                    window.location.href = '/login.html';
-                    return null;
-                }
-
-                return await response.json();
-            } catch (error) {
-                console.error(`API Request Failed: ${url}`, error);
-                alert("Network Error: Could not connect to server.");
-                return null;
-            }
+        async function req(url, method, body) {
+            if (method === undefined) method = 'GET';
+            const options = { method: method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(url, options);
+            if (response.status === 401) window.location.href = '/login.html';
+            return await response.json();
         }
-        
-        /**
-         * Main Load Function
-         * Fetches Config, Staff, and Servers on page load.
-         */
-        async function loadData() {
-            // 1. Load System Configuration
+
+        async function load() {
             try {
                 const config = await req('/api/admin/config');
-                if (config) {
-                    document.getElementById('cfg-online').checked = config.supportOnline;
-                    document.getElementById('cfg-note').value = config.offlineNote;
-                    document.getElementById('cfg-open').value = config.openTime || "08:00";
-                    document.getElementById('cfg-close').value = config.closeTime || "23:59";
-                }
-            } catch(e) { 
-                console.error("Config load failed", e); 
-            }
-
-            // 2. Load Staff List
-            try {
-                const staff = await req('/api/admin/stats');
-                const staffContainer = document.getElementById('staff-list');
-                
-                if (staff && staff.length > 0) {
-                    staffContainer.innerHTML = staff.map(s => {
-                        const adminBadge = s.isAdmin ? '<span class="text-amber-400 font-bold ml-1">(Admin)</span>' : '';
-                        const rating = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : 'N/A';
-                        
-                        return `
-                            <div class="flex justify-between items-center p-2 border-b border-slate-800 last:border-0 hover:bg-slate-900 transition">
-                                <div>
-                                    <span class="font-bold text-white">${s.username}</span> 
-                                    ${adminBadge}
-                                    <span class="text-slate-500 ml-2 text-[10px]">★ ${rating}</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="resetPass('${s._id}')" class="text-blue-400 font-bold hover:text-blue-300 text-[10px] border border-blue-900 px-2 py-1 rounded" title="Force Reset Password">RESET</button>
-                                    <button onclick="delStaff('${s._id}')" class="text-red-500 font-bold hover:text-red-400 text-[10px] border border-red-900 px-2 py-1 rounded" title="Delete Account">DELETE</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    staffContainer.innerHTML = '<div class="text-center text-slate-500 p-4">No staff found.</div>';
-                }
-            } catch(e) {
-                console.error("Staff load failed", e);
-            }
-
-            // 3. Load Server Fleet List
-            try {
-                const servers = await req('/api/admin/servers');
-                const serverContainer = document.getElementById('server-list');
-                
-                if (servers && servers.length > 0) {
-                    serverContainer.innerHTML = servers.map(s => `
-                        <div class="p-4 bg-slate-950 border border-slate-800 rounded flex flex-col justify-between group hover:border-slate-600 transition shadow-sm">
-                            <div>
-                                <div class="font-bold text-sm truncate text-white mb-1" title="${s.name}">${s.name}</div>
-                                <div class="text-[10px] text-slate-500 flex justify-between items-center">
-                                    <span class="bg-slate-900 px-2 py-1 rounded">👥 ${s.members} Members</span>
-                                    <span class="text-indigo-400 bg-indigo-900/20 px-2 py-1 rounded">🤖 ${s.botName}</span>
-                                </div>
-                            </div>
-                            <div class="flex gap-2 mt-4 opacity-75 group-hover:opacity-100 transition">
-                                <button onclick="makeInvite('${s.id}','${s.botId}')" class="flex-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded py-1 text-[10px] font-bold border border-blue-900">LINK</button>
-                                <button onclick="dmOwner('${s.id}','${s.botId}')" class="flex-1 bg-amber-900/50 hover:bg-amber-600 text-amber-200 rounded py-1 text-[10px] font-bold border border-amber-900">OWNER</button>
-                                <button onclick="leaveServer('${s.id}','${s.botId}')" class="flex-1 bg-red-900/50 hover:bg-red-600 text-red-200 rounded py-1 text-[10px] font-bold border border-red-900">LEAVE</button>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    serverContainer.innerHTML = '<div class="text-center text-slate-500 col-span-full py-12">No active servers found. Bots may be offline.</div>';
-                }
-            } catch(e) {
-                console.error("Server load failed", e);
-            }
+                document.getElementById('cfg-online').checked = config.supportOnline;
+                document.getElementById('cfg-note').value = config.offlineNote;
+                document.getElementById('cfg-open').value = config.openTime;
+                document.getElementById('cfg-close').value = config.closeTime;
+            } catch(e) {}
+            const staff = await req('/api/admin/stats');
+            document.getElementById('staff').innerHTML = staff.map(function(s) {
+                return `<div class="flex justify-between p-2 border-b border-slate-800 hover:bg-slate-900"><span>${s.username} ${s.isAdmin ? '(A)' : ''}</span><div class="flex gap-2"><button onclick="resetPass('${s._id}')" class="text-blue-400">RESET</button><button onclick="delS('${s._id}')" class="text-red-500">DEL</button></div></div>`;
+            }).join('');
+            const macros = await req('/api/macros');
+            document.getElementById('macro-list').innerHTML = macros.map(function(m) {
+                return `<div class="flex justify-between p-2 border-b border-slate-800"><span>${m.title}</span><button onclick="delMacro('${m._id}')" class="text-red-500">✕</button></div>`;
+            }).join('');
+            const servers = await req('/api/admin/servers');
+            document.getElementById('server-list').innerHTML = servers.map(function(s) {
+                return `<div class="p-4 bg-slate-950 border border-slate-800 rounded flex flex-col justify-between group"><div><div class="font-bold text-sm truncate">${s.name}</div><div class="text-[10px] text-slate-500 flex justify-between mt-2"><span>👥 ${s.members} Members</span><span class="text-indigo-400">🤖 ${s.botName}</span></div></div><div class="flex gap-2 mt-4 opacity-75 group-hover:opacity-100 transition"><button onclick="mkInv('${s.id}','${s.botId}')" class="flex-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded py-1 text-[10px]">LINK</button><button onclick="dmOwn('${s.id}','${s.botId}')" class="flex-1 bg-amber-900/50 hover:bg-amber-600 text-amber-200 rounded py-1 text-[10px]">OWNER</button><button onclick="leaveS('${s.id}','${s.botId}')" class="flex-1 bg-red-900/50 hover:bg-red-600 text-red-200 rounded py-1 text-[10px]">LEAVE</button></div></div>`;
+            }).join('');
         }
 
-        // --- ACTION FUNCTIONS ---
-
-        /**
-         * Save System Configuration
-         */
-        async function saveConfig() {
-            const btn = event.target; 
-            btn.innerText = "SAVING..."; 
-            btn.disabled = true;
-            
-            const payload = {
-                status: document.getElementById('cfg-online').checked,
-                note: document.getElementById('cfg-note').value,
-                openTime: document.getElementById('cfg-open').value,
-                closeTime: document.getElementById('cfg-close').value
-            };
-
-            const result = await req('/api/admin/config/toggle', 'POST', payload);
-            
-            if (result && result.success) {
-                alert("✅ System Configuration Saved Successfully.");
-            } else {
-                alert("❌ Failed to save configuration.");
-            }
-            
-            btn.innerText = "SAVE CONFIGURATION"; 
-            btn.disabled = false;
-        }
-
-        /**
-         * Activate License
-         */
-        async function activateLicense() { 
-            const btn = event.target; 
-            btn.innerText = "PROCESSING..."; 
-            btn.disabled = true;
-            
-            const payload = {
-                license_key: document.getElementById('lk').value,
-                discord_id: document.getElementById('ld').value,
-                instance_name: document.getElementById('li').value,
-                server_name: document.getElementById('sn').value,
-                server_id: document.getElementById('sid').value,
-                type: document.getElementById('type').value,
-                duration: document.getElementById('dur').value,
-                channel_id: '000'
-            };
-
-            if (!payload.license_key || !payload.discord_id) {
-                alert("Error: License Key and Discord ID are required.");
-                btn.innerText = "ACTIVATE LICENSE & NOTIFY USER"; 
-                btn.disabled = false;
-                return;
-            }
-
-            const result = await req('/api/admin/license/activate', 'POST', payload);
-            
-            if (result && result.success) {
-                alert("✅ License Activated Successfully! The user has been notified via DM.");
-                // Clear Form
-                ['lk','ld','li','sn','sid'].forEach(i => document.getElementById(i).value = '');
-            } else {
-                alert("❌ Activation Error: " + (result.error || "Unknown Error"));
-            }
-            
-            btn.innerText = "ACTIVATE LICENSE & NOTIFY USER"; 
-            btn.disabled = false;
-        }
-
-        /**
-         * Add New Staff Member
-         */
-        async function addStaff() { 
-            const username = document.getElementById('su').value;
-            const discordId = document.getElementById('sd').value;
-            const isAdmin = document.getElementById('sa').checked;
-
-            if (!username || !discordId) {
-                alert("Please enter a Username and Discord ID.");
-                return;
-            }
-
-            await req('/api/admin/staff/add', 'POST', {
-                username: username,
-                discordId: discordId,
-                adminStatus: isAdmin
-            }); 
-            
-            // Clear inputs and reload list
-            document.getElementById('su').value = '';
-            document.getElementById('sd').value = '';
-            loadData(); 
-        }
-
-        /**
-         * Delete Staff Member
-         */
-        async function delStaff(id) { 
-            if (confirm("Are you sure you want to delete this staff member? This cannot be undone.")) { 
-                await req('/api/admin/staff/delete', 'POST', { staffId: id }); 
-                loadData(); 
-            } 
-        }
-
-        /**
-         * Force Reset Staff Password
-         */
-        async function resetPass(id) {
-            if (confirm("Force reset password for this user? They will be DM'd a new secure key immediately.")) {
-                const res = await req('/api/admin/staff/reset', 'POST', { staffId: id });
-                if (res && res.success) {
-                    alert("✅ Password has been reset and DM sent to user.");
-                } else {
-                    alert("❌ Error: " + (res.error || "Request failed"));
-                }
-            }
-        }
-
-        /**
-         * Add FAQ Item
-         */
-        async function addFaq() { 
-            const question = document.getElementById('fq').value;
-            const answer = document.getElementById('fa').value;
-
-            if (!question || !answer) {
-                alert("Please enter both a Question and an Answer.");
-                return;
-            }
-
-            await req('/api/admin/faq/add', 'POST', {
-                question: question,
-                answer: answer
-            }); 
-            
-            alert("✅ FAQ Item Added.");
-            document.getElementById('fq').value = '';
-            document.getElementById('fa').value = '';
-        }
-        
-        /**
-         * Open Manual Ticket
-         */
-        async function openTicket() {
-            const id = document.getElementById('md-id').value;
-            const msg = document.getElementById('md-msg').value;
-            
-            if (!id || !msg) {
-                return alert("Missing Target User ID or Opening Message.");
-            }
-            
-            const btn = event.target; 
-            btn.innerText = "OPENING..."; 
-            btn.disabled = true;
-            
-            const result = await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg });
-            
-            if (result && result.success) {
-                alert("✅ Ticket Opened Successfully!");
-                document.getElementById('md-id').value = '';
-                document.getElementById('md-msg').value = '';
-            } else {
-                alert("❌ Failed. Please check the Discord ID.");
-            }
-            
-            btn.innerText = "OPEN TICKET"; 
-            btn.disabled = false;
-        }
-
-        /**
-         * Fleet Action: Create Invite
-         */
-        async function makeInvite(sid, bid) { 
-            const r = await req('/api/admin/create-invite', 'POST', { serverId: sid, botId: bid }); 
-            if (r && r.url) {
-                prompt("Here is the Invite URL:", r.url); 
-            } else {
-                alert("❌ Bot lacks 'Create Invite' permission in that server."); 
-            }
-        }
-        
-        /**
-         * Fleet Action: Leave Server
-         */
-        async function leaveServer(sid, bid) { 
-            if (confirm("Are you sure you want to force the bot to LEAVE this server?")) { 
-                await req('/api/admin/leave-server', 'POST', { serverId: sid, botId: bid }); 
-                loadData(); 
-            } 
-        }
-        
-        /**
-         * Fleet Action: DM Owner
-         */
-        async function dmOwner(sid, bid) { 
-            const m = prompt("Enter message to send to Server Owner:"); 
-            if (m) {
-                await req('/api/admin/dm-owner', 'POST', { serverId: sid, botId: bid, message: m }); 
-                alert("Message Sent.");
-            }
-        }
-        
-        /**
-         * Global Broadcast
-         */
-        async function sendBroadcast() {
-            const msg = document.getElementById('bm').value;
-            
-            if (!msg) {
-                return alert("Please enter a message to broadcast.");
-            }
-
-            if (confirm("⚠️ WARNING: This will send a DM to ALL server owners the bot is currently in.\n\nAre you sure you want to proceed?")) {
-                const res = await req('/api/admin/bulk-message', 'POST', { message: msg });
-                alert(`✅ Broadcast queued for ${res.sentTo} owners.`);
-            }
-        }
-
-        // Initial Load
-        loadData();
+        async function saveConfig() { await req('/api/admin/config/toggle', 'POST', { status: document.getElementById('cfg-online').checked, note: document.getElementById('cfg-note').value, openTime: document.getElementById('cfg-open').value, closeTime: document.getElementById('cfg-close').value }); alert("Config Saved."); }
+        async function lic() { await req('/api/admin/license/activate', 'POST', { license_key: document.getElementById('lk').value, discord_id: document.getElementById('ld').value, instance_name: document.getElementById('li').value, server_name: document.getElementById('sn').value, server_id: document.getElementById('sid').value, type: document.getElementById('type').value, duration: document.getElementById('dur').value, channel_id: '000' }); alert("License Active."); }
+        async function addS() { await req('/api/admin/staff/add', 'POST', { username: document.getElementById('su').value, discordId: document.getElementById('sd').value, adminStatus: document.getElementById('sa').checked }); load(); }
+        async function delS(id) { if(confirm("Del?")) { await req('/api/admin/staff/delete', 'POST', { staffId: id }); load(); } }
+        async function resetPass(id) { if(confirm("Force reset?")) { await req('/api/admin/staff/reset', 'POST', { staffId: id }); alert("New key sent."); } }
+        async function addMacro() { await req('/api/admin/macros/add', 'POST', { title: document.getElementById('mt').value, content: document.getElementById('mc').value }); load(); }
+        async function delMacro(id) { await req('/api/admin/macros/delete', 'POST', { id: id }); load(); }
+        async function addFaq() { await req('/api/admin/faq/add', 'POST', { question: document.getElementById('fq').value, answer: document.getElementById('fa').value }); alert("FAQ Added."); }
+        async function openTicket() { await req('/api/admin/manual-dm', 'POST', { discordId: document.getElementById('md-id').value, content: document.getElementById('md-msg').value }); alert("Ticket Opened."); }
+        async function mkInv(s, b) { const r = await req('/api/admin/create-invite', 'POST', { serverId: s, botId: b }); if (r.url) prompt("Link:", r.url); }
+        async function dmOwn(s, b) { const m = prompt("Message:"); if (m) await req('/api/admin/dm-owner', 'POST', { serverId: s, botId: b, message: m }); }
+        async function leaveS(s, b) { if(confirm("Leave?")) { await req('/api/admin/leave-server', 'POST', { serverId: s, botId: b }); load(); } }
+        async function broadcast() { if(confirm("Broadcasting to ALL owners! Continue?")) { const r = await req('/api/admin/bulk-message', 'POST', { message: document.getElementById('bm').value }); alert("Sent to " + r.sentTo + " owners."); } }
+        load();
     </script>
 </body>
 </html>
