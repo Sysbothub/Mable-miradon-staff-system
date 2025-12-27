@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login - TSP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { background: #020617; color: white; font-family: 'Segoe UI', sans-serif; }</style>
+</head>
+<body class="h-screen flex items-center justify-center">
+    <div class="bg-slate-900 border border-slate-800 p-8 rounded-xl w-96 text-center shadow-2xl">
+        <h1 class="text-2xl font-bold text-blue-500 mb-8 tracking-wider">STAFF ACCESS</h1>
+        
+        <input type="text" id="l-user" placeholder="Username" class="w-full bg-slate-950 border border-slate-700 p-4 rounded-lg mb-4 text-center text-white placeholder-slate-500 focus:border-blue-500 transition outline-none">
+        
+        <input type="password" id="l-pass" placeholder="Secure Key" class="w-full bg-slate-950 border border-slate-700 p-4 rounded-lg mb-6 text-center text-white placeholder-slate-500 focus:border-blue-500 transition outline-none">
+        
+        <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-lg font-bold transition shadow-lg shadow-blue-900/20">AUTHENTICATE</button>
+        
+        <div class="mt-4 text-xs text-slate-500 cursor-pointer hover:text-white" onclick="doRecov()">Lost Key?</div>
+        
+        <a href="/" class="block mt-6 text-xs text-slate-600 hover:text-slate-400">Back to Home</a>
+    </div>
+
+    <script>
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const u = document.getElementById('l-user').value;
+            const p = document.getElementById('l-pass').value;
+            const btn = document.getElementById('login-btn');
+            
+            btn.innerText = "CHECKING...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+
+                if (res.ok) {
+                    window.location.href = '/staff/dashboard.html';
+                } else {
+                    alert("ACCESS DENIED");
+                    btn.innerText = "AUTHENTICATE";
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("NETWORK ERROR");
+                btn.innerText = "AUTHENTICATE";
+                btn.disabled = false;
+            }
+        });
+
+        async function doRecov() {
+            const uid = prompt("Enter Discord ID:");
+            if (uid) {
+                await fetch('/api/public/request-reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ discordId: uid })
+                });
+                alert("Check DMs");
+            }
+        }
+    </script>
+</body>
+</html>
