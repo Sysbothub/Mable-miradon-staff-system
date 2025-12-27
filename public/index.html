@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TRADE SERVICES PANEL</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
         body { 
             background: #020617; 
@@ -59,167 +61,159 @@
         <button onclick="doLogout()" class="text-[10px] md:text-xs text-red-500 border border-red-900/50 bg-red-900/10 px-3 py-1.5 rounded-lg hover:bg-red-600 hover:text-white transition uppercase font-bold">Disconnect</button>
     </header>
 
-    <div class="flex-1 relative overflow-hidden">
+    <div class="flex-1 relative overflow-hidden flex flex-row">
         
-        <div id="view-chat" class="absolute inset-0 flex w-full h-full">
+        <aside id="thread-list" class="w-full md:w-72 glass border-r border-slate-800 overflow-y-auto bg-[#020617] z-20 flex flex-col">
+            <div class="p-4 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#020617]/95 backdrop-blur">Active Frequencies</div>
+            <div id="thread-container" class="space-y-1 p-2">
+                </div>
+        </aside>
+        
+        <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 h-full relative z-10">
             
-            <aside id="thread-list" class="w-full md:w-72 glass border-r border-slate-800 overflow-y-auto bg-[#020617] z-20 flex flex-col">
-                <div class="p-4 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#020617]/95 backdrop-blur">Active Frequencies</div>
-                <div id="thread-container" class="space-y-1 p-2">
+            <div class="h-14 glass border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
+                <div class="flex items-center">
+                    <button onclick="closeChatMobile()" class="md:hidden mr-4 text-slate-400 hover:text-white p-2 -ml-2">←</button>
+                    <div>
+                        <div id="active-tag" class="text-sm font-bold text-white flex items-center gap-2">Select Ticket</div>
+                        <div id="typing-indicator" class="text-[10px] text-blue-400 font-bold uppercase animate-pulse hidden">User is typing...</div>
                     </div>
-            </aside>
-            
-            <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 w-full h-full absolute md:static inset-0 z-30">
-                
-                <div class="h-14 glass border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
-                    <div class="flex items-center">
-                        <button onclick="closeChatMobile()" class="md:hidden mr-4 text-slate-400 hover:text-white p-2 -ml-2">←</button>
-                        <div>
-                            <div id="active-tag" class="text-sm font-bold text-white flex items-center gap-2">Select Ticket</div>
-                            <div id="typing-indicator" class="text-[10px] text-blue-400 font-bold uppercase animate-pulse hidden">User is typing...</div>
-                            <div id="status-sub" class="text-[10px] text-slate-500 uppercase font-bold">Live Secure Channel</div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center space-x-2">
-                        <div id="viewer-display" class="hidden text-[10px] text-slate-400 font-bold mr-2 border border-slate-700 rounded px-2 py-1 bg-slate-900/50"></div>
-                        
-                        <button onclick="toggleCRM()" class="md:hidden p-2 text-slate-400 hover:text-yellow-400 font-bold border border-slate-700 rounded px-3">CRM</button>
-                        
-                        <button onclick="closeTicket()" class="text-[10px] bg-red-600/10 text-red-500 border border-red-600/50 px-3 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold">Archive</button>
-                    </div>
-                </div>
-
-                <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-slate-950/50"></div>
-
-                <div class="p-3 md:p-4 glass border-t border-slate-800 shrink-0 pb-safe">
-                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center">
-                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached
-                    </div>
-                    
-                    <form onsubmit="sendReply(event)" class="flex space-x-2 items-end">
-                        <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
-                        
-                        <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700">+</button>
-                        
-                        <div class="relative group">
-                            <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1">⚡</button>
-                            <div id="macro-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
-                                <div id="macro-list" class="max-h-48 overflow-y-auto">Loading...</div>
-                            </div>
-                        </div>
-                        
-                        <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white"></textarea>
-                        
-                        <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20">Send</button>
-                    </form>
-                </div>
-            </main>
-
-            <aside id="crm-panel" class="hidden md:flex w-80 glass border-l border-slate-800 flex-col bg-[#020617] absolute md:static right-0 inset-y-0 z-40 shadow-2xl md:shadow-none translate-x-full md:translate-x-0 transition-transform duration-300">
-                <div class="p-4 border-b border-slate-800 flex justify-between items-center md:hidden">
-                    <span class="font-bold text-slate-400">USER DOSSIER</span>
-                    <button onclick="toggleCRM()" class="text-slate-500">✕</button>
                 </div>
                 
-                <div class="p-4 flex-1 overflow-y-auto">
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sticky Notes</h3>
-                            <span id="note-status" class="text-[9px] text-green-500 font-bold hidden">SAVED</span>
-                        </div>
-                        <textarea id="crm-note" onblur="saveNote()" class="w-full h-40 bg-yellow-900/5 border border-yellow-700/20 text-yellow-100/90 p-3 text-xs rounded-xl resize-none focus:outline-none focus:border-yellow-600/50 transition placeholder-yellow-800/50" placeholder="Internal staff notes..."></textarea>
-                    </div>
-
-                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Ticket History</h3>
-                    <div id="crm-history" class="space-y-2"></div>
+                <div class="flex items-center space-x-2">
+                    <div id="viewer-display" class="hidden text-[10px] text-slate-400 font-bold mr-2 border border-slate-700 rounded px-2 py-1 bg-slate-900/50"></div>
+                    <button onclick="toggleCRM()" class="md:hidden p-2 text-slate-400 hover:text-yellow-400 font-bold border border-slate-700 rounded px-3">CRM</button>
+                    <button onclick="closeTicket()" class="text-[10px] bg-red-600/10 text-red-500 border border-red-600/50 px-3 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold">Archive</button>
                 </div>
-            </aside>
-            <div id="crm-overlay" onclick="toggleCRM()" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"></div>
-        </div>
-
-        <div id="view-admin" class="hidden absolute inset-0 bg-slate-950 overflow-y-auto z-20 pb-20">
-            <div class="p-4 md:p-10 space-y-6 max-w-6xl mx-auto">
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="glass p-5 rounded-2xl border border-indigo-500/20">
-                        <h2 class="text-indigo-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-indigo-500/10 pb-2">License Generator</h2>
-                        <div class="space-y-3">
-                            <input type="text" id="lic-key" placeholder="License Key" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
-                            <input type="text" id="lic-disc-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
-                            <input type="text" id="lic-id" placeholder="HWID / Instance ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white">
-                            <div class="grid grid-cols-2 gap-2">
-                                <select id="lic-type" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
-                                    <option value="Professor Mable Rental">Rental</option>
-                                    <option value="Premium Subscription">Premium</option>
-                                </select>
-                                <select id="lic-duration" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
-                                    <option value="30 Days">30 Days</option>
-                                    <option value="Lifetime">Lifetime</option>
-                                </select>
-                            </div>
-                            <button onclick="activateLicense()" class="w-full bg-indigo-600 hover:bg-indigo-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest mt-2">Activate License</button>
-                            <div id="lic-result" class="hidden text-[10px] font-mono p-2 bg-slate-900 rounded border border-slate-800 text-center text-white"></div>
-                        </div>
-                    </div>
-
-                    <div class="glass p-5 rounded-2xl border border-amber-500/20">
-                        <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Staff Roster</h2>
-                        <div class="h-40 overflow-y-auto mb-4 space-y-2 pr-2" id="staff-stats"></div>
-                        <div class="flex space-x-2">
-                            <input type="text" id="add-user" placeholder="Username" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
-                            <input type="text" id="add-discord" placeholder="Discord ID" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
-                        </div>
-                        <div class="flex items-center justify-between mt-2">
-                            <label class="text-[10px] text-slate-400 font-bold flex items-center"><input type="checkbox" id="add-is-admin" class="mr-2"> GRANT ADMIN</label>
-                            <button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold uppercase text-[10px]">Add</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div class="glass p-5 rounded-2xl border border-amber-500/20">
-                        <h2 class="text-amber-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Response Macros</h2>
-                        <div class="flex gap-2 mb-4">
-                            <input type="text" id="macro-title" placeholder="Title" class="w-1/3 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
-                            <input type="text" id="macro-content" placeholder="Content ({user} for name)..." class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
-                            <button onclick="addMacro()" class="bg-amber-600 px-4 rounded font-bold text-xs uppercase">Add</button>
-                        </div>
-                        <div id="admin-macro-list" class="grid grid-cols-2 gap-2"></div>
-                    </div>
-
-                    <div class="glass p-5 rounded-2xl border border-blue-500/20">
-                        <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-blue-500/10 pb-2">Manual Ticket Opening</h2>
-                        <input type="text" id="dm-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white mb-2">
-                        <textarea id="dm-content" placeholder="Opening Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white h-24 resize-none mb-2"></textarea>
-                        <button onclick="sendManualDM()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Open Ticket</button>
-                    </div>
-                </div>
-
-                <div class="glass p-5 rounded-2xl border border-slate-700/50 mt-4">
-                    <h2 class="text-slate-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-slate-700/50 pb-2">Bot Fleet & Broadcasts</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <input type="text" id="bulk-msg" placeholder="Global Broadcast Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white mb-2">
-                            <button onclick="sendBulk()" class="w-full bg-red-600 hover:bg-red-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Execute Global Broadcast</button>
-                        </div>
-                        <div id="srv-list" class="space-y-2 max-h-48 overflow-y-auto">
-                            Loading Servers...
-                        </div>
-                    </div>
-                </div>
-
             </div>
+
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-slate-950/50"></div>
+
+            <div class="p-3 md:p-4 glass border-t border-slate-800 shrink-0 pb-safe">
+                <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached</div>
+                
+                <form onsubmit="sendReply(event)" class="flex space-x-2 items-end">
+                    <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
+                    
+                    <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700">+</button>
+                    
+                    <div class="relative group">
+                        <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1">⚡</button>
+                        <div id="macro-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+                            <div id="macro-list" class="max-h-48 overflow-y-auto">Loading...</div>
+                        </div>
+                    </div>
+                    
+                    <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white"></textarea>
+                    
+                    <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20">Send</button>
+                </form>
+            </div>
+        </main>
+
+        <aside id="crm-panel" class="hidden md:flex w-80 glass border-l border-slate-800 flex-col bg-[#020617] h-full z-20">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center md:hidden">
+                <span class="font-bold text-slate-400">USER DOSSIER</span>
+                <button onclick="toggleCRM()" class="text-slate-500">✕</button>
+            </div>
+            
+            <div class="p-4 flex-1 overflow-y-auto">
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sticky Notes</h3>
+                        <span id="note-status" class="text-[9px] text-green-500 font-bold hidden">SAVED</span>
+                    </div>
+                    <textarea id="crm-note" onblur="saveNote()" class="w-full h-40 bg-yellow-900/5 border border-yellow-700/20 text-yellow-100/90 p-3 text-xs rounded-xl resize-none focus:outline-none focus:border-yellow-600/50 transition placeholder-yellow-800/50" placeholder="Internal staff notes..."></textarea>
+                </div>
+
+                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Ticket History</h3>
+                <div id="crm-history" class="space-y-2"></div>
+            </div>
+        </aside>
+        <div id="crm-overlay" onclick="toggleCRM()" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"></div>
+    </div>
+
+    <div id="view-admin" class="hidden absolute inset-0 bg-slate-950 overflow-y-auto z-30 pb-20">
+        <div class="p-4 md:p-10 space-y-6 max-w-6xl mx-auto">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass p-5 rounded-2xl border border-indigo-500/20">
+                    <h2 class="text-indigo-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-indigo-500/10 pb-2">License Generator</h2>
+                    <div class="space-y-3">
+                        <input type="text" id="lic-key" placeholder="License Key" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
+                        <input type="text" id="lic-disc-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
+                        <input type="text" id="lic-id" placeholder="HWID / Instance ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white">
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="lic-type" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
+                                <option value="Professor Mable Rental">Rental</option>
+                                <option value="Premium Subscription">Premium</option>
+                            </select>
+                            <select id="lic-duration" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
+                                <option value="30 Days">30 Days</option>
+                                <option value="90 Days">90 Days</option>
+                                <option value="365 Days">365 Days</option>
+                                <option value="Lifetime">Lifetime</option>
+                            </select>
+                        </div>
+                        <button onclick="activateLicense()" class="w-full bg-indigo-600 hover:bg-indigo-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest mt-2">Activate License</button>
+                        <div id="lic-result" class="hidden text-[10px] font-mono p-2 bg-slate-900 rounded border border-slate-800 text-center text-white"></div>
+                    </div>
+                </div>
+
+                <div class="glass p-5 rounded-2xl border border-amber-500/20">
+                    <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Staff Roster</h2>
+                    <div class="h-40 overflow-y-auto mb-4 space-y-2 pr-2" id="staff-stats"></div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="add-user" placeholder="Username" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                        <input type="text" id="add-discord" placeholder="Discord ID" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <label class="text-[10px] text-slate-400 font-bold flex items-center"><input type="checkbox" id="add-is-admin" class="mr-2"> GRANT ADMIN</label>
+                        <button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold uppercase text-[10px]">Add</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div class="glass p-5 rounded-2xl border border-amber-500/20">
+                    <h2 class="text-amber-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Response Macros</h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="macro-title" placeholder="Title" class="w-1/3 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
+                        <input type="text" id="macro-content" placeholder="Content ({user} for name)..." class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
+                        <button onclick="addMacro()" class="bg-amber-600 px-4 rounded font-bold text-xs uppercase">Add</button>
+                    </div>
+                    <div id="admin-macro-list" class="grid grid-cols-2 gap-2"></div>
+                </div>
+
+                <div class="glass p-5 rounded-2xl border border-blue-500/20">
+                    <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-blue-500/10 pb-2">Manual Ticket Opening</h2>
+                    <input type="text" id="dm-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white mb-2">
+                    <textarea id="dm-content" placeholder="Opening Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white h-24 resize-none mb-2"></textarea>
+                    <button onclick="sendManualDM()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Open Ticket</button>
+                </div>
+            </div>
+
+            <div class="glass p-5 rounded-2xl border border-slate-700/50 mt-4">
+                <h2 class="text-slate-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-slate-700/50 pb-2">Bot Fleet & Broadcasts</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <input type="text" id="bulk-msg" placeholder="Global Broadcast Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white mb-2">
+                        <button onclick="sendBulk()" class="w-full bg-red-600 hover:bg-red-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Execute Global Broadcast</button>
+                    </div>
+                    <div id="srv-list" class="space-y-2 max-h-48 overflow-y-auto">Loading Servers...</div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <div id="history-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/95 hidden p-4">
-        <div class="glass w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl border border-slate-700 overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50">
+    <div id="history-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4">
+        <div class="glass w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl border border-slate-700 overflow-hidden bg-slate-950">
+            <div class="flex justify-between items-center p-4 border-b border-slate-800">
                 <h2 class="text-sm font-bold text-slate-200 uppercase tracking-widest">Transcript Viewer</h2>
                 <button onclick="document.getElementById('history-modal').classList.add('hidden')" class="text-red-400 font-bold text-xs px-3 py-1 rounded border border-red-900/50">CLOSE</button>
             </div>
-            <div id="history-content" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950"></div>
+            <div id="history-content" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
         </div>
     </div>
 
@@ -264,8 +258,6 @@
                 isUserAdmin = res.isAdmin; 
             } 
         } 
-        
-        // Start identification immediately
         identifyUser();
         
         async function doLogin() { 
@@ -404,7 +396,7 @@
             });
         }
 
-        // --- SAFE RENDER CHAT ---
+        // --- RENDER CHAT ---
         function renderChat() {
             try {
                 const box = document.getElementById('chat-box'); 
@@ -606,213 +598,4 @@
             
             const res = await req(`/api/crm/transcript/${userId}/${filename}`); 
             if (res.error) { 
-                c.innerText = "Error reading transcript file."; 
-                return; 
-            } 
-            
-            c.innerHTML = ''; 
-            res.messages.forEach(m => { 
-                const d = document.createElement('div'); 
-                d.className = `p-3 rounded-lg text-xs border mb-2 ${m.fromBot ? 'bg-blue-900/10 border-blue-500/20 ml-4' : 'bg-slate-800/50 border-slate-700 mr-4'}`; 
-                d.innerHTML = `
-                    <div class="flex justify-between mb-1 text-[9px] uppercase font-bold text-slate-500">
-                        <span>${m.authorTag}</span>
-                        <span>${new Date(m.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                    <div class="text-slate-300 whitespace-pre-wrap">${m.content}</div>
-                `; 
-                c.appendChild(d); 
-            }); 
-        }
-
-        // --- ADMIN FUNCTIONS ---
-        async function loadAdminData() { 
-            // 1. Staff Statistics
-            const stats = await req('/api/admin/stats'); 
-            if (!stats.error) {
-                document.getElementById('staff-stats').innerHTML = stats.map(s => { 
-                    const avg = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : "N/A"; 
-                    return `
-                        <div class="flex items-center justify-between p-2 bg-slate-900/50 rounded mb-1">
-                            <div class="flex flex-col">
-                                <span class="text-[10px] font-bold text-slate-300">${s.username} ${s.isAdmin?'(A)':''}</span>
-                                <span class="text-[8px] text-yellow-500 font-bold">★ ${avg} (${s.ratingCount})</span>
-                            </div>
-                            <div class="flex space-x-2">
-                                <span class="text-[9px] text-slate-500 mt-1">C:${s.ticketsClosed}</span>
-                                <button onclick="deleteStaff('${s._id}')" class="text-[9px] text-red-500 hover:text-white">✕</button>
-                            </div>
-                        </div>
-                    `; 
-                }).join(''); 
-            }
-            
-            // 2. Server List (Bot Fleet)
-            const srvs = await req('/api/admin/servers');
-            document.getElementById('srv-list').innerHTML = srvs.map(s => `
-                <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded text-xs border border-slate-800">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-slate-300">${s.name}</span>
-                        <span class="text-[9px] text-slate-500">${s.members} members | <span class="text-blue-400">🤖 ${s.botName}</span></span>
-                    </div>
-                    <div class="flex space-x-1">
-                        <button onclick="createInv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded text-[9px]">LINK</button>
-                        <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-red-900/50 hover:bg-red-600 text-red-200 rounded text-[9px]">LEAVE</button>
-                        <button onclick="dmOwner('${s.id}', '${s.botId}')" class="px-2 py-1 bg-amber-900/50 hover:bg-amber-600 text-amber-200 rounded text-[9px]">DM</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function activateLicense() { 
-            const btn = event.target; 
-            const og = btn.innerText; 
-            btn.innerText = "..."; 
-            btn.disabled = true; 
-            
-            const res = await req('/api/admin/license/activate', 'POST', { 
-                license_key: document.getElementById('lic-key').value, 
-                instance_name: document.getElementById('lic-id').value, 
-                activation_type: document.getElementById('lic-type').value, 
-                duration: document.getElementById('lic-duration').value, 
-                server_name: "Manual", 
-                server_id: "000", 
-                channel_id: "000", 
-                discord_id: document.getElementById('lic-disc-id').value 
-            }); 
-            
-            btn.innerText = og; 
-            btn.disabled = false; 
-            const resBox = document.getElementById('lic-result'); 
-            resBox.classList.remove('hidden'); 
-            
-            if (res.success) { 
-                resBox.innerHTML = `<span class="text-green-400">SUCCESS</span> ID: ${res.data.id}`; 
-                resBox.className = "text-[10px] font-mono p-2 bg-green-900/20 rounded border border-green-500/20 text-center text-green-200 mt-2 block"; 
-            } else { 
-                resBox.innerText = res.error; 
-                resBox.className = "text-[10px] font-mono p-2 bg-red-900/20 rounded border border-red-500/20 text-center text-red-200 mt-2 block"; 
-            } 
-        }
-
-        async function addStaff() { 
-            if (await (await req('/api/admin/staff/add', 'POST', { 
-                username: document.getElementById('add-user').value, 
-                discordId: document.getElementById('add-discord').value, 
-                adminStatus: document.getElementById('add-is-admin').checked 
-            })).success) { 
-                alert("Staff Added"); 
-                loadAdminData(); 
-            } 
-        }
-
-        async function deleteStaff(id) { 
-            if (confirm("Revoke Staff Access?")) { 
-                await req('/api/admin/staff/delete', 'POST', { staffId: id }); 
-                loadAdminData(); 
-            } 
-        }
-        
-        async function createInv(serverId, botId) { 
-            const res = await req('/api/admin/create-invite', 'POST', { serverId, botId }); 
-            if (res.url) prompt("Invite URL:", res.url); 
-        }
-        
-        async function leaveSrv(serverId, botId) { 
-            if (confirm("Disconnect Bot from this server?")) { 
-                await req('/api/admin/leave-server', 'POST', { serverId, botId }); 
-                loadAdminData(); 
-            } 
-        }
-        
-        async function dmOwner(serverId, botId) { 
-            const message = prompt("Message to Server Owner:"); 
-            if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); 
-        }
-        
-        async function sendBulk() { 
-            const message = document.getElementById('bulk-msg').value; 
-            if (message && confirm("Confirm GLOBAL Broadcast to ALL server owners?")) { 
-                const res = await req('/api/admin/bulk-message', 'POST', { message }); 
-                alert(`Broadcast sent to ${res.sentTo} owners.`); 
-            } 
-        }
-        
-        async function sendManualDM() { 
-            if (await (await req('/api/admin/manual-dm', 'POST', { 
-                discordId: document.getElementById('dm-id').value, 
-                content: document.getElementById('dm-content').value 
-            })).success) { 
-                alert("Message Sent & Ticket Opened"); 
-                document.getElementById('dm-content').value = ''; 
-            } 
-        }
-
-        // --- SOCKET EVENT HANDLERS ---
-        socket.on('new_message', (d) => { 
-            if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); 
-            
-            if (threadStore[d.threadId]) { 
-                threadStore[d.threadId].messages.push(d); 
-                
-                // If viewing this thread, render msg
-                if (activeId === d.threadId) renderChat(); 
-                
-                // Update list timestamp
-                loadThreads(); 
-            } else {
-                // New thread entirely
-                loadThreads(); 
-            }
-        });
-
-        // VIEWERS UPDATE
-        socket.on('viewers_updated', (viewers) => {
-            const badge = document.getElementById('viewer-display');
-            if (viewers.length > 0) {
-                // Filter out self
-                const others = viewers.filter(v => v !== currentUser);
-                if (others.length > 0) {
-                    badge.innerText = `👀 Viewing: ${others.join(', ')}`;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
-            } else {
-                badge.classList.add('hidden');
-            }
-        });
-
-        socket.on('user_typing', (d) => { 
-            if (activeUserId && activeUserId === d.userId) { 
-                const i = document.getElementById('typing-indicator'); 
-                const s = document.getElementById('status-sub'); 
-                
-                i.classList.remove('hidden'); 
-                s.classList.add('hidden'); 
-                
-                clearTimeout(typingTimeout); 
-                typingTimeout = setTimeout(() => { 
-                    i.classList.add('hidden'); 
-                    s.classList.remove('hidden'); 
-                }, 3000); 
-            } 
-        });
-
-        // --- INITIALIZATION ---
-        (async () => { 
-            const data = await req('/api/threads'); 
-            if (!data.error) { 
-                document.getElementById('login-view').classList.add('hidden'); 
-                loadThreads(); 
-                
-                const adminStats = await req('/api/admin/stats'); 
-                // If user is admin, show admin button
-                if (!adminStats.error) {
-                    document.getElementById('nav-admin').classList.remove('hidden'); 
-                }
-            } 
-        })();
-    </script>
-</body>
-</html>
+                c.innerText = "Error reading transcript file.";
