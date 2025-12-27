@@ -1,5 +1,5 @@
 require('dotenv').config();
-const axios = require('axios'); 
+const axios = require('axios');
 const { 
     Client, 
     GatewayIntentBits, 
@@ -25,46 +25,58 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// --- DISK STORAGE SETUP ---
-// Determine if we are on Render or Local
+// ==========================================
+// 1. STORAGE CONFIGURATION
+// ==========================================
+
+// Determine if we are running on Render or Local Machine
 const DATA_DIR = process.env.RENDER === 'true' ? '/var/data' : path.join(__dirname, 'local_storage');
 
 // Ensure storage folders exist immediately on startup
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+    console.log(`[SYSTEM] Created Data Directory: ${DATA_DIR}`);
 }
+
 const ARCHIVE_DIR = path.join(DATA_DIR, 'archives');
 if (!fs.existsSync(ARCHIVE_DIR)) {
     fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
+    console.log(`[SYSTEM] Created Archive Directory: ${ARCHIVE_DIR}`);
 }
 
 console.log(`[SYSTEM] 📂 Storage Mounted at: ${DATA_DIR}`);
 
-// --- DATABASE MODELS ---
+// ==========================================
+// 2. DATABASE MODELS
+// ==========================================
+
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("[SYSTEM] ✅ MongoDB Connected"))
     .catch(e => console.error("[SYSTEM] ❌ DB Error:", e));
 
-// 1. Staff Model (Added Rating Fields)
+// Staff Member Model
 const Staff = mongoose.model('Staff', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     discordId: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
+    // Stats
     ticketsClosed: { type: Number, default: 0 },
     repliesSent: { type: Number, default: 0 },
     ratingSum: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 }
 }));
 
-// 2. Thread Model (Added Claiming Fields)
+// Active Ticket Thread Model
 const Thread = mongoose.model('Thread', new mongoose.Schema({
     userId: String,
     userTag: String,
     botId: String,
     botName: String,
+    // Claiming System
     claimedBy: { type: String, default: null },
     claimedAt: { type: Date, default: null },
+    // Messages
     messages: [{
         authorTag: String,
         content: String,
@@ -75,7 +87,7 @@ const Thread = mongoose.model('Thread', new mongoose.Schema({
     lastMessageAt: { type: Date, default: Date.now }
 }));
 
-// 3. License Model
+// License Model
 const License = mongoose.model('License', new mongoose.Schema({
     key: String,
     instanceId: String,
@@ -90,14 +102,14 @@ const License = mongoose.model('License', new mongoose.Schema({
     reminderSent: { type: Boolean, default: false }
 }));
 
-// 4. Config Model
+// Global Configuration
 const Config = mongoose.model('Config', new mongoose.Schema({
     id: { type: String, default: 'global' },
     supportOnline: { type: Boolean, default: true },
     offlineNote: { type: String, default: '' }
 }));
 
-// 5. CRM Sticky Notes
+// Sticky Notes (CRM)
 const UserNote = mongoose.model('UserNote', new mongoose.Schema({
     userId: { type: String, required: true, unique: true },
     note: { type: String, default: "" },
@@ -105,14 +117,18 @@ const UserNote = mongoose.model('UserNote', new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 }));
 
-// 6. Macros (Canned Responses)
+// Canned Responses (Macros)
 const Macro = mongoose.model('Macro', new mongoose.Schema({
     title: { type: String, required: true },
     content: { type: String, required: true }
 }));
 
-// --- INITIAL SETUP ---
+// ==========================================
+// 3. INITIALIZATION & MIDDLEWARE
+// ==========================================
+
 async function setupDefaults() {
+    // Ensure default admin exists
     const adminExists = await Staff.findOne({ username: 'admin' });
     if (!adminExists) {
         const hashedPassword = await bcrypt.hash('map4491', 10);
@@ -124,14 +140,16 @@ async function setupDefaults() {
         }).save();
         console.log("[SYSTEM] ✅ Default Admin Created");
     }
+
+    // Ensure default config exists
     const configExists = await Config.findOne({ id: 'global' });
     if (!configExists) {
         await new Config({ id: 'global', supportOnline: true }).save();
+        console.log("[SYSTEM] ✅ Default Config Created");
     }
 }
 setupDefaults();
 
-// --- MIDDLEWARE ---
 app.set('trust proxy', 1); 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static('public'));
@@ -143,11 +161,23 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 24, secure: true, sameSite: 'none' } 
 }));
 
-const isAuth = (req, res, next) => req.session.staffId ? next() : res.status(401).send("Unauthorized");
-const isAdmin = (req, res, next) => (req.session.staffId && req.session.isAdmin) ? next() : res.status(403).send("Admin only");
+// Auth Guards
+const isAuth = (req, res, next) => {
+    if (req.session.staffId) return next();
+    res.status(401).send("Unauthorized");
+};
+
+const isAdmin = (req, res, next) => {
+    if (req.session.staffId && req.session.isAdmin) return next();
+    res.status(403).send("Admin only");
+};
+
 const getPanelUrl = () => process.env.APP_URL || "Panel URL Not Configured";
 
-// --- DISCORD BOTS ---
+// ==========================================
+// 4. DISCORD BOT LOGIC
+// ==========================================
+
 const botTokens = [process.env.BOT_ONE_TOKEN, process.env.BOT_TWO_TOKEN].filter(t => t);
 const clients = [];
 
@@ -180,13 +210,18 @@ botTokens.forEach((token, index) => {
         partials: [Partials.Channel, Partials.Message]
     });
 
-    // 1. TYPING LISTENER (User is typing in Discord)
+    client.once('ready', () => {
+        console.log(`[BOT_${index + 1}] 🤖 Logged in as ${client.user.tag}`);
+    });
+
+    // A. User Typing Logic
     client.on('typingStart', async (typing) => {
         if (typing.user.bot) return;
+        // Broadcast to web panel
         io.emit('user_typing', { userId: typing.user.id });
     });
 
-    // 2. INTERACTION LISTENER (Star Ratings)
+    // B. Interaction Logic (Star Ratings)
     client.on('interactionCreate', async (interaction) => {
         if (!interaction.isButton()) return;
 
@@ -199,6 +234,8 @@ botTokens.forEach((token, index) => {
             await Staff.findByIdAndUpdate(staffId, { 
                 $inc: { ratingSum: score, ratingCount: 1 } 
             });
+
+            console.log(`[RATING] Staff ${staffId} received ${score} stars.`);
 
             // Disable Buttons
             const disabledRow = new ActionRowBuilder().addComponents(
@@ -216,13 +253,13 @@ botTokens.forEach((token, index) => {
         }
     });
 
-    // 3. MESSAGE LISTENER
+    // C. Message Logic (New Ticket / Reply)
     client.on('messageCreate', async (message) => {
         if (message.author.bot || message.guild) return; 
         
         let thread = await Thread.findOne({ userId: message.author.id, botId: client.user.id });
         
-        // --- NEW TICKET LOGIC ---
+        // Handle New Ticket
         if (!thread) {
             console.log(`[TICKET] 📩 New Thread: ${message.author.tag}`);
             thread = new Thread({ 
@@ -237,7 +274,7 @@ botTokens.forEach((token, index) => {
             const isManualOnline = config ? config.supportOnline : true;
             const offlineNote = config ? config.offlineNote : '';
 
-            // Check Time (AST Timezone)
+            // AST Timezone Logic
             const now = new Date();
             const options = { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' };
             const formatter = new Intl.DateTimeFormat('en-US', options);
@@ -253,11 +290,23 @@ botTokens.forEach((token, index) => {
 
             if (!isManualOnline) {
                 const noteText = offlineNote ? `**Reason:** ${offlineNote}\n\n` : '';
-                autoReply = new EmbedBuilder().setColor('#ef4444').setTitle('Support Currently Offline').setDescription(`Support has been toggled offline by staff.\n\n${noteText}We will respond when available.`).setTimestamp();
+                autoReply = new EmbedBuilder()
+                    .setColor('#ef4444')
+                    .setTitle('Support Currently Offline')
+                    .setDescription(`Support has been toggled offline by staff.\n\n${noteText}We will respond when available.`)
+                    .setTimestamp();
             } else if (!isWorkHours) {
-                autoReply = new EmbedBuilder().setColor('#f59e0b').setTitle('Support Closed').setDescription('You have reached us outside of support hours (8:00 AM - 11:59 PM AST).').setTimestamp();
+                autoReply = new EmbedBuilder()
+                    .setColor('#f59e0b')
+                    .setTitle('Support Closed')
+                    .setDescription('You have reached us outside of support hours (8:00 AM - 11:59 PM AST).')
+                    .setTimestamp();
             } else {
-                autoReply = new EmbedBuilder().setColor('#3b82f6').setTitle('Support Ticket Opened').setDescription('A staff member will respond to your inquiry within **12-24 hours**.').setTimestamp();
+                autoReply = new EmbedBuilder()
+                    .setColor('#3b82f6')
+                    .setTitle('Support Ticket Opened')
+                    .setDescription('A staff member will respond to your inquiry within **12-24 hours**.')
+                    .setTimestamp();
             }
             
             try { 
@@ -267,7 +316,7 @@ botTokens.forEach((token, index) => {
             sendLog("🆕 Ticket Created", `**User:** ${message.author.tag}\n**Bot:** ${client.user.username}`, '#facc15');
         }
         
-        // --- SAVE MESSAGE ---
+        // Save Message to DB
         const attachments = message.attachments.map(a => a.url);
         const msgData = { 
             authorTag: message.author.tag, 
@@ -287,18 +336,22 @@ botTokens.forEach((token, index) => {
     clients.push(client);
 });
 
-// --- SOCKET IO EVENTS (STAFF TYPING) ---
+// ==========================================
+// 5. SOCKET IO EVENTS
+// ==========================================
+
 io.on('connection', (socket) => {
+    // Handle Staff Typing
     socket.on('staff_typing', async (data) => {
         const { threadId } = data;
         const thread = await Thread.findById(threadId);
-        if(!thread) return;
+        if (!thread) return;
         
         const client = clients.find(c => c.user.id === thread.botId);
-        if(client) {
+        if (client) {
             try {
                 const user = await client.users.fetch(thread.userId);
-                // Send typing indicator to Discord DM
+                // Trigger typing in Discord DM
                 const dmChannel = user.dmChannel || await user.createDM();
                 await dmChannel.sendTyping();
             } catch(e) {}
@@ -306,15 +359,19 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- API ROUTES ---
+// ==========================================
+// 6. API ROUTES - TICKET MANAGEMENT
+// ==========================================
 
-// 1. Thread Archive (With Ratings)
+// Close Thread & Archive
 app.post('/api/close-thread', isAuth, async (req, res) => {
     const { threadId } = req.body;
+    console.log(`[ARCHIVE] 🔒 Archiving thread ${threadId} by ${req.session.username}`);
+
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
 
-    // Generate Transcript
+    // 1. Generate Transcript Text
     let transcriptText = `OFFICIAL TRANSCRIPT: ${thread.userTag}\nBot: ${thread.botName}\n\n`;
     thread.messages.forEach(m => { 
         transcriptText += `[${m.timestamp.toISOString()}] ${m.authorTag}: ${m.content}\n`; 
@@ -324,12 +381,14 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
 
     try {
         fs.writeFileSync(tempPath, transcriptText);
-        // Log to Discord
+        
+        // 2. Log to Discord Log Channel
         await sendLog("🔒 Archive Logged", `User: ${thread.userTag}\n**Saved to System Disk**`, '#ef4444', [new AttachmentBuilder(tempPath)]);
         
-        // Save to Render Disk
+        // 3. Save JSON to Persistent Disk
         const userDir = path.join(ARCHIVE_DIR, thread.userId);
         if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
+        
         const filePath = path.join(userDir, `${Date.now()}-${threadId}.json`);
 
         const archiveData = {
@@ -338,8 +397,9 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
         };
 
         fs.writeFileSync(filePath, JSON.stringify(archiveData, null, 2));
+        console.log(`[ARCHIVE] ✅ Saved to disk: ${filePath}`);
         
-        // Send Rating Request Buttons
+        // 4. Send Rating Request to User
         const staffId = req.session.staffId;
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`rate_1_${staffId}`).setLabel('1⭐').setStyle(ButtonStyle.Secondary),
@@ -355,14 +415,16 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
             .setColor('#3b82f6');
 
         const client = clients.find(c => c.user.id === thread.botId);
-        if(client) { 
+        if (client) { 
             try { 
                 const user = await client.users.fetch(thread.userId); 
                 await user.send({ embeds: [embed], components: [row] }); 
-            } catch(e){} 
+            } catch(e) {
+                console.error("Failed to send rating request");
+            } 
         }
 
-        // Cleanup
+        // 5. Cleanup
         await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { ticketsClosed: 1 } });
         await Thread.findByIdAndDelete(threadId);
         fs.unlinkSync(tempPath);
@@ -374,13 +436,15 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
     }
 });
 
-// 2. Claiming System
+// Claim Ticket
 app.post('/api/claim', isAuth, async (req, res) => {
     const { threadId } = req.body;
+    console.log(`[CLAIM] Attempt by ${req.session.username} on ${threadId}`);
+    
     const thread = await Thread.findById(threadId);
     if (!thread) return res.status(404).send("Not Found");
 
-    // Check if locked
+    // Check if already claimed
     if (thread.claimedBy && thread.claimedBy !== req.session.username && !req.session.isAdmin) {
         return res.status(403).json({ error: `Locked by ${thread.claimedBy}` });
     }
@@ -393,6 +457,7 @@ app.post('/api/claim', isAuth, async (req, res) => {
     res.json({ success: true, claimedBy: thread.claimedBy });
 });
 
+// Unclaim Ticket
 app.post('/api/unclaim', isAuth, async (req, res) => {
     const { threadId } = req.body;
     const thread = await Thread.findById(threadId);
@@ -409,9 +474,62 @@ app.post('/api/unclaim', isAuth, async (req, res) => {
     res.json({ success: true });
 });
 
-// 3. CRM & Disk Access
+// Reply to Ticket
+app.post('/api/reply', isAuth, async (req, res) => {
+    const { threadId, content, fileBase64, fileName } = req.body;
+    console.log(`[REPLY] 📤 Staff ${req.session.username} replying to thread ${threadId}`);
+    
+    const thread = await Thread.findById(threadId);
+    if (!thread) return res.status(404).send("Not Found");
+    
+    const client = clients.find(c => c.user.id === thread.botId);
+    try {
+        const user = await client.users.fetch(thread.userId);
+        
+        let messageOptions = { 
+            embeds: [new EmbedBuilder().setColor('#3b82f6').setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() }).setDescription(content || "Sent an attachment").setTimestamp()] 
+        };
+        
+        if (fileBase64) {
+            messageOptions.files = [new AttachmentBuilder(Buffer.from(fileBase64.split(',')[1], 'base64'), { name: fileName || 'upload.png' })];
+        }
+        
+        await user.send(messageOptions);
+        
+        const reply = { 
+            authorTag: `Staff (${req.session.username})`, 
+            content: content || "[File Attachment]", 
+            fromBot: true, 
+            timestamp: new Date() 
+        };
+        
+        thread.messages.push(reply);
+        thread.lastMessageAt = new Date();
+        await thread.save();
+        
+        await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { repliesSent: 1 } });
+        io.emit('new_message', { threadId: thread._id, ...reply });
+        res.json({ success: true });
+    } catch (err) { 
+        res.status(500).send("DM Failed"); 
+    }
+});
+
+// Get Active Threads
+app.get('/api/threads', isAuth, async (req, res) => { 
+    const threads = await Thread.find().sort({ lastMessageAt: -1 }); 
+    res.json(threads); 
+});
+
+// ==========================================
+// 7. API ROUTES - CRM
+// ==========================================
+
+// Get User History from Disk
 app.get('/api/crm/user/:discordId', isAuth, async (req, res) => {
     const { discordId } = req.params;
+    console.log(`[CRM] 🔍 Fetching history for ${discordId}`);
+    
     const noteDoc = await UserNote.findOne({ userId: discordId });
     const userDir = path.join(ARCHIVE_DIR, discordId);
     let historyFiles = [];
@@ -433,6 +551,7 @@ app.get('/api/crm/user/:discordId', isAuth, async (req, res) => {
     res.json({ note: noteDoc ? noteDoc.note : "", history: historyFiles });
 });
 
+// Read Specific Transcript from Disk
 app.get('/api/crm/transcript/:discordId/:filename', isAuth, (req, res) => {
     const { discordId, filename } = req.params;
     if (filename.includes('..') || discordId.includes('..')) return res.status(403).send("Invalid path");
@@ -445,6 +564,7 @@ app.get('/api/crm/transcript/:discordId/:filename', isAuth, (req, res) => {
     }
 });
 
+// Save Sticky Note
 app.post('/api/crm/note', isAuth, async (req, res) => {
     await UserNote.findOneAndUpdate(
         { userId: req.body.userId }, 
@@ -454,10 +574,13 @@ app.post('/api/crm/note', isAuth, async (req, res) => {
     res.json({ success: true });
 });
 
-// 4. Macro System
-app.get('/api/macros', isAuth, async (req, res) => {
-    const macros = await Macro.find().sort({ title: 1 });
-    res.json(macros);
+// ==========================================
+// 8. API ROUTES - MACROS
+// ==========================================
+
+app.get('/api/macros', isAuth, async (req, res) => { 
+    const macros = await Macro.find().sort({ title: 1 }); 
+    res.json(macros); 
 });
 
 app.post('/api/admin/macros/add', isAdmin, async (req, res) => {
@@ -472,7 +595,10 @@ app.post('/api/admin/macros/delete', isAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
-// 5. Auth & Staff Management
+// ==========================================
+// 9. API ROUTES - AUTH
+// ==========================================
+
 app.get('/api/auth/user', isAuth, (req, res) => {
     res.json({ username: req.session.username, isAdmin: req.session.isAdmin });
 });
@@ -499,6 +625,8 @@ app.post('/api/logout', (req, res) => {
 
 app.post('/api/public/request-reset', async (req, res) => {
     const { discordId } = req.body;
+    console.log(`[AUTH] 🆘 Recovery requested: ${discordId}`);
+    
     const staff = await Staff.findOne({ discordId });
     if (!staff) return res.status(404).json({ error: "No staff found" });
     
@@ -525,44 +653,10 @@ app.post('/api/staff/self-reset', isAuth, async (req, res) => {
     res.json({ success: true });
 });
 
-app.get('/api/threads', isAuth, async (req, res) => { 
-    const threads = await Thread.find().sort({ lastMessageAt: -1 }); 
-    res.json(threads); 
-});
+// ==========================================
+// 10. API ROUTES - ADMIN & BOT FLEET
+// ==========================================
 
-app.post('/api/reply', isAuth, async (req, res) => {
-    const { threadId, content, fileBase64, fileName } = req.body;
-    const thread = await Thread.findById(threadId);
-    if (!thread) return res.status(404).send("Not Found");
-    
-    const client = clients.find(c => c.user.id === thread.botId);
-    try {
-        const user = await client.users.fetch(thread.userId);
-        let messageOptions = { 
-            embeds: [new EmbedBuilder().setColor('#3b82f6').setAuthor({ name: `Support: ${req.session.username}`, iconURL: client.user.displayAvatarURL() }).setDescription(content || "Sent an attachment").setTimestamp()] 
-        };
-        if (fileBase64) {
-            messageOptions.files = [new AttachmentBuilder(Buffer.from(fileBase64.split(',')[1], 'base64'), { name: fileName || 'upload.png' })];
-        }
-        await user.send(messageOptions);
-        
-        const reply = { 
-            authorTag: `Staff (${req.session.username})`, 
-            content: content || "[File Attachment]", 
-            fromBot: true, 
-            timestamp: new Date() 
-        };
-        
-        thread.messages.push(reply);
-        thread.lastMessageAt = new Date();
-        await thread.save();
-        await Staff.findByIdAndUpdate(req.session.staffId, { $inc: { repliesSent: 1 } });
-        io.emit('new_message', { threadId: thread._id, ...reply });
-        res.json({ success: true });
-    } catch (err) { res.status(500).send("DM Failed"); }
-});
-
-// 6. Admin Routes
 app.get('/api/admin/stats', isAdmin, async (req, res) => { 
     const stats = await Staff.find().sort({ ticketsClosed: -1 }); 
     res.json(stats); 
@@ -575,6 +669,7 @@ app.get('/api/admin/config', isAdmin, async (req, res) => {
 
 app.post('/api/admin/config/toggle', isAdmin, async (req, res) => { 
     const { note } = req.body;
+    console.log(`[ADMIN] ⚙️ Toggle support. Note: ${note}`);
     const config = await Config.findOne({ id: 'global' }); 
     config.supportOnline = !config.supportOnline; 
     config.offlineNote = config.supportOnline ? '' : (note || ''); 
@@ -582,7 +677,79 @@ app.post('/api/admin/config/toggle', isAdmin, async (req, res) => {
     res.json({ success: true, supportOnline: config.supportOnline }); 
 });
 
+// A. Server List
+app.get('/api/admin/servers', isAdmin, async (req, res) => {
+    let servers = [];
+    clients.forEach(c => {
+        if (!c.isReady()) return;
+        c.guilds.cache.forEach(g => {
+            servers.push({
+                id: g.id,
+                name: g.name,
+                members: g.memberCount,
+                botName: c.user.username,
+                botId: c.user.id
+            });
+        });
+    });
+    res.json(servers);
+});
+
+// B. Leave Server
+app.post('/api/admin/leave-server', isAdmin, async (req, res) => {
+    const client = clients.find(c => c.user.id === req.body.botId);
+    try {
+        const guild = await client.guilds.fetch(req.body.serverId);
+        await guild.leave();
+        console.log(`[ADMIN] Left server: ${guild.name}`);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "Failed to leave" }); }
+});
+
+// C. Create Invite
+app.post('/api/admin/create-invite', isAdmin, async (req, res) => {
+    const client = clients.find(c => c.user.id === req.body.botId);
+    try {
+        const guild = await client.guilds.fetch(req.body.serverId);
+        const chan = guild.channels.cache.find(c => c.type === ChannelType.GuildText && c.permissionsFor(client.user).has('CreateInstantInvite'));
+        const inv = await chan.createInvite({ maxAge: 3600, maxUses: 1 });
+        res.json({ success: true, url: inv.url });
+    } catch (e) { res.status(500).json({ error: "No Permission" }); }
+});
+
+// D. DM Server Owner
+app.post('/api/admin/dm-owner', isAdmin, async (req, res) => {
+    const client = clients.find(c => c.user.id === req.body.botId);
+    try {
+        const guild = await client.guilds.fetch(req.body.serverId);
+        const owner = await client.users.fetch(guild.ownerId);
+        await owner.send(`**Notification regarding ${guild.name}:**\n${req.body.message}`);
+        console.log(`[ADMIN] Sent DM to owner of ${guild.name}`);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "DM Failed" }); }
+});
+
+// E. Bulk Broadcast
+app.post('/api/admin/bulk-message', isAdmin, async (req, res) => {
+    console.log(`[ADMIN] Starting global broadcast...`);
+    let sentCount = 0;
+    for (const client of clients) {
+        if (!client.isReady()) continue;
+        for (const [id, guild] of client.guilds.cache) {
+            try {
+                const owner = await client.users.fetch(guild.ownerId);
+                await owner.send(`**Broadcast:**\n${req.body.message}`);
+                sentCount++;
+            } catch (e) {}
+        }
+    }
+    console.log(`[ADMIN] Broadcast sent to ${sentCount} owners.`);
+    res.json({ success: true, sentTo: sentCount });
+});
+
+// F. Licensing
 app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
+    console.log(`[LICENSE] 🔑 Activation attempt for ${req.body.discord_id}`);
     try {
         const response = await axios.post('https://sell.app/api/v2/licenses/activate', { 
             license_key: req.body.license_key, 
@@ -608,38 +775,43 @@ app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
         }).save();
         
         await sendLog("🔑 License Activated", `**Staff:** ${req.session.username}\n**Key:** ${req.body.license_key}\n**User:** ${req.body.discord_id}`, '#10b981');
+        console.log(`[LICENSE] ✅ Success: ${req.body.license_key}`);
         res.json({ success: true, data: response.data });
     } catch (err) { 
         res.status(400).json({ error: err.response?.data?.message || "Activation Failed" }); 
     }
 });
 
+// G. Staff Management
 app.post('/api/admin/staff/add', isAdmin, async (req, res) => { 
-    const { username, discordId, adminStatus } = req.body;
+    console.log(`[ADMIN] 👤 Adding staff: ${req.body.username}`);
     const tempPass = Math.random().toString(36).slice(-8); 
     const hashedPassword = await bcrypt.hash(tempPass, 10); 
     
     await new Staff({ 
-        username, 
-        discordId, 
+        username: req.body.username, 
+        discordId: req.body.discordId, 
         password: hashedPassword, 
-        isAdmin: adminStatus 
+        isAdmin: req.body.adminStatus 
     }).save(); 
     
     try { 
-        const user = await clients[0].users.fetch(discordId); 
-        await user.send(`**Staff Access Granted**\nUser: ${username}\nPass: ${tempPass}\nURL: ${getPanelUrl()}`); 
+        const user = await clients[0].users.fetch(req.body.discordId); 
+        await user.send(`**Staff Access Granted**\nUser: ${req.body.username}\nPass: ${tempPass}\nURL: ${getPanelUrl()}`); 
     } catch(e) {} 
     res.json({ success: true }); 
 });
 
 app.post('/api/admin/staff/delete', isAdmin, async (req, res) => { 
+    console.log(`[ADMIN] 🗑️ Deleting staff ID: ${req.body.staffId}`);
     if (req.body.staffId === req.session.staffId.toString()) return res.status(400).json({ error: "Cannot delete yourself" }); 
     await Staff.findByIdAndDelete(req.body.staffId); 
     res.json({ success: true }); 
 });
 
+// H. Manual DM (Open Ticket)
 app.post('/api/admin/manual-dm', isAdmin, async (req, res) => {
+    console.log(`[ADMIN] 📨 Manual DM to ${req.body.discordId}`);
     try {
         let thread = await Thread.findOne({ userId: req.body.discordId });
         let client = clients[0]; 
