@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TRADE SERVICES PANEL</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <style>
         body { 
             background: #020617; 
@@ -45,7 +43,7 @@
             
             <input type="password" id="l-pass" placeholder="SECURITY KEY" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-6 outline-none text-sm text-center transition focus:border-blue-500 text-white">
             
-            <button id="login-btn" onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl font-bold uppercase text-sm tracking-widest shadow-lg shadow-blue-900/20">Establish Link</button>
+            <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl font-bold uppercase text-sm tracking-widest shadow-lg shadow-blue-900/20">Establish Link</button>
             
             <button onclick="requestRecovery()" class="text-xs text-slate-500 mt-4 hover:text-white uppercase font-bold">Lost Key? Recover via Discord</button>
         </div>
@@ -258,6 +256,8 @@
                 isUserAdmin = res.isAdmin; 
             } 
         } 
+        
+        // Start identification immediately
         identifyUser();
         
         async function doLogin() { 
@@ -265,23 +265,33 @@
             btn.innerText = "LINKING..."; 
             btn.disabled = true; 
             
-            const res = await fetch('/api/login', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ 
-                    username: document.getElementById('l-user').value, 
-                    password: document.getElementById('l-pass').value 
-                }) 
-            }); 
-            
-            if (res.ok) { 
-                window.location.reload(); 
-            } else { 
-                alert("ACCESS DENIED"); 
+            try {
+                const res = await fetch('/api/login', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        username: document.getElementById('l-user').value, 
+                        password: document.getElementById('l-pass').value 
+                    }) 
+                }); 
+                
+                if (res.ok) { 
+                    window.location.reload(); 
+                } else { 
+                    alert("ACCESS DENIED"); 
+                    btn.innerText = "Establish Link"; 
+                    btn.disabled = false; 
+                } 
+            } catch (e) {
+                console.error(e);
+                alert("NETWORK ERROR");
                 btn.innerText = "Establish Link"; 
-                btn.disabled = false; 
-            } 
+                btn.disabled = false;
+            }
         }
+
+        // --- BIND LOGIN BUTTON MANUALLY ---
+        document.getElementById('login-btn').addEventListener('click', doLogin);
 
         async function doLogout() { 
             const res = await fetch('/api/logout', { method: 'POST' });
@@ -396,7 +406,7 @@
             });
         }
 
-        // --- RENDER CHAT ---
+        // --- SAFE RENDER CHAT ---
         function renderChat() {
             try {
                 const box = document.getElementById('chat-box'); 
@@ -598,4 +608,213 @@
             
             const res = await req(`/api/crm/transcript/${userId}/${filename}`); 
             if (res.error) { 
-                c.innerText = "Error reading transcript file.";
+                c.innerText = "Error reading transcript file."; 
+                return; 
+            } 
+            
+            c.innerHTML = ''; 
+            res.messages.forEach(m => { 
+                const d = document.createElement('div'); 
+                d.className = `p-3 rounded-lg text-xs border mb-2 ${m.fromBot ? 'bg-blue-900/10 border-blue-500/20 ml-4' : 'bg-slate-800/50 border-slate-700 mr-4'}`; 
+                d.innerHTML = `
+                    <div class="flex justify-between mb-1 text-[9px] uppercase font-bold text-slate-500">
+                        <span>${m.authorTag}</span>
+                        <span>${new Date(m.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="text-slate-300 whitespace-pre-wrap">${m.content}</div>
+                `; 
+                c.appendChild(d); 
+            }); 
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        async function loadAdminData() { 
+            // 1. Staff Statistics
+            const stats = await req('/api/admin/stats'); 
+            if (!stats.error) {
+                document.getElementById('staff-stats').innerHTML = stats.map(s => { 
+                    const avg = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : "N/A"; 
+                    return `
+                        <div class="flex items-center justify-between p-2 bg-slate-900/50 rounded mb-1">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-slate-300">${s.username} ${s.isAdmin?'(A)':''}</span>
+                                <span class="text-[8px] text-yellow-500 font-bold">★ ${avg} (${s.ratingCount})</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <span class="text-[9px] text-slate-500 mt-1">C:${s.ticketsClosed}</span>
+                                <button onclick="deleteStaff('${s._id}')" class="text-[9px] text-red-500 hover:text-white">✕</button>
+                            </div>
+                        </div>
+                    `; 
+                }).join(''); 
+            }
+            
+            // 2. Server List (Bot Fleet)
+            const srvs = await req('/api/admin/servers');
+            document.getElementById('srv-list').innerHTML = srvs.map(s => `
+                <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded text-xs border border-slate-800">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-slate-300">${s.name}</span>
+                        <span class="text-[9px] text-slate-500">${s.members} Mem | <span class="text-blue-400">🤖 ${s.botName}</span></span>
+                    </div>
+                    <div class="flex space-x-1">
+                        <button onclick="createInv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded text-[9px]">LINK</button>
+                        <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-red-900/50 hover:bg-red-600 text-red-200 rounded text-[9px]">LEAVE</button>
+                        <button onclick="dmOwner('${s.id}', '${s.botId}')" class="px-2 py-1 bg-amber-900/50 hover:bg-amber-600 text-amber-200 rounded text-[9px]">DM</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function activateLicense() { 
+            const btn = event.target; 
+            const og = btn.innerText; 
+            btn.innerText = "..."; 
+            btn.disabled = true; 
+            
+            const res = await req('/api/admin/license/activate', 'POST', { 
+                license_key: document.getElementById('lic-key').value, 
+                instance_name: document.getElementById('lic-id').value, 
+                activation_type: document.getElementById('lic-type').value, 
+                duration: document.getElementById('lic-duration').value, 
+                server_name: "Manual", 
+                server_id: "000", 
+                channel_id: "000", 
+                discord_id: document.getElementById('lic-disc-id').value 
+            }); 
+            
+            btn.innerText = og; 
+            btn.disabled = false; 
+            const resBox = document.getElementById('lic-result'); 
+            resBox.classList.remove('hidden'); 
+            
+            if (res.success) { 
+                resBox.innerHTML = `<span class="text-green-400">SUCCESS</span> ID: ${res.data.id}`; 
+                resBox.className = "text-[10px] font-mono p-2 bg-green-900/20 rounded border border-green-500/20 text-center text-green-200 mt-2 block"; 
+            } else { 
+                resBox.innerText = res.error; 
+                resBox.className = "text-[10px] font-mono p-2 bg-red-900/20 rounded border border-red-500/20 text-center text-red-200 mt-2 block"; 
+            } 
+        }
+
+        async function addStaff() { 
+            if (await (await req('/api/admin/staff/add', 'POST', { 
+                username: document.getElementById('add-user').value, 
+                discordId: document.getElementById('add-discord').value, 
+                adminStatus: document.getElementById('add-is-admin').checked 
+            })).success) { 
+                alert("Staff Added"); 
+                loadAdminData(); 
+            } 
+        }
+
+        async function deleteStaff(id) { 
+            if (confirm("Revoke Staff Access?")) { 
+                await req('/api/admin/staff/delete', 'POST', { staffId: id }); 
+                loadAdminData(); 
+            } 
+        }
+        
+        async function createInv(serverId, botId) { 
+            const res = await req('/api/admin/create-invite', 'POST', { serverId, botId }); 
+            if (res.url) prompt("Invite URL:", res.url); 
+        }
+        
+        async function leaveSrv(serverId, botId) { 
+            if (confirm("Disconnect Bot from this server?")) { 
+                await req('/api/admin/leave-server', 'POST', { serverId, botId }); 
+                loadAdminData(); 
+            } 
+        }
+        
+        async function dmOwner(serverId, botId) { 
+            const message = prompt("Message to Server Owner:"); 
+            if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); 
+        }
+        
+        async function sendBulk() { 
+            const message = document.getElementById('bulk-msg').value; 
+            if (message && confirm("Confirm GLOBAL Broadcast to ALL server owners?")) { 
+                const res = await req('/api/admin/bulk-message', 'POST', { message }); 
+                alert(`Broadcast sent to ${res.sentTo} owners.`); 
+            } 
+        }
+        
+        async function sendManualDM() { 
+            if (await (await req('/api/admin/manual-dm', 'POST', { 
+                discordId: document.getElementById('dm-id').value, 
+                content: document.getElementById('dm-content').value 
+            })).success) { 
+                alert("Message Sent & Ticket Opened"); 
+                document.getElementById('dm-content').value = ''; 
+            } 
+        }
+
+        // --- SOCKET EVENT HANDLERS ---
+        socket.on('new_message', (d) => { 
+            if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); 
+            
+            if (threadStore[d.threadId]) { 
+                threadStore[d.threadId].messages.push(d); 
+                
+                // If viewing this thread, render msg
+                if (activeId === d.threadId) renderChat(); 
+                
+                // Update list timestamp
+                loadThreads(); 
+            } else {
+                // New thread entirely
+                loadThreads(); 
+            }
+        });
+
+        // VIEWERS UPDATE
+        socket.on('viewers_updated', (viewers) => {
+            const badge = document.getElementById('viewer-display');
+            if (viewers.length > 0) {
+                // Filter out self
+                const others = viewers.filter(v => v !== currentUser);
+                if (others.length > 0) {
+                    badge.innerText = `👀 Viewing: ${others.join(', ')}`;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } else {
+                badge.classList.add('hidden');
+            }
+        });
+
+        socket.on('user_typing', (d) => { 
+            if (activeUserId && activeUserId === d.userId) { 
+                const i = document.getElementById('typing-indicator'); 
+                const s = document.getElementById('status-sub'); 
+                
+                i.classList.remove('hidden'); 
+                s.classList.add('hidden'); 
+                
+                clearTimeout(typingTimeout); 
+                typingTimeout = setTimeout(() => { 
+                    i.classList.add('hidden'); 
+                    s.classList.remove('hidden'); 
+                }, 3000); 
+            } 
+        });
+
+        // --- INITIALIZATION ---
+        (async () => { 
+            const data = await req('/api/threads'); 
+            if (!data.error) { 
+                document.getElementById('login-view').classList.add('hidden'); 
+                loadThreads(); 
+                
+                const adminStats = await req('/api/admin/stats'); 
+                // If user is admin, show admin button
+                if (!adminStats.error) {
+                    document.getElementById('nav-admin').classList.remove('hidden'); 
+                }
+            } 
+        })();
+    </script>
+</body>
+</html>
