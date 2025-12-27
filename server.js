@@ -1,6 +1,6 @@
 /**
  * =================================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER (v9.0 - FINAL RESTORED)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER (v9.3)
  * =================================================================================================
  * * SYSTEM ARCHITECTURE:
  * --------------------
@@ -9,7 +9,7 @@
  * 3.  MongoDB Database (Persistent Data Storage)
  * 4.  Socket.io (Real-Time Bidirectional Event Communication)
  * 5.  Local Disk Storage (Permanent Transcript Archiving)
- * * FEATURE MANIFEST:
+ * * * FEATURE MANIFEST:
  * -----------------
  * [AUTH]      Secure Session Management (Connect-Mongo)
  * [AUTH]      Bcrypt Password Hashing
@@ -30,16 +30,21 @@
  * [ADMIN]     Global Broadcast System
  * [ADMIN]     Manual Ticket Opening (DM by ID)
  * [ADMIN]     Dynamic FAQ Editor
+ * [ADMIN]     Dynamic Schedule Configuration (Open/Close Times)
  * * [AUTO]      Automatic Welcome DMs
  * [AUTO]      License Activation DMs
  * [AUTO]      3-Day Expiration Warning DMs (Hourly Check)
- * * =================================================================================================
+ * =================================================================================================
  */
 
-// 1. CONFIGURATION LOADING
+// =================================================================================================
+//  SECTION 1: CONFIGURATION & IMPORTS
+// =================================================================================================
+
+// 1. Load Environment Variables
 require('dotenv').config();
 
-// 2. MODULE IMPORTS
+// 2. Import Core Modules
 const axios = require('axios');
 const express = require('express');
 const http = require('http');
@@ -50,6 +55,8 @@ const MongoStore = require('connect-mongo');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
+
+// 3. Import Discord.js Components
 const { 
     Client, 
     GatewayIntentBits, 
@@ -62,23 +69,23 @@ const {
     ButtonStyle 
 } = require('discord.js');
 
-// 3. SERVER INITIALIZATION
+// 4. Initialize Express App
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 
 // =================================================================================================
-//  SECTION: FILE SYSTEM & STORAGE SETUP
+//  SECTION 2: FILE SYSTEM & STORAGE CONFIGURATION
 // =================================================================================================
 
 console.log("[SYSTEM] 📂 Initializing File System...");
 
 let DATA_DIR;
 
-// Detect Environment (Render.com vs Local)
+// Detect Environment (Render.com vs Local Development)
 if (process.env.RENDER === 'true') {
-    console.log("[SYSTEM] ☁️ Detected Render Environment. Using /var/data");
+    console.log("[SYSTEM] ☁️ Detected Render Environment. Using Persistent Disk at /var/data");
     DATA_DIR = '/var/data';
 } else {
     console.log("[SYSTEM] 💻 Detected Local Environment. Using ./local_storage");
@@ -90,8 +97,10 @@ if (!fs.existsSync(DATA_DIR)) {
     console.log(`[SYSTEM] 📂 Creating Data Directory at: ${DATA_DIR}`);
     try {
         fs.mkdirSync(DATA_DIR, { recursive: true });
+        console.log(`[SYSTEM] ✅ Data Directory Created Successfully.`);
     } catch (err) {
         console.error(`[SYSTEM] ❌ CRITICAL: Failed to create Data Directory: ${err.message}`);
+        console.error(`[SYSTEM] ❌ Please ensure the process has write permissions.`);
         process.exit(1); // Exit if we can't save data
     }
 }
@@ -102,19 +111,20 @@ if (!fs.existsSync(ARCHIVE_DIR)) {
     console.log(`[SYSTEM] 📂 Creating Archive Directory at: ${ARCHIVE_DIR}`);
     try {
         fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
+        console.log(`[SYSTEM] ✅ Archive Directory Created Successfully.`);
     } catch (err) {
         console.error(`[SYSTEM] ❌ CRITICAL: Failed to create Archive Directory: ${err.message}`);
     }
 }
 
-console.log(`[SYSTEM] ✅ Storage System Active.`);
+console.log(`[SYSTEM] ✅ Storage System Active and Ready.`);
 
 
 // =================================================================================================
-//  SECTION: DATABASE CONNECTION
+//  SECTION 3: DATABASE CONNECTION
 // =================================================================================================
 
-console.log("[SYSTEM] ⏳ Connecting to MongoDB...");
+console.log("[SYSTEM] ⏳ Connecting to MongoDB Database...");
 
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
@@ -130,7 +140,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 
 // =================================================================================================
-//  SECTION: DATABASE SCHEMAS (MODELS)
+//  SECTION 4: DATABASE SCHEMAS (MODELS)
 // =================================================================================================
 
 /**
@@ -193,13 +203,15 @@ const LicenseSchema = new mongoose.Schema({
 const License = mongoose.model('License', LicenseSchema);
 
 /**
- * 4. CONFIG SCHEMA
- * Stores global settings like the Support Online/Offline toggle.
+ * 4. CONFIG SCHEMA (UPDATED v9.2)
+ * Stores global settings and Dynamic Schedule times.
  */
 const ConfigSchema = new mongoose.Schema({
     id: { type: String, default: 'global' },
-    supportOnline: { type: Boolean, default: true },
-    offlineNote: { type: String, default: '' }
+    supportOnline: { type: Boolean, default: true }, // Master Toggle
+    offlineNote: { type: String, default: '' },
+    openTime: { type: String, default: "08:00" }, // 24-hour format
+    closeTime: { type: String, default: "23:59" }  // 24-hour format
 });
 const Config = mongoose.model('Config', ConfigSchema);
 
@@ -238,7 +250,7 @@ const FAQ = mongoose.model('FAQ', FAQSchema);
 
 
 // =================================================================================================
-//  SECTION: HELPER FUNCTIONS & UTILITIES
+//  SECTION 5: HELPER FUNCTIONS & UTILITIES
 // =================================================================================================
 
 /**
@@ -305,7 +317,13 @@ async function initializeSystemDefaults() {
 
         const configExists = await Config.findOne({ id: 'global' });
         if (!configExists) {
-            await new Config({ id: 'global', supportOnline: true }).save();
+            // New defaults: Online, 08:00 to 23:59
+            await new Config({ 
+                id: 'global', 
+                supportOnline: true, 
+                openTime: "08:00", 
+                closeTime: "23:59" 
+            }).save();
             console.log("[SYSTEM] ✅ Default Global Configuration Created");
         }
     } catch (err) {
@@ -331,7 +349,7 @@ async function performDatabaseRepair() {
 
 
 // =================================================================================================
-//  SECTION: EXPRESS CONFIGURATION & MIDDLEWARE
+//  SECTION 6: EXPRESS CONFIGURATION & MIDDLEWARE
 // =================================================================================================
 
 // Trust Proxy (Required for Render/Nginx/Cloudflare)
@@ -399,7 +417,7 @@ app.use('/staff', isAuth, express.static(path.join(__dirname, 'public/staff')));
 
 
 // =================================================================================================
-//  SECTION: DISCORD BOT FLEET MANAGEMENT
+//  SECTION 7: DISCORD BOT FLEET MANAGEMENT
 // =================================================================================================
 
 const botTokens = [
@@ -525,29 +543,36 @@ botTokens.forEach((token, index) => {
                 messages: [] 
             });
             
-            // Fetch Global Config for Online/Offline check
+            // --- DYNAMIC SCHEDULE LOGIC START ---
             const config = await Config.findOne({ id: 'global' });
+            
+            // 1. Get Settings
             const isManualOnline = config ? config.supportOnline : true;
             const offlineNote = config ? config.offlineNote : '';
+            const openTimeStr = config ? config.openTime : "08:00";
+            const closeTimeStr = config ? config.closeTime : "23:59";
 
-            // Check Timezone (AST - Halifax)
+            // 2. Calculate Time (AST)
             const now = new Date();
             const options = { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' };
             const formatter = new Intl.DateTimeFormat('en-US', options);
             const parts = formatter.formatToParts(now);
-            const hour = parseInt(parts.find(p => p.type === 'hour').value);
-            const minute = parseInt(parts.find(p => p.type === 'minute').value);
-            
-            // Calculate total minutes to check range 8:00 AM to 11:59 PM
-            const currentTotalMinutes = (hour * 60) + minute;
-            const startTotal = 8 * 60; // 480 mins
-            const endTotal = 23 * 60 + 59; // 1439 mins
-            const isWorkHours = currentTotalMinutes >= startTotal && currentTotalMinutes <= endTotal;
+            const currentHour = parseInt(parts.find(p => p.type === 'hour').value);
+            const currentMinute = parseInt(parts.find(p => p.type === 'minute').value);
+            const currentTotal = (currentHour * 60) + currentMinute;
 
+            // 3. Parse Config Times
+            const [openH, openM] = openTimeStr.split(':').map(Number);
+            const [closeH, closeM] = closeTimeStr.split(':').map(Number);
+            const startTotal = (openH * 60) + openM;
+            const endTotal = (closeH * 60) + closeM;
+
+            // 4. Determine Status
+            const isWorkHours = currentTotal >= startTotal && currentTotal <= endTotal;
             let autoReplyEmbed;
 
             if (!isManualOnline) {
-                // Admin toggled offline
+                // Priority 1: Manual "Closed for Day" Override
                 console.log(`[TICKET] ⚠️ Auto-Reply: Offline Mode Active`);
                 const noteText = offlineNote ? `**Reason:** ${offlineNote}\n\n` : '';
                 autoReplyEmbed = new EmbedBuilder()
@@ -556,22 +581,23 @@ botTokens.forEach((token, index) => {
                     .setDescription(`Support has been toggled offline by staff.\n\n${noteText}Your message has been logged, but response times will be delayed.`)
                     .setTimestamp();
             } else if (!isWorkHours) {
-                // Outside business hours
-                console.log(`[TICKET] ⚠️ Auto-Reply: Outside Business Hours`);
+                // Priority 2: Outside Schedule
+                console.log(`[TICKET] ⚠️ Auto-Reply: Closed (Schedule)`);
                 autoReplyEmbed = new EmbedBuilder()
                     .setColor('#f59e0b')
                     .setTitle('Support Closed')
-                    .setDescription('You have reached us outside of support hours (8:00 AM - 11:59 PM AST). A staff member will review your ticket when we open.')
+                    .setDescription(`You have reached us outside of support hours.\n\n**Open:** ${openTimeStr} AST\n**Close:** ${closeTimeStr} AST\n\nA staff member will review your ticket when we open.`)
                     .setTimestamp();
             } else {
-                // Standard online response
-                console.log(`[TICKET] ✅ Auto-Reply: Online Mode`);
+                // Priority 3: Online
+                console.log(`[TICKET] ✅ Auto-Reply: Online`);
                 autoReplyEmbed = new EmbedBuilder()
                     .setColor('#3b82f6')
                     .setTitle('Support Ticket Opened')
                     .setDescription('A staff member will respond to your inquiry within **12-24 hours**. Please hold tight.')
                     .setTimestamp();
             }
+            // --- DYNAMIC SCHEDULE LOGIC END ---
             
             try { 
                 await message.author.send({ embeds: [autoReplyEmbed] }).catch(() => {}); 
@@ -615,7 +641,7 @@ botTokens.forEach((token, index) => {
 
 
 // =================================================================================================
-//  SECTION: SOCKET.IO (REAL-TIME COMMUNICATION)
+//  SECTION 8: SOCKET.IO (REAL-TIME COMMUNICATION)
 // =================================================================================================
 
 const activeViewers = {}; 
@@ -687,7 +713,7 @@ io.on('connection', (socket) => {
 
 
 // =================================================================================================
-//  SECTION: API ROUTES - AUTHENTICATION
+//  SECTION 9: API ROUTES - AUTHENTICATION
 // =================================================================================================
 
 /**
@@ -802,7 +828,7 @@ app.post('/api/staff/change-password', isAuth, async (req, res) => {
 
 
 // =================================================================================================
-//  SECTION: API ROUTES - TICKET OPERATIONS
+//  SECTION 10: API ROUTES - TICKET OPERATIONS
 // =================================================================================================
 
 /**
@@ -965,7 +991,7 @@ app.post('/api/close-thread', isAuth, async (req, res) => {
 
 
 // =================================================================================================
-//  SECTION: API ROUTES - CRM & NOTES
+//  SECTION 11: API ROUTES - CRM & NOTES
 // =================================================================================================
 
 /**
@@ -1040,7 +1066,7 @@ app.post('/api/crm/note', isAuth, async (req, res) => {
 
 
 // =================================================================================================
-//  SECTION: API ROUTES - ADMIN MANAGEMENT
+//  SECTION 12: API ROUTES - ADMIN MANAGEMENT
 // =================================================================================================
 
 /**
@@ -1052,18 +1078,37 @@ app.get('/api/admin/stats', isAdmin, async (req, res) => {
 });
 
 /**
- * ADMIN CONFIG TOGGLE
+ * ADMIN CONFIG FETCH
+ */
+app.get('/api/admin/config', isAdmin, async (req, res) => { 
+    const config = await Config.findOne({ id: 'global' }); 
+    res.json(config); 
+});
+
+/**
+ * ADMIN CONFIG UPDATE (TOGGLE & SCHEDULE)
  */
 app.post('/api/admin/config/toggle', isAdmin, async (req, res) => { 
-    const { note } = req.body;
+    const { status, note, openTime, closeTime } = req.body;
     
     const config = await Config.findOne({ id: 'global' }); 
-    config.supportOnline = !config.supportOnline; 
-    config.offlineNote = config.supportOnline ? '' : (note || ''); 
+    
+    // Update Master Toggle
+    if (status !== undefined) config.supportOnline = status;
+    
+    // Update Offline Note
+    if (note !== undefined) config.offlineNote = note;
+    
+    // Update Schedule Times (Open)
+    if (openTime !== undefined) config.openTime = openTime;
+    
+    // Update Schedule Times (Close)
+    if (closeTime !== undefined) config.closeTime = closeTime;
+    
     await config.save(); 
     
-    console.log(`[CONFIG] ⚙️ Support Status Toggled: ${config.supportOnline}`);
-    res.json({ success: true, supportOnline: config.supportOnline }); 
+    console.log(`[CONFIG] ⚙️ Updated Config: Online=${config.supportOnline}, Open=${config.openTime}, Close=${config.closeTime}`);
+    res.json({ success: true, config }); 
 });
 
 /**
@@ -1174,7 +1219,7 @@ app.post('/api/admin/staff/add', isAdmin, async (req, res) => {
 });
 
 /**
- * NEW: ADMIN FORCE RESET PASSWORD
+ * ADMIN FORCE RESET PASSWORD
  * Generates strict password, saves to DB, and DMs the user.
  */
 app.post('/api/admin/staff/reset', isAdmin, async (req, res) => {
@@ -1297,7 +1342,7 @@ app.post('/api/admin/faq/delete', isAdmin, async (req, res) => {
 
 
 // =================================================================================================
-//  SECTION: LICENSE MANAGEMENT (SELL.APP INTEGRATION)
+//  SECTION 13: LICENSE MANAGEMENT (SELL.APP INTEGRATION)
 // =================================================================================================
 
 /**
@@ -1371,7 +1416,7 @@ app.post('/api/admin/license/activate', isAdmin, async (req, res) => {
 });
 
 // =================================================================================================
-//  SECTION: AUTOMATED TASKS (CRON)
+//  SECTION 14: AUTOMATED TASKS (CRON)
 // =================================================================================================
 
 /**
@@ -1421,7 +1466,7 @@ setInterval(checkExpirations, 3600000);
 
 
 // =================================================================================================
-//  SECTION: BOOTSTRAP
+//  SECTION 15: BOOTSTRAP
 // =================================================================================================
 
 const PORT = process.env.PORT || 10000;
