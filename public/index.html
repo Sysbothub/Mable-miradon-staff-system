@@ -25,6 +25,7 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
         .hidden { display: none !important; }
+        
         @media (max-width: 768px) { 
             .glass { border-radius: 0; border-left: 0; border-right: 0; } 
         }
@@ -37,9 +38,13 @@
     <div id="login-view" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
         <div class="glass p-8 rounded-2xl w-[90%] max-w-sm text-center border border-slate-800">
             <h1 class="text-3xl font-black text-blue-500 mb-8 italic tracking-tighter">HQ TERMINAL</h1>
+            
             <input type="text" id="l-user" placeholder="IDENTIFIER" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-4 outline-none text-sm text-center transition focus:border-blue-500 text-white">
+            
             <input type="password" id="l-pass" placeholder="SECURITY KEY" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-6 outline-none text-sm text-center transition focus:border-blue-500 text-white">
+            
             <button id="login-btn" onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl font-bold uppercase text-sm tracking-widest shadow-lg shadow-blue-900/20">Establish Link</button>
+            
             <button onclick="requestRecovery()" class="text-xs text-slate-500 mt-4 hover:text-white uppercase font-bold">Lost Key? Recover via Discord</button>
         </div>
     </div>
@@ -65,6 +70,7 @@
             </aside>
             
             <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 w-full h-full absolute md:static inset-0 z-30">
+                
                 <div class="h-14 glass border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
                     <div class="flex items-center">
                         <button onclick="closeChatMobile()" class="md:hidden mr-4 text-slate-400 hover:text-white p-2 -ml-2">←</button>
@@ -76,7 +82,9 @@
                     </div>
                     <div class="flex space-x-2 items-center">
                         <button id="btn-claim" onclick="toggleClaim()" class="hidden text-[10px] font-bold uppercase px-3 py-1.5 rounded border transition"></button>
+                        
                         <button onclick="toggleCRM()" class="md:hidden p-2 text-slate-400 hover:text-yellow-400 font-bold border border-slate-700 rounded px-3">CRM</button>
+                        
                         <button onclick="closeTicket()" class="text-[10px] bg-red-600/10 text-red-500 border border-red-600/50 px-3 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold">Archive</button>
                     </div>
                 </div>
@@ -86,11 +94,12 @@
                 </div>
 
                 <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-slate-950/50"></div>
-                
+
                 <div class="p-3 md:p-4 glass border-t border-slate-800 shrink-0 pb-safe">
                     <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached
                     </div>
+                    
                     <form onsubmit="sendReply(event)" class="flex space-x-2 items-end">
                         <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
                         
@@ -156,6 +165,7 @@
                             <div id="lic-result" class="hidden text-[10px] font-mono p-2 bg-slate-900 rounded border border-slate-800 text-center text-white"></div>
                         </div>
                     </div>
+
                     <div class="glass p-5 rounded-2xl border border-amber-500/20">
                         <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Staff Roster</h2>
                         <div class="h-40 overflow-y-auto mb-4 space-y-2 pr-2" id="staff-stats"></div>
@@ -180,6 +190,7 @@
                         </div>
                         <div id="admin-macro-list" class="grid grid-cols-2 gap-2"></div>
                     </div>
+
                     <div class="glass p-5 rounded-2xl border border-blue-500/20">
                         <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-blue-500/10 pb-2">Manual Ticket Opening</h2>
                         <input type="text" id="dm-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white mb-2">
@@ -195,7 +206,9 @@
                             <input type="text" id="bulk-msg" placeholder="Global Broadcast Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white mb-2">
                             <button onclick="sendBulk()" class="w-full bg-red-600 hover:bg-red-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Execute Global Broadcast</button>
                         </div>
-                        <div id="srv-list" class="space-y-2 max-h-48 overflow-y-auto">Loading Servers...</div>
+                        <div id="srv-list" class="space-y-2 max-h-48 overflow-y-auto">
+                            Loading Servers...
+                        </div>
                     </div>
                 </div>
 
@@ -216,6 +229,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io(); 
+        
         let activeId = null; 
         let activeUserId = null; 
         let currentUser = "Staff"; 
@@ -224,19 +238,28 @@
         let selectedFile = null; 
         let typingTimeout = null;
 
+        // --- HTTP HELPER FUNCTION ---
         async function req(url, method = 'GET', body = null) { 
-            const res = await fetch(url, { 
-                method, 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: body ? JSON.stringify(body) : null 
-            }); 
-            if (res.status === 401 && !url.includes('/api/login')) { 
-                document.getElementById('login-view').classList.remove('hidden'); 
-                return { error: 'Unauthorized' }; 
-            } 
-            return res.json(); 
+            try {
+                const res = await fetch(url, { 
+                    method, 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: body ? JSON.stringify(body) : null 
+                }); 
+                
+                if (res.status === 401 && !url.includes('/api/login')) { 
+                    document.getElementById('login-view').classList.remove('hidden'); 
+                    return { error: 'Unauthorized' }; 
+                } 
+                
+                return await res.json();
+            } catch (e) {
+                console.error("Request Failed:", e);
+                return { error: "Network Error" };
+            }
         }
 
+        // --- AUTH & STARTUP ---
         async function identifyUser() { 
             const res = await req('/api/auth/user'); 
             if(res.username) { 
@@ -244,13 +267,15 @@
                 isUserAdmin = res.isAdmin; 
             } 
         } 
+        
+        // Start identification immediately
         identifyUser();
         
-        // --- AUTH ---
         async function doLogin() { 
             const btn = document.getElementById('login-btn'); 
             btn.innerText = "LINKING..."; 
             btn.disabled = true; 
+            
             const res = await fetch('/api/login', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
@@ -259,28 +284,44 @@
                     password: document.getElementById('l-pass').value 
                 }) 
             }); 
-            if (res.ok) { window.location.reload(); } 
-            else { alert("ACCESS DENIED"); btn.innerText = "Establish Link"; btn.disabled = false; } 
-        }
-
-        async function doLogout() { 
-            if(await (await fetch('/api/logout', { method: 'POST' })).ok) window.location.reload(); 
-        }
-
-        async function requestRecovery() { 
-            const user = prompt("Enter your Discord ID:"); 
-            if(user) { 
-                await req('/api/public/request-reset', 'POST', { discordId: user }); 
-                alert("Check DMs."); 
+            
+            if (res.ok) { 
+                window.location.reload(); 
+            } else { 
+                alert("ACCESS DENIED"); 
+                btn.innerText = "Establish Link"; 
+                btn.disabled = false; 
             } 
         }
 
-        // --- NAVIGATION ---
+        async function doLogout() { 
+            const res = await fetch('/api/logout', { method: 'POST' });
+            if (res.ok) {
+                window.location.reload(); 
+            }
+        }
+
+        async function requestRecovery() { 
+            const user = prompt("Enter your Discord ID to receive a new key:"); 
+            if (user) { 
+                await req('/api/public/request-reset', 'POST', { discordId: user }); 
+                alert("Check your DMs."); 
+            } 
+        }
+
+        // --- NAVIGATION & UI TOGGLES ---
         function showView(v) { 
             document.getElementById('view-chat').classList.toggle('hidden', v !== 'chat'); 
             document.getElementById('view-admin').classList.toggle('hidden', v !== 'admin'); 
-            if(v === 'chat' && window.innerWidth < 768) closeChatMobile(); 
-            if(v === 'admin') { loadAdminData(); loadAdminMacros(); } 
+            
+            if (v === 'chat' && window.innerWidth < 768) {
+                closeChatMobile(); 
+            }
+            
+            if (v === 'admin') { 
+                loadAdminData(); 
+                loadAdminMacros(); 
+            } 
         }
 
         function closeChatMobile() { 
@@ -299,21 +340,24 @@
         function toggleCRM() { 
             const p = document.getElementById('crm-panel'); 
             const o = document.getElementById('crm-overlay'); 
-            if(p.classList.contains('hidden') || p.classList.contains('translate-x-full')) { 
+            
+            if (p.classList.contains('hidden') || p.classList.contains('translate-x-full')) { 
                 p.classList.remove('hidden', 'translate-x-full'); 
                 p.classList.add('translate-x-0'); 
                 o.classList.remove('hidden'); 
             } else { 
                 p.classList.add('translate-x-full'); 
-                setTimeout(() => { if(window.innerWidth < 768) p.classList.add('hidden'); }, 300); 
+                setTimeout(() => { 
+                    if(window.innerWidth < 768) p.classList.add('hidden'); 
+                }, 300); 
                 o.classList.add('hidden'); 
             } 
         }
 
-        // --- CORE CHAT ---
+        // --- CORE CHAT LOGIC ---
         async function loadThreads() {
             const data = await req('/api/threads'); 
-            if(!data || data.error) return;
+            if (!data || data.error) return;
             
             const list = document.getElementById('thread-container'); 
             list.innerHTML = data.length === 0 ? '<div class="text-center text-slate-600 text-[10px] mt-10">NO ACTIVE SIGNALS</div>' : '';
@@ -342,13 +386,16 @@
                         <span class="text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded uppercase">${t.botName}</span>
                     </div>
                 `;
+                
                 d.onclick = () => { 
+                    console.log('Clicked Thread:', t._id); // Debug Log
                     activeId = t._id; 
                     activeUserId = t.userId; 
                     renderChat(); 
                     loadCRM(t.userId); 
                     if(window.innerWidth < 768) openChatMobile(); 
                 };
+                
                 list.appendChild(d);
             });
         }
@@ -363,9 +410,10 @@
             
             document.getElementById('active-tag').innerHTML = `${cur.userTag} <span class="text-slate-600 text-[10px] ml-2 font-mono select-all">${uid}</span>`;
             
+            // Execute Safe Claim UI Update
             updateClaimUI(cur);
             
-            // Safety check for messages
+            // Render Messages
             if (cur.messages && Array.isArray(cur.messages)) {
                 cur.messages.forEach(m => {
                     const d = document.createElement('div'); 
@@ -389,6 +437,7 @@
                     box.appendChild(d);
                 });
             }
+            
             box.scrollTop = box.scrollHeight;
         }
 
@@ -405,6 +454,7 @@
         async function sendReply(event) { 
             event.preventDefault(); 
             const input = document.getElementById('msg-input'); 
+            
             if (!activeId) return; 
             
             await req('/api/reply', 'POST', { 
@@ -420,7 +470,7 @@
         }
 
         async function closeTicket() { 
-            if (activeId && confirm("Archive?")) { 
+            if (activeId && confirm("Archive and close this session?")) { 
                 await req('/api/close-thread', 'POST', { threadId: activeId }); 
                 activeId = null; 
                 loadThreads(); 
@@ -429,60 +479,82 @@
             } 
         }
 
-        // --- CLAIM UI ---
+        // --- FAIL-SAFE CLAIMING UI ---
         function updateClaimUI(t) {
             const btn = document.getElementById('btn-claim'); 
             const overlay = document.getElementById('lock-overlay');
-            if(!btn || !overlay) return;
+            
+            if (!btn || !overlay) {
+                console.error("UI Elements missing for Claim System");
+                return;
+            }
             
             btn.classList.remove('hidden');
-            const claimedBy = t.claimedBy || null;
             
-            if(!claimedBy) { 
+            // Explicit check for undefined/null to handle old tickets
+            const claimedBy = (t.claimedBy === undefined || t.claimedBy === null) ? null : t.claimedBy;
+            
+            if (!claimedBy) { 
+                // Unlocked State
                 btn.innerText = "CLAIM"; 
                 btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-green-500/50 text-green-500 hover:bg-green-900/20 transition"; 
                 enableInputs(true); 
             }
-            else if(claimedBy === currentUser) { 
+            else if (claimedBy === currentUser) { 
+                // Claimed by Me
                 btn.innerText = "UNCLAIM"; 
                 btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-yellow-500/50 text-yellow-500 hover:bg-yellow-900/20 transition"; 
                 enableInputs(true); 
             }
             else { 
-                btn.innerText = isUserAdmin ? "OVERRIDE" : `LOCKED: ${claimedBy}`; 
-                btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-red-500/50 text-red-500 cursor-not-allowed"; 
+                // Locked by Someone Else
+                btn.innerText = isUserAdmin ? `OVERRIDE (${claimedBy})` : `LOCKED: ${claimedBy}`; 
+                btn.className = isUserAdmin 
+                    ? "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-red-500/50 text-red-500 hover:bg-red-900/20 transition"
+                    : "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-red-500/50 text-red-500 cursor-not-allowed"; 
+                
+                // If admin, allow override. If not, lock inputs.
                 enableInputs(isUserAdmin); 
                 overlay.classList.toggle('hidden', isUserAdmin); 
             }
         }
 
         function enableInputs(enable) { 
-            const ids = ['msg-input','btn-send','btn-macro','btn-add-file']; 
+            const ids = ['msg-input', 'btn-send', 'btn-macro', 'btn-add-file']; 
             ids.forEach(id => { 
                 const el = document.getElementById(id); 
                 if(el) el.disabled = !enable; 
             }); 
+            
             const overlay = document.getElementById('lock-overlay'); 
             if(overlay) overlay.classList.toggle('hidden', enable); 
         }
 
         async function toggleClaim() { 
-            if(!activeId) return; 
+            if (!activeId) return; 
             const t = threadStore[activeId]; 
-            if(t.claimedBy === currentUser) await req('/api/unclaim', 'POST', { threadId: activeId }); 
-            else await req('/api/claim', 'POST', { threadId: activeId }); 
+            
+            if (t.claimedBy === currentUser) {
+                await req('/api/unclaim', 'POST', { threadId: activeId }); 
+            } else {
+                await req('/api/claim', 'POST', { threadId: activeId }); 
+            }
         }
 
         function notifyTyping() { 
-            if(activeId) socket.emit('staff_typing', { threadId: activeId }); 
+            if (activeId) {
+                socket.emit('staff_typing', { threadId: activeId }); 
+            }
         }
 
-        // --- MACROS & CRM ---
+        // --- MACROS & CRM LOGIC ---
         async function toggleMacros() { 
             const menu = document.getElementById('macro-menu'); 
-            if(menu.classList.contains('hidden')) { 
+            
+            if (menu.classList.contains('hidden')) { 
                 menu.classList.remove('hidden'); 
                 const res = await req('/api/macros'); 
+                
                 document.getElementById('macro-list').innerHTML = res.map(m => `
                     <button onclick="insertMacro('${m.content.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-2 text-[10px] hover:bg-slate-800 border-b border-slate-800 text-slate-300 truncate">
                         ${m.title}
@@ -495,10 +567,14 @@
 
         function insertMacro(text) { 
             const input = document.getElementById('msg-input'); 
+            // Auto-Fill User Name
             const smartText = text.replace(/{user}/gi, currentUser); 
+            
+            // Insert at Cursor Position
             const start = input.selectionStart; 
             const end = input.selectionEnd; 
             input.value = input.value.substring(0, start) + smartText + input.value.substring(end); 
+            
             document.getElementById('macro-menu').classList.add('hidden'); 
             input.focus(); 
             input.selectionStart = input.selectionEnd = start + smartText.length; 
@@ -515,10 +591,10 @@
         }
 
         async function addMacro() { 
-            if(await (await req('/api/admin/macros/add', 'POST', { 
-                title: document.getElementById('macro-title').value, 
-                content: document.getElementById('macro-content').value 
-            })).success) { 
+            const title = document.getElementById('macro-title').value;
+            const content = document.getElementById('macro-content').value;
+            
+            if (await (await req('/api/admin/macros/add', 'POST', { title, content })).success) { 
                 document.getElementById('macro-title').value = ''; 
                 document.getElementById('macro-content').value = ''; 
                 loadAdminMacros(); 
@@ -526,7 +602,7 @@
         }
 
         async function deleteMacro(id) { 
-            if(confirm("Delete?")) { 
+            if (confirm("Delete Macro?")) { 
                 await req('/api/admin/macros/delete', 'POST', { id }); 
                 loadAdminMacros(); 
             } 
@@ -534,12 +610,14 @@
         
         async function loadCRM(userId) { 
             document.getElementById('crm-history').innerHTML = '...'; 
+            
             const res = await req(`/api/crm/user/${userId}`); 
             document.getElementById('crm-note').value = res.note || ""; 
+            
             const h = document.getElementById('crm-history'); 
             h.innerHTML = ''; 
             
-            if(!res.history || res.history.length === 0) {
+            if (!res.history || res.history.length === 0) {
                 h.innerHTML = '<div class="text-[10px] text-slate-600 italic border border-slate-800 rounded p-2 text-center">No Archives</div>';
             } else {
                 res.history.forEach(f => { 
@@ -559,8 +637,12 @@
         }
 
         async function saveNote() { 
-            if(activeUserId) { 
-                await req('/api/crm/note', 'POST', { userId: activeUserId, note: document.getElementById('crm-note').value }); 
+            if (activeUserId) { 
+                await req('/api/crm/note', 'POST', { 
+                    userId: activeUserId, 
+                    note: document.getElementById('crm-note').value 
+                }); 
+                
                 const s = document.getElementById('note-status'); 
                 s.classList.remove('hidden'); 
                 setTimeout(()=>s.classList.add('hidden'), 2000); 
@@ -573,7 +655,10 @@
             c.innerHTML = 'Reading...'; 
             
             const res = await req(`/api/crm/transcript/${userId}/${filename}`); 
-            if(res.error) { c.innerText = "Error"; return; } 
+            if (res.error) { 
+                c.innerText = "Error reading transcript file."; 
+                return; 
+            } 
             
             c.innerHTML = ''; 
             res.messages.forEach(m => { 
@@ -590,10 +675,11 @@
             }); 
         }
 
-        // --- ADMIN ---
+        // --- ADMIN FUNCTIONS ---
         async function loadAdminData() { 
+            // 1. Staff Statistics
             const stats = await req('/api/admin/stats'); 
-            if(!stats.error) {
+            if (!stats.error) {
                 document.getElementById('staff-stats').innerHTML = stats.map(s => { 
                     const avg = s.ratingCount > 0 ? (s.ratingSum / s.ratingCount).toFixed(1) : "N/A"; 
                     return `
@@ -611,13 +697,13 @@
                 }).join(''); 
             }
             
-            // Server List (Bot Fleet)
+            // 2. Server List (With Bot Name)
             const srvs = await req('/api/admin/servers');
             document.getElementById('srv-list').innerHTML = srvs.map(s => `
                 <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded text-xs border border-slate-800">
                     <div class="flex flex-col">
                         <span class="font-bold text-slate-300">${s.name}</span>
-                        <span class="text-[9px] text-slate-500">${s.members} members</span>
+                        <span class="text-[9px] text-slate-500">${s.members} Mem | <span class="text-blue-400">🤖 ${s.botName}</span></span>
                     </div>
                     <div class="flex space-x-1">
                         <button onclick="createInv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded text-[9px]">LINK</button>
@@ -650,7 +736,7 @@
             const resBox = document.getElementById('lic-result'); 
             resBox.classList.remove('hidden'); 
             
-            if(res.success) { 
+            if (res.success) { 
                 resBox.innerHTML = `<span class="text-green-400">SUCCESS</span> ID: ${res.data.id}`; 
                 resBox.className = "text-[10px] font-mono p-2 bg-green-900/20 rounded border border-green-500/20 text-center text-green-200 mt-2 block"; 
             } else { 
@@ -660,18 +746,18 @@
         }
 
         async function addStaff() { 
-            if(await (await req('/api/admin/staff/add', 'POST', { 
+            if (await (await req('/api/admin/staff/add', 'POST', { 
                 username: document.getElementById('add-user').value, 
                 discordId: document.getElementById('add-discord').value, 
                 adminStatus: document.getElementById('add-is-admin').checked 
             })).success) { 
-                alert("Added"); 
+                alert("Staff Added"); 
                 loadAdminData(); 
             } 
         }
 
         async function deleteStaff(id) { 
-            if(confirm("Remove?")) { 
+            if (confirm("Revoke Staff Access?")) { 
                 await req('/api/admin/staff/delete', 'POST', { staffId: id }); 
                 loadAdminData(); 
             } 
@@ -683,51 +769,57 @@
         }
         
         async function leaveSrv(serverId, botId) { 
-            if (confirm("Disconnect Bot?")) { 
+            if (confirm("Disconnect Bot from this server?")) { 
                 await req('/api/admin/leave-server', 'POST', { serverId, botId }); 
                 loadAdminData(); 
             } 
         }
         
         async function dmOwner(serverId, botId) { 
-            const message = prompt("Owner Message:"); 
+            const message = prompt("Message to Server Owner:"); 
             if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); 
         }
         
         async function sendBulk() { 
             const message = document.getElementById('bulk-msg').value; 
-            if (message && confirm("Broadcast?")) { 
+            if (message && confirm("Confirm GLOBAL Broadcast to ALL server owners?")) { 
                 const res = await req('/api/admin/bulk-message', 'POST', { message }); 
-                alert(`Sent to ${res.sentTo} owners.`); 
+                alert(`Broadcast sent to ${res.sentTo} owners.`); 
             } 
         }
         
         async function sendManualDM() { 
-            if(await (await req('/api/admin/manual-dm', 'POST', { 
+            if (await (await req('/api/admin/manual-dm', 'POST', { 
                 discordId: document.getElementById('dm-id').value, 
                 content: document.getElementById('dm-content').value 
             })).success) { 
-                alert("Sent"); 
+                alert("Message Sent & Ticket Opened"); 
                 document.getElementById('dm-content').value = ''; 
             } 
         }
 
-        // --- SOCKET HANDLERS ---
+        // --- SOCKET EVENT HANDLERS ---
         socket.on('new_message', (d) => { 
             if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); 
+            
             if (threadStore[d.threadId]) { 
                 threadStore[d.threadId].messages.push(d); 
+                
+                // If viewing this thread, render msg
                 if (activeId === d.threadId) renderChat(); 
+                
+                // Update list timestamp
                 loadThreads(); 
             } else {
+                // New thread entirely
                 loadThreads(); 
             }
         });
 
         socket.on('thread_update', (d) => { 
-            if(threadStore[d.threadId]) { 
+            if (threadStore[d.threadId]) { 
                 threadStore[d.threadId].claimedBy = d.claimedBy; 
-                if(activeId === d.threadId) updateClaimUI(threadStore[d.threadId]); 
+                if (activeId === d.threadId) updateClaimUI(threadStore[d.threadId]); 
             } 
         });
 
@@ -735,8 +827,10 @@
             if (activeUserId && activeUserId === d.userId) { 
                 const i = document.getElementById('typing-indicator'); 
                 const s = document.getElementById('status-sub'); 
+                
                 i.classList.remove('hidden'); 
                 s.classList.add('hidden'); 
+                
                 clearTimeout(typingTimeout); 
                 typingTimeout = setTimeout(() => { 
                     i.classList.add('hidden'); 
@@ -745,14 +839,17 @@
             } 
         });
 
-        // --- INIT ---
+        // --- INITIALIZATION ---
         (async () => { 
             const data = await req('/api/threads'); 
-            if(!data.error) { 
+            if (!data.error) { 
                 document.getElementById('login-view').classList.add('hidden'); 
                 loadThreads(); 
+                
                 const adminStats = await req('/api/admin/stats'); 
-                if (!adminStats.error) document.getElementById('nav-admin').classList.remove('hidden'); 
+                if (!adminStats.error) {
+                    document.getElementById('nav-admin').classList.remove('hidden'); 
+                }
             } 
         })();
     </script>
