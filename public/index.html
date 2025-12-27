@@ -12,10 +12,7 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
         .hidden { display: none !important; }
-        /* Mobile Tweaks */
-        @media (max-width: 768px) { 
-            .glass { border-radius: 0; border-left: 0; border-right: 0; } 
-        }
+        @media (max-width: 768px) { .glass { border-radius: 0; border-left: 0; border-right: 0; } }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-[#020617]">
@@ -45,15 +42,11 @@
     <div class="flex-1 relative overflow-hidden">
         
         <div id="view-chat" class="absolute inset-0 flex w-full h-full">
-            
             <aside id="thread-list" class="w-full md:w-72 glass border-r border-slate-800 overflow-y-auto bg-[#020617] z-20 flex flex-col">
                 <div class="p-4 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#020617]/95 backdrop-blur">Active Frequencies</div>
-                <div id="thread-container" class="space-y-1 p-2">
-                    </div>
+                <div id="thread-container" class="space-y-1 p-2"></div>
             </aside>
-            
             <main id="chat-area" class="hidden md:flex flex-1 flex-col bg-slate-950 w-full h-full absolute md:static inset-0 z-30">
-                
                 <div class="h-14 glass border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
                     <div class="flex items-center">
                         <button onclick="closeChatMobile()" class="md:hidden mr-4 text-slate-400 hover:text-white p-2 -ml-2">←</button>
@@ -69,51 +62,28 @@
                         <button onclick="closeTicket()" class="text-[10px] bg-red-600/10 text-red-500 border border-red-600/50 px-3 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase font-bold">Archive</button>
                     </div>
                 </div>
-
-                <div id="lock-overlay" class="hidden bg-slate-900/90 border-b border-red-900/50 p-2 text-center text-[10px] text-red-400 font-bold uppercase">
-                    🔒 Ticket Locked
-                </div>
-
+                <div id="lock-overlay" class="hidden bg-slate-900/90 border-b border-red-900/50 p-2 text-center text-[10px] text-red-400 font-bold uppercase">🔒 Ticket Locked</div>
                 <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-slate-950/50"></div>
-
                 <div class="p-3 md:p-4 glass border-t border-slate-800 shrink-0 pb-safe">
-                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center">
-                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached
-                    </div>
+                    <div id="file-indicator" class="hidden text-[10px] text-blue-400 mb-2 font-bold uppercase flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span> File Attached</div>
                     <form onsubmit="sendReply(event)" class="flex space-x-2 items-end">
                         <input type="file" id="file-input" class="hidden" onchange="handleFileSelect()">
-                        
-                        <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">+</button>
-                        
+                        <button type="button" id="btn-add-file" onclick="document.getElementById('file-input').click()" class="bg-slate-800 p-3 rounded-xl hover:text-blue-500 transition mb-0.5 border border-slate-700 disabled:opacity-50">+</button>
                         <div class="relative group">
-                            <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1 disabled:opacity-50 disabled:cursor-not-allowed">⚡</button>
+                            <button type="button" id="btn-macro" onclick="toggleMacros()" class="bg-slate-800 p-3 rounded-xl hover:text-amber-400 transition mb-0.5 border border-slate-700 mr-1 disabled:opacity-50">⚡</button>
                             <div id="macro-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
                                 <div id="macro-list" class="max-h-48 overflow-y-auto">Loading...</div>
                             </div>
                         </div>
-                        
-                        <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-950"></textarea>
-                        
-                        <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-800">Send</button>
+                        <textarea id="msg-input" oninput="notifyTyping()" placeholder="Message..." class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-sm h-[50px] md:h-16 resize-none focus:border-blue-500 transition text-white disabled:opacity-50 disabled:bg-slate-950"></textarea>
+                        <button id="btn-send" class="bg-blue-600 px-4 py-3 rounded-xl font-bold uppercase text-xs h-[50px] shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:bg-slate-800">Send</button>
                     </form>
                 </div>
             </main>
-
             <aside id="crm-panel" class="hidden md:flex w-80 glass border-l border-slate-800 flex-col bg-[#020617] absolute md:static right-0 inset-y-0 z-40 shadow-2xl md:shadow-none translate-x-full md:translate-x-0 transition-transform duration-300">
-                <div class="p-4 border-b border-slate-800 flex justify-between items-center md:hidden">
-                    <span class="font-bold text-slate-400">USER DOSSIER</span>
-                    <button onclick="toggleCRM()" class="text-slate-500">✕</button>
-                </div>
-                
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center md:hidden"><span class="font-bold text-slate-400">USER DOSSIER</span><button onclick="toggleCRM()" class="text-slate-500">✕</button></div>
                 <div class="p-4 flex-1 overflow-y-auto">
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sticky Notes</h3>
-                            <span id="note-status" class="text-[9px] text-green-500 font-bold hidden">SAVED</span>
-                        </div>
-                        <textarea id="crm-note" onblur="saveNote()" class="w-full h-40 bg-yellow-900/5 border border-yellow-700/20 text-yellow-100/90 p-3 text-xs rounded-xl resize-none focus:outline-none focus:border-yellow-600/50 transition placeholder-yellow-800/50" placeholder="Internal staff notes..."></textarea>
-                    </div>
-
+                    <div class="mb-6"><div class="flex justify-between items-center mb-2"><h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sticky Notes</h3><span id="note-status" class="text-[9px] text-green-500 font-bold hidden">SAVED</span></div><textarea id="crm-note" onblur="saveNote()" class="w-full h-40 bg-yellow-900/5 border border-yellow-700/20 text-yellow-100/90 p-3 text-xs rounded-xl resize-none focus:outline-none focus:border-yellow-600/50 transition placeholder-yellow-800/50" placeholder="Internal staff notes..."></textarea></div>
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Ticket History</h3>
                     <div id="crm-history" class="space-y-2"></div>
                 </div>
@@ -131,43 +101,42 @@
                             <input type="text" id="lic-key" placeholder="License Key" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
                             <input type="text" id="lic-disc-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white">
                             <input type="text" id="lic-id" placeholder="HWID / Instance ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white">
-                            <div class="grid grid-cols-2 gap-2">
-                                <select id="lic-type" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
-                                    <option value="Professor Mable Rental">Rental</option>
-                                    <option value="Premium Subscription">Premium</option>
-                                </select>
-                                <select id="lic-duration" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300">
-                                    <option value="30 Days">30 Days</option>
-                                    <option value="Lifetime">Lifetime</option>
-                                </select>
-                            </div>
+                            <div class="grid grid-cols-2 gap-2"><select id="lic-type" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300"><option value="Professor Mable Rental">Rental</option><option value="Premium Subscription">Premium</option></select><select id="lic-duration" class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-slate-300"><option value="30 Days">30 Days</option><option value="Lifetime">Lifetime</option></select></div>
                             <button onclick="activateLicense()" class="w-full bg-indigo-600 hover:bg-indigo-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest mt-2">Activate License</button>
                             <div id="lic-result" class="hidden text-[10px] font-mono p-2 bg-slate-900 rounded border border-slate-800 text-center text-white"></div>
                         </div>
                     </div>
-
                     <div class="glass p-5 rounded-2xl border border-amber-500/20">
                         <h2 class="text-amber-500 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Staff Roster</h2>
                         <div class="h-40 overflow-y-auto mb-4 space-y-2 pr-2" id="staff-stats"></div>
-                        <div class="flex space-x-2">
-                            <input type="text" id="add-user" placeholder="Username" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
-                            <input type="text" id="add-discord" placeholder="Discord ID" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white">
-                        </div>
-                        <div class="flex items-center justify-between mt-2">
-                            <label class="text-[10px] text-slate-400 font-bold flex items-center"><input type="checkbox" id="add-is-admin" class="mr-2"> GRANT ADMIN</label>
-                            <button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold uppercase text-[10px]">Add</button>
-                        </div>
+                        <div class="flex space-x-2"><input type="text" id="add-user" placeholder="Username" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white"><input type="text" id="add-discord" placeholder="Discord ID" class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded-lg text-xs text-white"></div>
+                        <div class="flex items-center justify-between mt-2"><label class="text-[10px] text-slate-400 font-bold flex items-center"><input type="checkbox" id="add-is-admin" class="mr-2"> GRANT ADMIN</label><button onclick="addStaff()" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg font-bold uppercase text-[10px]">Add</button></div>
                     </div>
                 </div>
 
-                <div class="glass p-5 rounded-2xl border border-amber-500/20 mt-4">
-                    <h2 class="text-amber-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Response Macros</h2>
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" id="macro-title" placeholder="Title" class="w-1/3 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
-                        <input type="text" id="macro-content" placeholder="Content ({user} for name)..." class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white">
-                        <button onclick="addMacro()" class="bg-amber-600 px-4 rounded font-bold text-xs uppercase">Add</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass p-5 rounded-2xl border border-amber-500/20">
+                        <h2 class="text-amber-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-amber-500/10 pb-2">Response Macros</h2>
+                        <div class="flex gap-2 mb-4"><input type="text" id="macro-title" placeholder="Title" class="w-1/3 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white"><input type="text" id="macro-content" placeholder="Content ({user} for name)..." class="flex-1 bg-slate-900/50 border border-slate-700 p-2 rounded text-xs text-white"><button onclick="addMacro()" class="bg-amber-600 px-4 rounded font-bold text-xs uppercase">Add</button></div>
+                        <div id="admin-macro-list" class="grid grid-cols-2 gap-2"></div>
                     </div>
-                    <div id="admin-macro-list" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+                    <div class="glass p-5 rounded-2xl border border-blue-500/20">
+                        <h2 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-blue-500/10 pb-2">Manual Ticket Opening</h2>
+                        <input type="text" id="dm-id" placeholder="Discord User ID" class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs font-mono text-white mb-2">
+                        <textarea id="dm-content" placeholder="Opening Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white h-24 resize-none mb-2"></textarea>
+                        <button onclick="sendManualDM()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Open Ticket</button>
+                    </div>
+                </div>
+
+                <div class="glass p-5 rounded-2xl border border-slate-700/50">
+                    <h2 class="text-slate-400 font-bold mb-4 uppercase text-xs tracking-widest border-b border-slate-700/50 pb-2">Bot Fleet & Broadcasts</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <input type="text" id="bulk-msg" placeholder="Global Broadcast Message..." class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-xs text-white mb-2">
+                            <button onclick="sendBulk()" class="w-full bg-red-600 hover:bg-red-500 p-3 rounded-lg font-bold uppercase text-xs tracking-widest">Execute Global Broadcast</button>
+                        </div>
+                        <div id="srv-list" class="space-y-2 max-h-48 overflow-y-auto">Loading Servers...</div>
+                    </div>
                 </div>
 
             </div>
@@ -176,10 +145,7 @@
 
     <div id="history-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/95 hidden p-4">
         <div class="glass w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl border border-slate-700 overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50">
-                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-widest">Transcript Viewer</h2>
-                <button onclick="document.getElementById('history-modal').classList.add('hidden')" class="text-red-400 font-bold text-xs px-3 py-1 rounded border border-red-900/50">CLOSE</button>
-            </div>
+            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50"><h2 class="text-sm font-bold text-slate-200 uppercase tracking-widest">Transcript Viewer</h2><button onclick="document.getElementById('history-modal').classList.add('hidden')" class="text-red-400 font-bold text-xs px-3 py-1 rounded border border-red-900/50">CLOSE</button></div>
             <div id="history-content" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950"></div>
         </div>
     </div>
@@ -281,11 +247,9 @@
             } 
         }
 
-        // --- CORE CHAT LOGIC ---
+        // --- CORE CHAT ---
         async function loadThreads() {
-            const data = await req('/api/threads'); 
-            if(!data || data.error) return;
-            
+            const data = await req('/api/threads'); if(!data || data.error) return;
             const list = document.getElementById('thread-container'); 
             list.innerHTML = data.length === 0 ? '<div class="text-center text-slate-600 text-[10px] mt-10">NO ACTIVE SIGNALS</div>' : '';
             
@@ -297,13 +261,16 @@
                 
                 d.className = `p-3 rounded-xl cursor-pointer transition border border-transparent ${activeId === t._id ? 'bg-blue-900/20 border-blue-500/30' : 'hover:bg-slate-800'}`;
                 
+                // Safe UserID check
+                const uid = t.userId || 'Unknown';
+                
                 d.innerHTML = `
                     <div class="flex flex-col mb-1">
                         <div class="flex justify-between items-center">
                             <span class="font-bold text-xs text-slate-200">${t.userTag}</span>
                             <span class="text-[9px] text-slate-500">${new Date(t.lastMessageAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
-                        <span class="text-[9px] text-slate-600 font-mono select-all tracking-tighter">${t.userId}</span>
+                        <span class="text-[9px] text-slate-600 font-mono select-all tracking-tighter">${uid}</span>
                     </div>
                     <div class="flex justify-between items-center mt-1">
                         <span class="text-[10px] text-slate-400 truncate w-24">${preview}</span>
@@ -324,34 +291,39 @@
         function renderChat() {
             const box = document.getElementById('chat-box'); 
             box.innerHTML = ''; 
-            if (!activeId || !threadStore[activeId]) return;
             
+            if (!activeId || !threadStore[activeId]) return;
             const cur = threadStore[activeId]; 
-            document.getElementById('active-tag').innerHTML = `${cur.userTag} <span class="text-slate-600 text-[10px] ml-2 font-mono select-all">${cur.userId}</span>`;
+            const uid = cur.userId || 'Unknown';
+            
+            document.getElementById('active-tag').innerHTML = `${cur.userTag} <span class="text-slate-600 text-[10px] ml-2 font-mono select-all">${uid}</span>`;
             
             updateClaimUI(cur);
             
-            cur.messages.forEach(m => {
-                const d = document.createElement('div'); 
-                d.className = `flex flex-col max-w-[85%] ${m.fromBot ? 'self-end items-end' : 'self-start items-start'}`;
-                
-                let bubble = `
-                    <div class="px-4 py-2 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed border ${
-                        m.fromBot 
-                        ? 'bg-blue-600 text-white border-blue-500 rounded-tr-sm' 
-                        : 'bg-slate-800 text-slate-200 border-slate-700 rounded-tl-sm'
-                    }">${m.content}</div>
-                `;
-                
-                if (m.attachments) {
-                    m.attachments.forEach(url => {
-                        bubble += `<img src="${url}" class="mt-2 max-w-[200px] rounded-lg border border-slate-700 cursor-pointer hover:opacity-90" onclick="window.open('${url}')">`;
-                    });
-                }
-                
-                d.innerHTML = bubble + `<span class="text-[9px] text-slate-600 mt-1 px-1">${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>`;
-                box.appendChild(d);
-            });
+            // Safety check for messages
+            if (cur.messages && Array.isArray(cur.messages)) {
+                cur.messages.forEach(m => {
+                    const d = document.createElement('div'); 
+                    d.className = `flex flex-col max-w-[85%] ${m.fromBot ? 'self-end items-end' : 'self-start items-start'}`;
+                    
+                    let bubble = `
+                        <div class="px-4 py-2 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed border ${
+                            m.fromBot 
+                            ? 'bg-blue-600 text-white border-blue-500 rounded-tr-sm' 
+                            : 'bg-slate-800 text-slate-200 border-slate-700 rounded-tl-sm'
+                        }">${m.content}</div>
+                    `;
+                    
+                    if (m.attachments) {
+                        m.attachments.forEach(url => {
+                            bubble += `<img src="${url}" class="mt-2 max-w-[200px] rounded-lg border border-slate-700 cursor-pointer hover:opacity-90" onclick="window.open('${url}')">`;
+                        });
+                    }
+                    
+                    d.innerHTML = bubble + `<span class="text-[9px] text-slate-600 mt-1 px-1">${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>`;
+                    box.appendChild(d);
+                });
+            }
             box.scrollTop = box.scrollHeight;
         }
 
@@ -392,34 +364,27 @@
             } 
         }
 
-        // --- CLAIMING & TYPING ---
-        async function toggleClaim() { 
-            if(!activeId) return; 
-            const t = threadStore[activeId]; 
-            if(t.claimedBy === currentUser) {
-                await req('/api/unclaim', 'POST', { threadId: activeId }); 
-            } else {
-                await req('/api/claim', 'POST', { threadId: activeId }); 
-            }
-        }
-
+        // --- CLAIM UI ---
         function updateClaimUI(t) {
             const btn = document.getElementById('btn-claim'); 
             const overlay = document.getElementById('lock-overlay');
-            btn.classList.remove('hidden');
+            if(!btn || !overlay) return;
             
-            if(!t.claimedBy) { 
+            btn.classList.remove('hidden');
+            const claimedBy = t.claimedBy || null;
+            
+            if(!claimedBy) { 
                 btn.innerText = "CLAIM"; 
                 btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-green-500/50 text-green-500 hover:bg-green-900/20 transition"; 
                 enableInputs(true); 
             }
-            else if(t.claimedBy === currentUser) { 
+            else if(claimedBy === currentUser) { 
                 btn.innerText = "UNCLAIM"; 
                 btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-yellow-500/50 text-yellow-500 hover:bg-yellow-900/20 transition"; 
                 enableInputs(true); 
             }
             else { 
-                btn.innerText = isUserAdmin ? "OVERRIDE" : `LOCKED: ${t.claimedBy}`; 
+                btn.innerText = isUserAdmin ? "OVERRIDE" : `LOCKED: ${claimedBy}`; 
                 btn.className = "text-[10px] font-bold uppercase px-3 py-1.5 rounded border border-red-500/50 text-red-500 cursor-not-allowed"; 
                 enableInputs(isUserAdmin); 
                 overlay.classList.toggle('hidden', isUserAdmin); 
@@ -427,9 +392,20 @@
         }
 
         function enableInputs(enable) { 
-            const els = ['msg-input','btn-send','btn-macro','btn-add-file'].map(id=>document.getElementById(id)); 
-            els.forEach(e => e.disabled = !enable); 
-            document.getElementById('lock-overlay').classList.toggle('hidden', enable); 
+            const ids = ['msg-input','btn-send','btn-macro','btn-add-file']; 
+            ids.forEach(id => { 
+                const el = document.getElementById(id); 
+                if(el) el.disabled = !enable; 
+            }); 
+            const overlay = document.getElementById('lock-overlay'); 
+            if(overlay) overlay.classList.toggle('hidden', enable); 
+        }
+
+        async function toggleClaim() { 
+            if(!activeId) return; 
+            const t = threadStore[activeId]; 
+            if(t.claimedBy === currentUser) await req('/api/unclaim', 'POST', { threadId: activeId }); 
+            else await req('/api/claim', 'POST', { threadId: activeId }); 
         }
 
         function notifyTyping() { 
@@ -549,7 +525,7 @@
             }); 
         }
 
-        // --- ADMIN ---
+        // --- ADMIN FUNCTIONS ---
         async function loadAdminData() { 
             const stats = await req('/api/admin/stats'); 
             if(!stats.error) {
@@ -569,6 +545,22 @@
                     `; 
                 }).join(''); 
             }
+            
+            // Server List (Bot Fleet)
+            const srvs = await req('/api/admin/servers');
+            document.getElementById('srv-list').innerHTML = srvs.map(s => `
+                <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded text-xs border border-slate-800">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-slate-300">${s.name}</span>
+                        <span class="text-[9px] text-slate-500">${s.members} members</span>
+                    </div>
+                    <div class="flex space-x-1">
+                        <button onclick="createInv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-600 text-blue-200 rounded text-[9px]">LINK</button>
+                        <button onclick="leaveSrv('${s.id}', '${s.botId}')" class="px-2 py-1 bg-red-900/50 hover:bg-red-600 text-red-200 rounded text-[9px]">LEAVE</button>
+                        <button onclick="dmOwner('${s.id}', '${s.botId}')" class="px-2 py-1 bg-amber-900/50 hover:bg-amber-600 text-amber-200 rounded text-[9px]">DM</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         async function activateLicense() { 
@@ -619,8 +611,43 @@
                 loadAdminData(); 
             } 
         }
+        
+        async function createInv(serverId, botId) { 
+            const res = await req('/api/admin/create-invite', 'POST', { serverId, botId }); 
+            if (res.url) prompt("Invite URL:", res.url); 
+        }
+        
+        async function leaveSrv(serverId, botId) { 
+            if (confirm("Disconnect Bot?")) { 
+                await req('/api/admin/leave-server', 'POST', { serverId, botId }); 
+                loadAdminData(); 
+            } 
+        }
+        
+        async function dmOwner(serverId, botId) { 
+            const message = prompt("Owner Message:"); 
+            if (message) await req('/api/admin/dm-owner', 'POST', { serverId, botId, message }); 
+        }
+        
+        async function sendBulk() { 
+            const message = document.getElementById('bulk-msg').value; 
+            if (message && confirm("Broadcast?")) { 
+                const res = await req('/api/admin/bulk-message', 'POST', { message }); 
+                alert(`Sent to ${res.sentTo} owners.`); 
+            } 
+        }
+        
+        async function sendManualDM() { 
+            if(await (await req('/api/admin/manual-dm', 'POST', { 
+                discordId: document.getElementById('dm-id').value, 
+                content: document.getElementById('dm-content').value 
+            })).success) { 
+                alert("Sent"); 
+                document.getElementById('dm-content').value = ''; 
+            } 
+        }
 
-        // --- INIT ---
+        // --- SOCKET HANDLERS ---
         socket.on('new_message', (d) => { 
             if (d.notif_sound) document.getElementById('notif-sound').play().catch(()=>{}); 
             if (threadStore[d.threadId]) { 
@@ -653,6 +680,7 @@
             } 
         });
 
+        // --- INIT ---
         (async () => { 
             const data = await req('/api/threads'); 
             if(!data.error) { 
