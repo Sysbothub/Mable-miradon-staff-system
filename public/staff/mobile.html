@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <title>Miraidon Staff App</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <style>
+        /**
+         * MOBILE APP STYLING ENGINE
+         */
+        body { 
+            background-color: #020617; 
+            color: #ffffff; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overscroll-behavior-y: contain;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background-color: #0f172a;
+            border-bottom: 1px solid #1e293b;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            flex-shrink: 0;
+        }
+
+        .bottom-nav {
+            background-color: #0f172a;
+            border-top: 1px solid #1e293b;
+            height: 70px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-shrink: 0;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .view-section {
+            display: none;
+            height: 100%;
+            width: 100%;
+        }
+
+        .view-section.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .nav-item.active {
+            color: #3b82f6;
+        }
+
+        /* CHAT BUBBLE LOGIC */
+        .msg-bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .msg-staff {
+            background-color: #2563eb;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-user {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .pfp-small {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+
+        /* BUTTON PULSE FOR NEW MESSAGES */
+        @keyframes pulse-red {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); color: #ef4444; }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse-red 1s infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="mobile-notif" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+
+    <header class="app-header">
+        <div class="flex flex-col">
+            <span class="font-black text-blue-500 text-sm tracking-tighter uppercase">Miraidon Mobile</span>
+            <span id="header-status" class="text-[8px] text-slate-500 font-bold uppercase">Frequency: Standby</span>
+        </div>
+        <div class="ml-auto">
+            <button onclick="window.location.reload()" class="text-xs font-bold text-slate-400">SYNC</button>
+        </div>
+    </header>
+
+    <main class="content-area">
+
+        <section id="view-inbox" class="view-section active">
+            <div class="p-4 bg-slate-900/50 border-b border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                Active Inquiries
+            </div>
+            <div id="mobile-thread-list" class="divide-y divide-slate-800">
+                <div class="p-10 text-center text-slate-600 text-xs italic">Searching for trainers...</div>
+            </div>
+        </section>
+
+        <section id="view-chat" class="view-section">
+            <div class="p-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <button onclick="changeTab('inbox')" class="text-blue-500 font-bold text-sm">←</button>
+                    <span id="active-user-tag" class="text-xs font-black uppercase truncate max-w-[150px]">No Session</span>
+                </div>
+                <button onclick="requestClosure()" class="text-[10px] font-bold text-red-500 border border-red-900 px-2 py-1 rounded">ARCHIVE</button>
+            </div>
+            
+            <div id="mobile-chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col">
+                </div>
+
+            <div class="p-3 bg-slate-900 border-t border-slate-800">
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('mobile-file').click()" class="bg-slate-800 w-12 h-12 rounded-full flex items-center justify-center text-blue-500 font-bold text-xl">+</button>
+                    <input type="file" id="mobile-file" class="hidden" onchange="processMobileFile(event)">
+                    
+                    <input id="mobile-input" 
+                           class="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 text-sm" 
+                           placeholder="Type message..."
+                           oninput="emitMobileTyping()">
+                           
+                    <button onclick="dispatchMobileMsg()" 
+                            class="bg-blue-600 w-12 h-12 rounded-full flex items-center justify-center shadow-lg">
+                        <span class="text-white">➤</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-crm" class="view-section">
+            <div class="p-4 flex flex-col h-full">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Trainer Intelligence</span>
+                <textarea id="mobile-notes" 
+                          onblur="saveMobileNote()"
+                          class="w-full h-40 bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-yellow-100" 
+                          placeholder="Notes about this user..."></textarea>
+                
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-6 mb-2">Historic Transcripts</span>
+                <div id="mobile-history" class="flex-1 overflow-y-auto space-y-2">
+                    </div>
+            </div>
+        </section>
+
+    </main>
+
+    <nav class="bottom-nav">
+        <button onclick="changeTab('inbox')" id="nav-inbox" class="nav-item active">
+            <span class="text-xl">📥</span>
+            <span>Inbox</span>
+        </button>
+        <button onclick="changeTab('chat')" id="nav-chat" class="nav-item">
+            <span class="text-xl">💬</span>
+            <span>Chat</span>
+        </button>
+        <button onclick="changeTab('crm')" id="nav-crm" class="nav-item">
+            <span class="text-xl">📋</span>
+            <span>Intel</span>
+        </button>
+    </nav>
+
+    <script>
+        const socket = io();
+        let currentThreadId = null;
+        let currentDiscordId = null;
+        let staffName = null;
+        let threadCache = {};
+        let mobileFileBlob = null;
+
+        /**
+         * Function: req
+         * Consistent verbose API handler.
+         */
+        async function req(url, method, body) {
+            const options = { 
+                method: method || 'GET', 
+                headers: { 'Content-Type': 'application/json' } 
+            };
+            if (body) { options.body = JSON.stringify(body); }
+            
+            try {
+                const response = await fetch(url, options);
+                if (response.status === 401) { 
+                    window.location.href = '/login.html'; 
+                    return null;
+                }
+                return await response.json();
+            } catch (e) {
+                return { error: true };
+            }
+        }
+
+        /**
+         * Initialize App
+         */
+        (async function initApp() {
+            const user = await req('/api/auth/user');
+            if (user) {
+                staffName = user.username;
+                refreshInbox();
+            }
+        })();
+
+        /**
+         * Navigation Engine
+         */
+        function changeTab(tabName) {
+            // Hide all
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            
+            // Show target
+            document.getElementById('view-' + tabName).classList.add('active');
+            document.getElementById('nav-' + tabName).classList.add('active');
+            
+            if (tabName === 'inbox') {
+                document.getElementById('nav-inbox').classList.remove('pulse');
+            }
+        }
+
+        /**
+         * Inbox Rendering
+         */
+        async function refreshInbox() {
+            const list = await req('/api/threads');
+            const container = document.getElementById('mobile-thread-list');
+            container.innerHTML = '';
+            
+            if (list) {
+                list.forEach(function(t) {
+                    threadCache[t._id] = t;
+                    const el = document.createElement('div');
+                    el.className = "p-4 flex items-center gap-4 active:bg-slate-800 transition";
+                    
+                    el.innerHTML = `
+                        <img src="${t.userAvatar}" class="w-12 h-12 rounded-full border border-slate-700">
+                        <div class="flex-1">
+                            <div class="font-black text-sm uppercase">${t.userTag}</div>
+                            <div class="text-[10px] text-slate-500 font-bold">${t.botName}</div>
+                        </div>
+                        <div class="text-blue-500 font-black">❯</div>
+                    `;
+                    
+                    el.onclick = function() {
+                        selectThread(t._id, t.userId, t.userTag);
+                    };
+                    
+                    container.appendChild(el);
+                });
+            }
+        }
+
+        /**
+         * Thread Selection
+         */
+        function selectThread(id, discordId, tag) {
+            if (currentThreadId) { socket.emit('leave_ticket_room'); }
+            
+            currentThreadId = id;
+            currentDiscordId = discordId;
+            
+            socket.emit('join_ticket_room', { threadId: id, username: staffName });
+            
+            document.getElementById('active-user-tag').innerText = tag;
+            document.getElementById('header-status').innerText = "Frequency: " + tag;
+            
+            renderChat();
+            loadIntel(discordId);
+            changeTab('chat');
+        }
+
+        /**
+         * Chat Rendering (Mobile Expanded)
+         */
+        function renderChat() {
+            const box = document.getElementById('mobile-chat-box');
+            box.innerHTML = '';
+            
+            const data = threadCache[currentThreadId];
+            if (!data) return;
+            
+            data.messages.forEach(function(m) {
+                const wrap = document.createElement('div');
+                wrap.className = "flex flex-col " + (m.fromBot ? "items-end" : "items-start");
+                
+                let content = `<div class="msg-bubble ${m.fromBot ? 'msg-staff' : 'msg-user'}">${m.content}</div>`;
+                
+                // Handle Mobile Media
+                if (m.attachments && m.attachments.length > 0) {
+                    m.attachments.forEach(function(url) {
+                        if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+                            content += `<img src="${url}" class="max-w-[200px] rounded-lg mb-2 border border-slate-700">`;
+                        } else {
+                            content += `<div class="p-2 bg-slate-800 rounded mb-2 text-[10px] text-blue-400">📎 Data Object</div>`;
+                        }
+                    });
+                }
+                
+                wrap.innerHTML = content;
+                box.appendChild(wrap);
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        /**
+         * Dispatch Logic
+         */
+        async function dispatchMobileMsg() {
+            const field = document.getElementById('mobile-input');
+            const val = field.value;
+            
+            if (!currentThreadId || (!val && !mobileFileBlob)) return;
+            
+            const payload = {
+                threadId: currentThreadId,
+                content: val,
+                fileBase64: mobileFileBlob ? mobileFileBlob.data : null,
+                fileName: mobileFileBlob ? mobileFileBlob.name : null
+            };
+            
+            const res = await req('/api/reply', 'POST', payload);
+            if (res.success) {
+                field.value = '';
+                mobileFileBlob = null;
+            }
+        }
+
+        /**
+         * CRM / Intel Logic
+         */
+        async function loadIntel(uid) {
+            const data = await req('/api/crm/user/' + uid);
+            document.getElementById('mobile-notes').value = data.note;
+            
+            const histCont = document.getElementById('mobile-history');
+            histCont.innerHTML = '';
+            
+            if (data.history) {
+                data.history.forEach(function(h) {
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs font-bold";
+                    div.innerText = "LOG: " + new Date(h.closedAt).toLocaleDateString();
+                    histCont.appendChild(div);
+                });
+            }
+        }
+
+        function saveMobileNote() {
+            if (currentDiscordId) {
+                req('/api/crm/note', 'POST', { 
+                    userId: currentDiscordId, 
+                    note: document.getElementById('mobile-notes').value 
+                });
+            }
+        }
+
+        /**
+         * File Processor
+         */
+        function processMobileFile(e) {
+            const f = e.target.files[0];
+            const r = new FileReader();
+            r.onload = function(ev) {
+                mobileFileBlob = { data: ev.target.result, name: f.name };
+                alert("File Attached: " + f.name);
+            };
+            r.readAsDataURL(f);
+        }
+
+        /**
+         * Sockets
+         */
+        socket.on('new_message', function(p) {
+            if (threadCache[p.threadId]) {
+                threadCache[p.threadId].messages.push(p);
+                if (currentThreadId === p.threadId) {
+                    renderChat();
+                } else if (!p.fromBot) {
+                    // Visual pulse if new message in different thread
+                    document.getElementById('nav-inbox').classList.add('pulse');
+                    document.getElementById('mobile-notif').play().catch(()=>{});
+                }
+            }
+            refreshInbox();
+        });
+
+        function emitMobileTyping() {
+            if (currentThreadId) socket.emit('staff_typing', { threadId: currentThreadId });
+        }
+
+        async function requestClosure() {
+            if (currentThreadId && confirm("Archive inquiry?")) {
+                await req('/api/close-thread', 'POST', { threadId: currentThreadId });
+                window.location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
