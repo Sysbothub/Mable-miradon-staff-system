@@ -1,29 +1,29 @@
 /**
  * =================================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER (v10.6 - THE ABSOLUTE UNABRIDGED BUILD)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER (v11.2 - THE ARCHITECTURAL RESTORATION)
  * =================================================================================================
  * * STATUS: 100% UNCOMPRESSED, MAXIMAL VERBOSITY, NO DELETIONS
- * * LINE COUNT TARGET: 1850+
+ * * INTEGRITY: ALL LOGIC BLOCKS EXPANDED TO MULTI-LINE SYNTAX
  * -------------------------------------------------------------------------------------------------
  * * CORE ARCHITECTURE MANIFEST:
- * 1.  DISCORD SDK INTEGRATION: 
- * - Independent client management for Miraidon (SV) and Professor Mable (ZA).
- * - Real-time event emitters for typing and message synchronization.
+ * 1.  DISCORD INTERFACE: 
+ * - Independent client management for Miraidon and Professor Mable.
+ * - Targeted Staff Role Pings via STAFF_ROLE_ID environment variable.
  * 2.  RESTful API LAYER:
  * - Secure administrative endpoints guarded by session-based authentication.
- * - CRM logic for persistent user notes and historic transcript retrieval.
+ * - Expanded error handling for Sell.App and MongoDB interactions.
  * 3.  PERSISTENCE ENGINE:
- * - MongoDB for dynamic configuration, staff performance, and active threads.
- * - Local File System for immutable JSON and TXT archival of closed support inquiries.
+ * - MongoDB for dynamic configuration, staff analytics, and active threads.
+ * - Local File System for immutable JSON and TXT archival of closed inquiries.
  * 4.  REAL-TIME SYNC:
- * - Socket.io implementation for staff collision detection and instant inbox refreshing.
+ * - Socket.io implementation for staff collision detection and title pulsing.
  * 5.  AUTOMATION:
- * - Scheduled cron logic for Trustpilot review requests and license expiration warnings.
+ * - Scheduled cron logic for Trustpilot review requests (14-day) and expiry warnings.
  * =================================================================================================
  */
 
 // =================================================================================================
-//  SECTION 1: MODULE LOADING AND GLOBAL CONFIGURATION
+//  SECTION 1: GLOBAL MODULE LOADING AND ENVIRONMENT CONFIGURATION
 // =================================================================================================
 
 // 1.1. Environment Variable Loading
@@ -35,18 +35,18 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
-// 1.3. Web Framework and Session Management Dependencies
+// 1.3. Web Framework and Utilities
 const express = require('express');
-const session = require('express-session');
+const axios = require('axios');
+const bcrypt = require('bcrypt');
 
-// 1.4. Database and Real-time Communication Libraries
-const mongoose = require('mongoose');
-const MongoStore = require('connect-mongo');
+// 1.4. Real-time Communication
 const { Server } = require('socket.io');
 
-// 1.5. Cryptography and External API Integration
-const bcrypt = require('bcrypt');
-const axios = require('axios');
+// 1.5. Database and Session Management
+const mongoose = require('mongoose');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 
 // 1.6. Discord SDK Components for Gateway Interaction
 const { 
@@ -71,37 +71,42 @@ const io = new Server(server);
 //  SECTION 2: PERSISTENT DISK STORAGE ARCHITECTURE
 // =================================================================================================
 
-console.log("[STORAGE] 📂 Checking persistent disk mount points...");
+console.log("================================================================================");
+console.log("[STORAGE] 📂 Initializing Local Persistence Layers...");
+console.log("================================================================================");
 
 let DATA_DIR;
 
 /**
- * PATH RESOLUTION LOGIC:
- * Handles the distinction between local development and cloud production (Render).
+ * PATH RESOLUTION:
+ * Checks the environment to determine where the system has write permissions.
  */
 if (process.env.RENDER === 'true') {
-    console.log("[STORAGE] ☁️ Production environment detected (Render.com).");
-    console.log("[STORAGE] 📍 Mapping persistence to /var/data mount point.");
+    console.log("[STORAGE] ☁️ Render Environment Detected.");
+    console.log("[STORAGE] 📍 Pointing data to /var/data");
     DATA_DIR = '/var/data';
 } else {
-    console.log("[STORAGE] 💻 Development environment detected.");
-    console.log("[STORAGE] 📍 Mapping persistence to local_storage directory.");
+    console.log("[STORAGE] 💻 Local Environment Detected.");
+    console.log("[STORAGE] 📍 Pointing data to local_storage directory.");
     DATA_DIR = path.join(__dirname, 'local_storage');
 }
 
 /**
  * ROOT DIRECTORY VERIFICATION:
- * Ensures the system has a root directory to store all user-generated data.
+ * Ensures the system has a root directory to store transcripts and session data.
  */
 const rootExists = fs.existsSync(DATA_DIR);
+
 if (rootExists === false) {
-    console.log(`[STORAGE] 📂 Root directory missing. Creating: ${DATA_DIR}`);
+    console.log(`[STORAGE] 📂 Creating Root Data Directory at: ${DATA_DIR}`);
     try {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-        console.log(`[STORAGE] ✅ Root Data Directory established.`);
+        fs.mkdirSync(DATA_DIR, { 
+            recursive: true 
+        });
+        console.log(`[STORAGE] ✅ Root Directory Established.`);
     } catch (mkdirError) {
-        console.error(`[STORAGE] ❌ CRITICAL: Permission denied writing to disk: ${mkdirError.message}`);
-        console.error(`[STORAGE] ❌ Ensure the user running the process has recursive write access.`);
+        console.error(`[STORAGE] ❌ CRITICAL: Permission denied writing to disk.`);
+        console.error(`[STORAGE] 🛑 ERROR DETAILS: ${mkdirError.message}`);
         process.exit(1); 
     }
 } else {
@@ -109,18 +114,22 @@ if (rootExists === false) {
 }
 
 /**
- * ARCHIVE SUB-DIRECTORY VERIFICATION:
- * Segregates support transcripts into a dedicated folder to prevent clutter.
+ * ARCHIVE DIRECTORY VERIFICATION:
+ * Segregates closed ticket JSON data from general storage for CRM retrieval.
  */
 const ARCHIVE_DIR = path.join(DATA_DIR, 'archives');
 const archiveExists = fs.existsSync(ARCHIVE_DIR);
+
 if (archiveExists === false) {
-    console.log(`[STORAGE] 📂 Archive sub-directory missing. Creating: ${ARCHIVE_DIR}`);
+    console.log(`[STORAGE] 📂 Creating Archive Sub-directory at: ${ARCHIVE_DIR}`);
     try {
-        fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
-        console.log(`[STORAGE] ✅ Archive directory established.`);
+        fs.mkdirSync(ARCHIVE_DIR, { 
+            recursive: true 
+        });
+        console.log(`[STORAGE] ✅ Archive Directory Established.`);
     } catch (archiveMkdirError) {
-        console.error(`[STORAGE] ❌ WARNING: Failed to create archive folder: ${archiveMkdirError.message}`);
+        console.error(`[STORAGE] ❌ WARNING: Failed to create archives folder.`);
+        console.error(`[STORAGE] 🛑 ERROR DETAILS: ${archiveMkdirError.message}`);
     }
 } else {
     console.log(`[STORAGE] ✅ Archive directory confirmed: ${ARCHIVE_DIR}`);
@@ -128,42 +137,42 @@ if (archiveExists === false) {
 
 
 // =================================================================================================
-//  SECTION 3: MONGODB DATABASE PERSISTENCE LAYER
+//  SECTION 3: MONGODB DATABASE CONNECTIVITY
 // =================================================================================================
 
-console.log("[DATABASE] ⏳ Attempting handshake with MongoDB cluster...");
+console.log("[DATABASE] ⏳ Handshaking with MongoDB cluster...");
 
 /**
  * ESTABLISH CONNECTION:
- * Connects to the URI provided in the .env file.
+ * Connects using the URI provided in the .env configuration.
  */
 mongoose.connect(process.env.MONGODB_URI)
     .then(function() {
         console.log("================================================================================");
-        console.log("[DATABASE] ✅ Handshake Successful: MONGODB CLUSTER ACTIVE");
-        console.log(`[DATABASE] 🕒 Connected at: ${new Date().toLocaleString()}`);
+        console.log("[DATABASE] ✅ Handshake Successful: PERSISTENCE LAYER ONLINE");
+        console.log(`[DATABASE] 🕒 UTC Connection Time: ${new Date().toISOString()}`);
         console.log("================================================================================");
         
-        // Execute startup maintenance routines
+        // Execute bootstrap maintenence routines
         initializeSystemDefaults();
         performDatabaseRepair();
     })
     .catch(function(dbError) {
         console.error("================================================================================");
-        console.error("[DATABASE] ❌ CRITICAL HANDSHAKE FAILURE");
-        console.error(`[DATABASE] 🛑 REASON: ${dbError.message}`);
-        console.error("[DATABASE] 🛑 ACTION: System halt imminent. Verify MONGODB_URI.");
+        console.error("[DATABASE] ❌ CRITICAL CONNECTION FAILURE");
+        console.error(`[DATABASE] 🛑 MESSAGE: ${dbError.message}`);
+        console.error("[DATABASE] 🛑 ACTION: Halting system to prevent data loss.");
         console.error("================================================================================");
     });
 
 
 // =================================================================================================
-//  SECTION 4: DATA SCHEMAS AND OBJECT MODELS
+//  SECTION 4: DATABASE SCHEMAS AND DATA MODELS
 // =================================================================================================
 
 /**
  * 4.1. STAFF SCHEMA
- * Manages administrative credentials, discord links, and performance metrics.
+ * Handles personnel management, authentication, and performance metrics.
  */
 const StaffSchema = new mongoose.Schema({
     username: { 
@@ -204,11 +213,12 @@ const StaffSchema = new mongoose.Schema({
         default: 0 
     }
 });
+
 const Staff = mongoose.model('Staff', StaffSchema);
 
 /**
  * 4.2. THREAD SCHEMA
- * Represents an active support inquiry between a user and the staff panel.
+ * Manages active conversations and captures metadata for UI display.
  */
 const ThreadSchema = new mongoose.Schema({
     userId: { 
@@ -250,7 +260,9 @@ const ThreadSchema = new mongoose.Schema({
         content: { 
             type: String 
         },
-        attachments: [String],
+        attachments: [
+            String
+        ],
         timestamp: { 
             type: Date, 
             default: Date.now 
@@ -265,11 +277,12 @@ const ThreadSchema = new mongoose.Schema({
         default: Date.now 
     }
 });
+
 const Thread = mongoose.model('Thread', ThreadSchema);
 
 /**
  * 4.3. LICENSE SCHEMA
- * Tracks activated keys, duration, and server identifiers for premium services.
+ * Tracks Sell.App activations, expiration dates, and linked servers.
  */
 const LicenseSchema = new mongoose.Schema({
     key: { 
@@ -314,11 +327,12 @@ const LicenseSchema = new mongoose.Schema({
         default: false 
     }
 });
+
 const License = mongoose.model('License', LicenseSchema);
 
 /**
  * 4.4. CONFIG SCHEMA
- * Stores global settings, support hours, and bot fleet status.
+ * Tracks global support state and granular fleet trading status.
  */
 const ConfigSchema = new mongoose.Schema({
     id: { 
@@ -342,39 +356,73 @@ const ConfigSchema = new mongoose.Schema({
         default: "23:59" 
     },
     botFleetStatus: [{
-        botId: String,
-        botName: String,
+        botId: { 
+            type: String 
+        },
+        botName: { 
+            type: String 
+        },
         tradingActive: { 
             type: Boolean, 
             default: true 
         }
     }]
 });
+
 const Config = mongoose.model('Config', ConfigSchema);
 
 /**
- * 4.5. CRM AND CONTENT MODELS
- * User notes, staff macros, and FAQ database.
+ * 4.5. CRM AND CONTENT SCHEMAS
  */
 const UserNoteSchema = new mongoose.Schema({
-    userId: { type: String, required: true, unique: true },
-    note: { type: String, default: "" },
-    updatedBy: { type: String },
-    updatedAt: { type: Date, default: Date.now }
+    userId: { 
+        type: String, 
+        required: true, 
+        unique: true 
+    },
+    note: { 
+        type: String, 
+        default: "" 
+    },
+    updatedBy: { 
+        type: String 
+    },
+    updatedAt: { 
+        type: Date, 
+        default: Date.now 
+    }
 });
+
 const UserNote = mongoose.model('UserNote', UserNoteSchema);
 
 const MacroSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    content: { type: String, required: true }
+    title: { 
+        type: String, 
+        required: true 
+    },
+    content: { 
+        type: String, 
+        required: true 
+    }
 });
+
 const Macro = mongoose.model('Macro', MacroSchema);
 
 const FAQSchema = new mongoose.Schema({
-    question: { type: String, required: true },
-    answer: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+    question: { 
+        type: String, 
+        required: true 
+    },
+    answer: { 
+        type: String, 
+        required: true 
+    },
+    createdAt: { 
+        type: Date, 
+        default: Date.now 
+    }
 });
+
 const FAQ = mongoose.model('FAQ', FAQSchema);
 
 
@@ -383,31 +431,32 @@ const FAQ = mongoose.model('FAQ', FAQSchema);
 // =================================================================================================
 
 /**
- * Helper: validateComplexPassword
- * Enforces security policy: 8 chars, 1 Capital, 1 Number, 1 Symbol.
+ * Function: validateComplexPassword
+ * Enforces the strict security policy for staff credentials.
  */
 function validateComplexPassword(passwordValue) {
-    const minLen = 8;
-    const regexCapital = /[A-Z]/;
-    const regexNumber = /[0-9]/;
-    const regexSymbol = /[\W_]/; 
+    const minLengthRequired = 8;
+    const regexUppercase = /[A-Z]/;
+    const regexNumeric = /[0-9]/;
+    const regexSpecial = /[\W_]/; 
     
-    if (passwordValue.length < minLen) {
+    const lengthCheck = (passwordValue.length >= minLengthRequired);
+    if (lengthCheck === false) {
         return false;
     }
     
-    const hasCap = regexCapital.test(passwordValue);
-    if (hasCap === false) {
+    const uppercaseCheck = regexUppercase.test(passwordValue);
+    if (uppercaseCheck === false) {
         return false;
     }
     
-    const hasNum = regexNumber.test(passwordValue);
-    if (hasNum === false) {
+    const numericCheck = regexNumeric.test(passwordValue);
+    if (numericCheck === false) {
         return false;
     }
     
-    const hasSym = regexSymbol.test(passwordValue);
-    if (hasSym === false) {
+    const specialCheck = regexSpecial.test(passwordValue);
+    if (specialCheck === false) {
         return false;
     }
     
@@ -415,375 +464,520 @@ function validateComplexPassword(passwordValue) {
 }
 
 /**
- * Helper: generateComplexPassword
- * Generates a compliant secure key for automated resets.
+ * Function: generateComplexPassword
+ * Used for administrative re-keying and account initialization.
  */
 function generateComplexPassword() {
-    const lower = "abcdefghijklmnopqrstuvwxyz";
-    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const nums = "0123456789";
-    const syms = "!@#$%^&*?";
+    const alphabetLower = "abcdefghijklmnopqrstuvwxyz";
+    const alphabetUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const digitPool = "0123456789";
+    const symbolPool = "!@#$%^&*?";
     
-    let result = "";
-    result += upper[Math.floor(Math.random() * upper.length)];
-    result += nums[Math.floor(Math.random() * nums.length)];
-    result += syms[Math.floor(Math.random() * syms.length)];
-    result += lower[Math.floor(Math.random() * lower.length)];
+    let passwordResult = "";
     
-    const combined = lower + upper + nums + syms;
-    for (let i = 0; i < 10; i++) {
-        result += combined[Math.floor(Math.random() * combined.length)];
+    // Select one from each category to guarantee compliance
+    passwordResult += alphabetUpper[Math.floor(Math.random() * alphabetUpper.length)];
+    passwordResult += digitPool[Math.floor(Math.random() * digitPool.length)];
+    passwordResult += symbolPool[Math.floor(Math.random() * symbolPool.length)];
+    passwordResult += alphabetLower[Math.floor(Math.random() * alphabetLower.length)];
+    
+    const fullPool = alphabetLower + alphabetUpper + digitPool + symbolPool;
+    
+    // Fill to 14 characters
+    for (let x = 0; x < 10; x++) {
+        passwordResult += fullPool[Math.floor(Math.random() * fullPool.length)];
     }
     
-    return result.split('').sort(function(){ return 0.5 - Math.random(); }).join('');
+    // Randomize character order
+    const arrayForm = passwordResult.split('');
+    for (let i = arrayForm.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = arrayForm[i];
+        arrayForm[i] = arrayForm[j];
+        arrayForm[j] = temp;
+    }
+    
+    return arrayForm.join('');
 }
 
 /**
- * Initializer: initializeSystemDefaults
- * Ensures the database is not empty upon first boot.
+ * Routine: initializeSystemDefaults
+ * Creates the first-run database documents.
  */
 async function initializeSystemDefaults() {
+    console.log("[BOOTSTRAP] 🔍 Verifying default system documents...");
+    
     try {
-        const checkAdmin = await Staff.findOne({ username: 'admin' });
-        if (checkAdmin === null) {
-            console.log("[INIT] 👤 Creating master administrative account...");
-            const hash = await bcrypt.hash('Map4491!', 10);
-            const masterAdmin = new Staff({ 
+        const existingAdmin = await Staff.findOne({ username: 'admin' });
+        
+        if (existingAdmin === null) {
+            console.log("[BOOTSTRAP] 👤 Admin account missing. Initializing default...");
+            const defaultHashedKey = await bcrypt.hash('Map4491!', 10);
+            
+            const rootAdmin = new Staff({ 
                 username: 'admin', 
-                password: hash, 
+                password: defaultHashedKey, 
                 discordId: '000000000000000000', 
                 isAdmin: true 
             });
-            await masterAdmin.save();
-            console.log("[INIT] ✅ Master admin created.");
+            
+            await rootAdmin.save();
+            console.log("[BOOTSTRAP] ✅ Master account ready.");
+        } else {
+            console.log("[BOOTSTRAP] ✅ Admin account verified.");
         }
 
-        const checkConfig = await Config.findOne({ id: 'global' });
-        if (checkConfig === null) {
-            console.log("[INIT] ⚙️ Creating global configuration profile...");
-            const masterConfig = new Config({ 
+        const existingConfig = await Config.findOne({ id: 'global' });
+        
+        if (existingConfig === null) {
+            console.log("[BOOTSTRAP] ⚙️ Global configuration missing. Initializing default...");
+            
+            const globalConfig = new Config({ 
                 id: 'global', 
                 supportOnline: true, 
                 openTime: "08:00", 
-                closeTime: "23:59" 
+                closeTime: "23:59",
+                botFleetStatus: []
             });
-            await masterConfig.save();
-            console.log("[INIT] ✅ Master configuration created.");
+            
+            await globalConfig.save();
+            console.log("[BOOTSTRAP] ✅ Global configuration ready.");
+        } else {
+            console.log("[BOOTSTRAP] ✅ Global configuration verified.");
         }
     } catch (bootstrapError) {
-        console.error("[INIT] ❌ Initialization routine failed:");
+        console.error("[BOOTSTRAP] ❌ Fatal error during record initialization:");
         console.error(bootstrapError);
     }
 }
 
 /**
- * Repair: performDatabaseRepair
- * Ensures legacy records are compatible with new features (Avatars/Reviews).
+ * Routine: performDatabaseRepair
+ * Ensures legacy records are migrated to current structural standards.
  */
 async function performDatabaseRepair() {
+    console.log("[REPAIR] 🛠️ Scanning database for structural inconsistencies...");
+    
     try {
-        // Fix thread metadata
-        await Thread.updateMany(
+        // Migration: Thread 'claimedBy'
+        const claimedUpdate = await Thread.updateMany(
             { claimedBy: { $exists: false } },
             { $set: { claimedBy: null } }
         );
+        console.log(`[REPAIR] -> Thread logic verified (${claimedUpdate.modifiedCount} records synced).`);
         
-        await Thread.updateMany(
+        // Migration: User Avatars
+        const avatarUpdate = await Thread.updateMany(
             { userAvatar: { $exists: false } },
             { $set: { userAvatar: 'https://cdn.discordapp.com/embed/avatars/0.png' } }
         );
+        console.log(`[REPAIR] -> User PFPs verified (${avatarUpdate.modifiedCount} records synced).`);
 
-        // Fix license flags
-        await License.updateMany(
+        // Migration: Review Flags
+        const reviewUpdate = await License.updateMany(
             { reviewRequestSent: { $exists: false } },
             { $set: { reviewRequestSent: false } }
         );
+        console.log(`[REPAIR] -> Review logic verified (${reviewUpdate.modifiedCount} records synced).`);
 
-        console.log("[REPAIR] ✅ Database schema verification complete.");
+        console.log("[REPAIR] ✅ Database integrity check complete.");
     } catch (repairError) {
-        console.error("[REPAIR] ❌ Repair routine failed:");
+        console.error("[REPAIR] ❌ Failure during database scan:");
         console.error(repairError);
     }
 }
 
 
 // =================================================================================================
-//  SECTION 6: EXPRESS WEB SERVER MIDDLEWARE AND SECURITY
+//  SECTION 6: WEB SERVER MIDDLEWARE AND ARCHITECTURE
 // =================================================================================================
 
-// 6.1. Networking Configuration
+// 6.1. Reverse Proxy Trust
+// Essential for accurate IP logging when behind Render/Nginx load balancers.
 app.set('trust proxy', 1);
 
-// 6.2. Body Parsers (Maximum payload size for media)
-app.use(express.json({ limit: '60mb' }));
-app.use(express.urlencoded({ extended: true, limit: '60mb' }));
+// 6.2. Body Parsers
+// Configured with high limits to allow for base64 file buffer transfers.
+app.use(express.json({ 
+    limit: '60mb' 
+}));
+app.use(express.urlencoded({ 
+    extended: true, 
+    limit: '60mb' 
+}));
 
-// 6.3. Session Architecture (MongoDB Store)
+// 6.3. Session Engine
+// Persists staff logins using MongoDB to prevent disconnects on server restart.
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-security-key-miraidon-ca',
+    secret: process.env.SESSION_SECRET || 'miraidon-trade-services-unsecure-fallback',
     resave: true,
     saveUninitialized: false,
     store: MongoStore.create({ 
         mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'staff_sessions' 
+        collectionName: 'web_sessions',
+        ttl: 14 * 24 * 60 * 60 // 14-day persistent sessions
     }),
     cookie: { 
-        maxAge: 1000 * 60 * 60 * 24, // 24-hour persistent login
-        secure: true, // Only serve over HTTPS
+        maxAge: 1000 * 60 * 60 * 24, // Browser cookie validity (24 hours)
+        secure: true, // Requires HTTPS protocol
         sameSite: 'none' 
     }
 }));
 
-// 6.4. Authentication Middleware
-const isAuth = function(request, response, next) {
-    if (request.session.staffId) {
+// 6.4. Security Guard: isAuth
+// Prevents unauthorized users from accessing staff-specific API routes.
+const isAuth = function(req, res, next) {
+    const isSessionActive = (req.session.staffId !== undefined);
+    
+    if (isSessionActive === true) {
         return next();
     }
     
-    if (request.path.startsWith('/api')) {
-        console.log(`[AUTH] 🛑 Unauthorized API Access: ${request.path}`);
-        return response.status(401).json({ error: "Access Denied: Authentication Required" });
+    const isApiCall = req.path.startsWith('/api');
+    
+    if (isApiCall === true) {
+        console.log(`[SECURITY] 🛑 BLOCK: Unauthenticated API request to ${req.path}`);
+        return res.status(401).json({ 
+            error: "Authentication Required: Session Missing." 
+        });
     }
     
-    console.log(`[AUTH] 🛑 Redirecting guest to login for protected path: ${request.path}`);
-    return response.redirect('/login.html');
+    console.log(`[SECURITY] 🛑 REDIRECT: Guest user routed to login from ${req.path}`);
+    return res.redirect('/login.html');
 };
 
-// 6.5. Administrative Authorization Middleware
-const isAdmin = function(request, response, next) {
-    if (request.session.staffId && request.session.isAdmin === true) {
+// 6.5. Security Guard: isAdmin
+// Enforces dual-layer security for destructive or sensitive operations.
+const isAdmin = function(req, res, next) {
+    const isStaff = (req.session.staffId !== undefined);
+    const hasAdminFlag = (req.session.isAdmin === true);
+    
+    if (isStaff === true && hasAdminFlag === true) {
         return next();
     }
     
-    console.log(`[AUTH] 🛑 Forbidden: Admin account required for path ${request.path}`);
-    return response.status(403).json({ error: "Access Denied: Administrative Clearance Required" });
+    console.log(`[SECURITY] 🛑 FORBIDDEN: User ${req.session.username || 'unknown'} lacks admin flag.`);
+    return res.status(403).json({ 
+        error: "Forbidden: Administrative clearance required." 
+    });
 };
 
-// 6.6. Static Path Mapping
-// Public pages: Home, Status, Login
+/**
+ * 6.6. Helper: getPanelUrl
+ * Resolves the primary URL for email/DM notifications.
+ */
+const getPanelUrl = function() {
+    const configuredUrl = process.env.APP_URL;
+    if (configuredUrl) {
+        return configuredUrl;
+    }
+    return "http://localhost:10000";
+};
+
+// 6.7. Static File Deployment
+// Serves images, CSS, and public HTML from the 'public' directory.
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Protected pages: Admin, Dashboard
+// 6.8. Staff Directory Deployment
+// Serves protected files, ensuring the isAuth guard is evaluated first.
 app.use('/staff', isAuth, express.static(path.join(__dirname, 'public/staff')));
 
 
 // =================================================================================================
-//  SECTION 7: DISCORD CLIENT SERVICE LAYER (MIRAIDON FLEET)
+//  SECTION 7: DISCORD GATEWAY INTERFACE (MIRAIDON FLEET)
 // =================================================================================================
 
 /**
- * DISCORD INITIALIZATION:
- * Loads tokens for both Miraidon and Professor Mable.
+ * GATEWAY BOOTSTRAP:
+ * Filters the environment for valid bot tokens.
  */
-const botTokens = [
+const rawTokens = [
     process.env.BOT_ONE_TOKEN, 
     process.env.BOT_TWO_TOKEN
-].filter(function(t) {
-    return (t !== undefined && t !== "");
+];
+
+const validTokens = rawTokens.filter(function(t) {
+    const exists = (t !== undefined && t !== "");
+    return exists;
 });
 
-const clients = [];
+const discordClients = [];
 
 /**
- * Service: sendLog
- * Dispatches embeds to the developer log channel.
+ * Function: sendLog
+ * Centralized logging to dispatch embeds to the staff Discord channel.
+ * UPDATED v11.1: Supports role mentions via 'content' parameter.
  */
-async function sendLog(title, description, colorCode = '#3b82f6', files = []) {
-    if (!process.env.LOG_CHANNEL_ID || !clients[0]) {
+async function sendLog(title, description, color = '#3b82f6', files = [], pingContent = "") {
+    const channelId = process.env.LOG_CHANNEL_ID;
+    const botReady = (discordClients[0] !== undefined);
+    
+    if (!channelId || !botReady) {
         return;
     }
     
     try {
-        const targetChannel = await clients[0].channels.fetch(process.env.LOG_CHANNEL_ID);
-        if (targetChannel) {
+        const logChannel = await discordClients[0].channels.fetch(channelId);
+        
+        if (logChannel) {
             const embed = new EmbedBuilder()
                 .setTitle(title)
                 .setDescription(description)
-                .setColor(colorCode)
+                .setColor(color)
                 .setTimestamp()
-                .setFooter({ text: "TSP Master Control" });
+                .setFooter({ 
+                    text: "Miraidon Master Control" 
+                });
                 
-            await targetChannel.send({ embeds: [embed], files: files });
+            const payload = { 
+                embeds: [embed], 
+                files: files 
+            };
+            
+            // Inject targeted staff ping if provided
+            if (pingContent !== "") {
+                payload.content = pingContent;
+            }
+            
+            await logChannel.send(payload);
         }
-    } catch (logErr) { 
-        console.error(`[LOG] ❌ Embed dispatch failure: ${logErr.message}`); 
+    } catch (logError) { 
+        console.error(`[LOG] ❌ Embed dispatch failure: ${logError.message}`); 
     }
 }
 
-// 7.1. Gateway Connection Loop
-botTokens.forEach(function(tokenValue, tokenIndex) {
-    const discordClient = new Client({
+// 7.1. Bot Engine Loop
+validTokens.forEach(function(token, index) {
+    
+    const client = new Client({
         intents: [
             GatewayIntentBits.Guilds, 
             GatewayIntentBits.DirectMessages, 
             GatewayIntentBits.MessageContent, 
-            GatewayIntentBits.GuildMembers
+            GatewayIntentBits.GuildMembers, 
+            GatewayIntentBits.GuildInvites,
+            GatewayIntentBits.GuildMessageTyping, 
+            GatewayIntentBits.DirectMessageTyping
         ],
-        partials: [Partials.Channel, Partials.Message]
+        partials: [
+            Partials.Channel, 
+            Partials.Message
+        ]
     });
 
-    // Handle Gateway Connectivity
-    discordClient.once('ready', function() {
-        console.log(`[FLEET] 🤖 Client ${tokenIndex + 1} Active: ${discordClient.user.tag}`);
+    // 7.2. Client Ready Handler
+    client.once('ready', function() {
+        console.log(`[DISCORD] 🤖 Gateway ${index + 1} Authorized: ${client.user.tag}`);
     });
 
-    // Handle Typing synchronization
-    discordClient.on('typingStart', function(event) {
-        if (event.user.bot === true) return;
-        io.emit('user_typing', { userId: event.user.id });
+    // 7.3. Typing Notification Handler
+    client.on('typingStart', function(typing) {
+        const isBot = typing.user.bot;
+        if (isBot === true) {
+            return;
+        }
+        // Emit Socket to Dashboard for visual feedback
+        io.emit('user_typing', { 
+            userId: typing.user.id 
+        });
     });
 
-    // Handle Interaction (Support Ratings)
-    discordClient.on('interactionCreate', async function(interaction) {
-        if (interaction.isButton() === false) return;
+    // 7.4. Interaction (Button) Handler
+    // Processes 5-star ratings sent to users upon ticket closure.
+    client.on('interactionCreate', async function(interaction) {
+        const isButton = interaction.isButton();
+        if (isButton === false) {
+            return;
+        }
 
-        const parts = interaction.customId.split('_');
-        const type = parts[0];
+        const customId = interaction.customId;
+        const idParts = customId.split('_');
+        const interactionAction = idParts[0];
         
-        if (type === 'rate') {
-            const stars = parseInt(parts[1]);
-            const staffId = parts[2];
+        if (interactionAction === 'rate') {
+            const starScore = parseInt(idParts[1]);
+            const staffTargetId = idParts[2];
             
-            console.log(`[RATING] ⭐ Staff ${staffId} received rating: ${stars}`);
+            console.log(`[FEEDBACK] Received star rating for staff member ${staffTargetId}`);
 
             try {
-                // Increment score and count
-                await Staff.findByIdAndUpdate(staffId, { 
-                    $inc: { ratingSum: stars, ratingCount: 1 } 
+                // Atomic database increment
+                await Staff.findByIdAndUpdate(staffTargetId, { 
+                    $inc: { ratingSum: starScore, ratingCount: 1 } 
                 });
 
                 const confirmationRow = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('done').setLabel(`Feedback Logged`).setStyle(ButtonStyle.Success).setDisabled(true)
+                    new ButtonBuilder()
+                        .setCustomId('done')
+                        .setLabel(`Experience Rated: ${starScore}/5`)
+                        .setStyle(ButtonStyle.Success)
+                        .setDisabled(true)
                 );
 
                 await interaction.update({ 
-                    content: `**Thank you!** You successfully rated your session **${stars}/5 stars**.`, 
+                    content: `**Thank you for your feedback!** You have rated this session **${starScore} stars**.`, 
                     components: [confirmationRow] 
                 });
-            } catch (err) {
-                console.error(`[RATING] ❌ Database update failure: ${err.message}`);
+            } catch (ratingError) {
+                console.error(`[FEEDBACK] ❌ Failed to commit rating: ${ratingError.message}`);
             }
         }
     });
 
-    // MAIN MESSAGE DISPATCHER (Ticket Logic)
-    discordClient.on('messageCreate', async function(message) {
-        // Discard logic: Bots, Guild messages, Empty content
-        if (message.author.bot === true || message.guild !== null) {
+    // 7.5. MAIN INBOUND MESSAGE DISPATCHER
+    client.on('messageCreate', async function(message) {
+        // Validation: No bots, No guild channels, Text content required or media.
+        const authorIsBot = message.author.bot;
+        if (authorIsBot === true) {
             return;
         }
         
-        const discordUserId = message.author.id;
-        const currentAvatar = message.author.displayAvatarURL({ extension: 'png', size: 128 });
+        const authorInGuild = (message.guild !== null);
+        if (authorInGuild === true) {
+            return;
+        }
+        
+        const senderId = message.author.id;
+        const currentPfp = message.author.displayAvatarURL({ extension: 'png', size: 128 });
 
-        // Query active support threads
-        let activeThread = await Thread.findOne({ 
-            userId: discordUserId, 
-            botId: discordClient.user.id 
+        // Query active thread store
+        let threadRecord = await Thread.findOne({ 
+            userId: senderId, 
+            botId: client.user.id 
         });
         
-        // --- CASE: NEW INQUIRY ---
-        if (activeThread === null) {
-            console.log(`[TICKET] 📩 Initial Message from: ${message.author.tag}`);
+        // -----------------------------------------------------------------------------------------
+        // CASE: INITIAL THREAD CREATION
+        // -----------------------------------------------------------------------------------------
+        if (threadRecord === null) {
+            console.log(`[TICKET] 📩 New inquiry detected from ${message.author.tag}`);
             
-            activeThread = new Thread({ 
-                userId: discordUserId, 
+            threadRecord = new Thread({ 
+                userId: senderId, 
                 userTag: message.author.tag, 
-                userAvatar: currentAvatar, 
-                botId: discordClient.user.id, 
-                botName: discordClient.user.username, 
+                userAvatar: currentPfp, 
+                botId: client.user.id, 
+                botName: client.user.username, 
                 messages: [] 
             });
             
-            // Query System Config for Schedule check
-            const systemConfig = await Config.findOne({ id: 'global' });
-            const isToggledOn = systemConfig ? systemConfig.supportOnline : true;
-            const openTime = systemConfig ? systemConfig.openTime : "08:00";
-            const closeTime = systemConfig ? systemConfig.closeTime : "23:59";
+            // Retrieve configuration for schedule-based auto-replies
+            const configDoc = await Config.findOne({ id: 'global' });
+            
+            const serviceOnline = configDoc ? configDoc.supportOnline : true;
+            const openTimeStr = configDoc ? configDoc.openTime : "08:00";
+            const closeTimeStr = configDoc ? configDoc.closeTime : "23:59";
 
-            // Calculate current minute total in AST
+            // Support operating hours logic (AST)
             const dateObj = new Date();
-            const timeStr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' }).format(dateObj);
-            const [nowH, nowM] = timeStr.split(':').map(Number);
-            const currentMinuteTotal = (nowH * 60) + nowM;
+            const formatOptions = { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' };
+            const timeParts = new Intl.DateTimeFormat('en-US', formatOptions).formatToParts(dateObj);
+            
+            const currentHourValue = parseInt(timeParts.find(p => p.type === 'hour').value);
+            const currentMinValue = parseInt(timeParts.find(p => p.type === 'minute').value);
+            const totalMinutesNow = (currentHourValue * 60) + currentMinValue;
 
-            const [configOpenH, configOpenM] = openTime.split(':').map(Number);
-            const [configCloseH, configCloseM] = closeTime.split(':').map(Number);
-            const startLimit = (configOpenH * 60) + configOpenM;
-            const endLimit = (configCloseH * 60) + configCloseM;
+            const [configOpenH, configOpenM] = openTimeStr.split(':').map(Number);
+            const [configCloseH, configCloseM] = closeTimeStr.split(':').map(Number);
+            
+            const startWindowMinutes = (configOpenH * 60) + configOpenM;
+            const endWindowMinutes = (configCloseH * 60) + configCloseM;
 
-            const isOperatingHours = (currentMinuteTotal >= startLimit && currentMinuteTotal <= endLimit);
+            const isCurrentlyOpen = (totalMinutesNow >= startWindowMinutes && totalMinutesNow <= endWindowMinutes);
 
             let greetingEmbed;
 
-            if (isToggledOn === false) {
+            if (serviceOnline === false) {
+                // TICKET OPENED WHILE MASTER TOGGLE IS OFF
                 greetingEmbed = new EmbedBuilder()
                     .setColor('#ef4444')
-                    .setTitle('Inquiries Paused')
-                    .setDescription(`Support is currently offline for a scheduled break.\n\n**Reason:** ${systemConfig.offlineNote || 'No reason provided.'}`)
+                    .setTitle('Support Desk Offline')
+                    .setDescription(`We have received your message, but the support desk is currently taking a scheduled break.\n\n**Note:** ${configDoc.offlineNote || 'Maintenance/Day Off'}\n\nOur team will review your ticket upon return.`)
                     .setTimestamp();
-            } else if (isOperatingHours === false) {
+            } else if (isCurrentlyOpen === false) {
+                // TICKET OPENED OUTSIDE SCHEDULE
                 greetingEmbed = new EmbedBuilder()
                     .setColor('#f59e0b')
-                    .setTitle('Support Desk Closed')
-                    .setDescription(`You have contacted us outside of normal Support hours.\n\n**Schedule:** ${openTime} - ${closeTime} AST.\nWe Have Received your message and will respond as soon as available.`)
+                    .setTitle('Outside Operating Hours')
+                    .setDescription(`Hello! You've reached us outside of our normal support window.\n\n**Schedule:** ${openTimeStr} to ${closeTimeStr} AST.\n\nYour inquiry has been queued for staff review.`)
                     .setTimestamp();
             } else {
+                // TICKET OPENED DURING NORMAL OPERATION
                 greetingEmbed = new EmbedBuilder()
                     .setColor('#3b82f6')
-                    .setTitle('Ticket Dispatched')
-                    .setDescription('Your inquiry has reached our staff console.\n**Estimated response time** is 2-3 Hours.')
+                    .setTitle('Support Inquiry Initialized')
+                    .setDescription('AFFIRMATIVE, TRAINER.\n\nYour inquiry has reached our dashboard. A staff member will respond to you inquery shortly. Please hold tight.')
+                    .setFooter('Esttimated Response Time: 1-2 Hours')
                     .setTimestamp();
             }
             
             try { 
                 await message.author.send({ embeds: [greetingEmbed] }); 
-            } catch (err) {
-                console.warn(`[TICKET] ⚠️ Failed to greet user ${message.author.tag}`);
+            } catch (initialDmError) {
+                console.warn(`[TICKET] ⚠️ User ${message.author.tag} has DMs disabled.`);
             }
 
-            sendLog("🆕 Ticket Initialized", `**User:** ${message.author.tag}\n**Entry Gateway:** ${discordClient.user.username}`, '#facc15');
+            // v11.1: NOTIFICATION LOG DISPATCH WITH TARGETED PING
+            let pingTarget = "@here"; 
+            const staffRoleId = process.env.STAFF_ROLE_ID;
+            
+            if (staffRoleId && staffRoleId !== "") {
+                pingTarget = `<@&${staffRoleId}>`;
+            }
+
+            sendLog(
+                "🆕 New Support Ticket", 
+                `**User:** ${message.author.tag}\n**Discord ID:** ${senderId}\n**Gateway Bot:** ${client.user.username}`, 
+                '#facc15', 
+                [], 
+                pingTarget
+            );
+
         } else {
-            // Update User Avatar cache
-            if (activeThread.userAvatar !== currentAvatar) {
-                activeThread.userAvatar = currentAvatar;
+            // Check for avatar update to keep dashboard fresh
+            const avatarChanged = (threadRecord.userAvatar !== currentPfp);
+            if (avatarChanged === true) {
+                threadRecord.userAvatar = currentPfp;
             }
         }
         
-        // --- CASE: CONTINUING CORRESPONDENCE ---
-        console.log(`[TICKET] 📥 Inbound Message from ${message.author.tag}`);
+        // -----------------------------------------------------------------------------------------
+        // LOGIC: APPEND MESSAGE TO ACTIVE THREAD
+        // -----------------------------------------------------------------------------------------
+        console.log(`[MSG] 📥 Inbound from ${message.author.tag}: ${message.content.substring(0, 30)}`);
 
-        const attachmentUrls = message.attachments.map(function(a) {
-            return a.url;
+        const messageAttachments = message.attachments.map(function(attachment) {
+            return attachment.url;
         });
         
-        const threadMessageObject = { 
+        const inboundMessageObj = { 
             authorTag: message.author.tag, 
-            authorAvatar: currentAvatar, 
-            content: message.content || "[Media/System Attachment]", 
-            attachments: attachmentUrls, 
+            authorAvatar: currentPfp, 
+            content: message.content || "[Media Content]", 
+            attachments: messageAttachments, 
             fromBot: false, 
             timestamp: new Date() 
         };
 
-        activeThread.messages.push(threadMessageObject);
-        activeThread.lastMessageAt = new Date();
-        await activeThread.save();
+        threadRecord.messages.push(inboundMessageObj);
+        threadRecord.lastMessageAt = new Date();
+        await threadRecord.save();
         
-        // Push notification to staff dashboard
+        // DISPATCH TO SOCKET GATEWAY
+        // This triggers audio alerts and tab title pulsing in the browser.
         io.emit('new_message', { 
-            threadId: activeThread._id, 
+            threadId: threadRecord._id, 
             notif_sound: true, 
-            ...threadMessageObject 
+            ...inboundMessageObj 
         });
     });
 
-    // Execute Client Login
-    discordClient.login(tokenValue).catch(function(err) {
-        console.error(`[FLEET] ❌ Client ${tokenIndex + 1} authentication error: ${err.message}`);
+    // Login bot client
+    client.login(token).catch(function(loginAuthError) {
+        console.error(`[FLEET] ❌ Client ${index + 1} gateway authentication failed: ${loginAuthError.message}`);
     });
     
-    clients.push(discordClient);
+    discordClients.push(client);
 });
 
 
@@ -791,87 +985,103 @@ botTokens.forEach(function(tokenValue, tokenIndex) {
 //  SECTION 8: REAL-TIME COMMUNICATION GATEWAY (SOCKET.IO)
 // =================================================================================================
 
-const threadVewingMembers = {}; 
+const threadVewingCache = {}; 
 
-io.on('connection', function(socketInstance) {
+io.on('connection', function(staffSocket) {
     
     /**
      * EVENT: join_ticket_room
-     * Handles collision detection for staff members.
+     * Logic for staff members focusing a specific inquiry.
      */
-    socketInstance.on('join_ticket_room', function(payload) {
+    staffSocket.on('join_ticket_room', function(payload) {
         const id = payload.threadId;
         const name = payload.username;
 
-        socketInstance.join(id);
+        staffSocket.join(id);
         
-        if (threadVewingMembers[id] === undefined) {
-            threadVewingMembers[id] = new Set();
+        const roomCacheExists = (threadVewingCache[id] !== undefined);
+        if (roomCacheExists === false) {
+            threadVewingCache[id] = new Set();
         }
-        threadVewingMembers[id].add(name);
         
-        console.log(`[SOCKET] 👤 User ${name} monitoring room ${id}`);
+        threadVewingCache[id].add(name);
         
-        // Broadcast to specific room only
-        io.to(id).emit('viewers_updated', Array.from(threadVewingMembers[id]));
+        console.log(`[REALTIME] 👤 ${name} joined inquiry room: ${id}`);
         
-        // Cache data on socket object
-        socketInstance.currentThreadId = id; 
-        socketInstance.currentUser = name;
+        // Broadcast viewer list for collision detection (v10.0 feature)
+        io.to(id).emit('viewers_updated', Array.from(threadVewingCache[id]));
+        
+        // Tag socket for state management
+        staffSocket.currentThreadId = id; 
+        staffSocket.currentUser = name;
     });
 
     /**
      * EVENT: leave_ticket_room
-     * Cleans up collision detection cache.
+     * Cleans up collision detection cache when a staff member changes tabs.
      */
-    socketInstance.on('leave_ticket_room', function() {
-        if (socketInstance.currentThreadId && socketInstance.currentUser) {
-            const id = socketInstance.currentThreadId;
-            socketInstance.leave(id);
+    staffSocket.on('leave_ticket_room', function() {
+        const hasThread = (staffSocket.currentThreadId !== undefined);
+        const hasUser = (staffSocket.currentUser !== undefined);
+
+        if (hasThread === true && hasUser === true) {
+            const currentId = staffSocket.currentThreadId;
+            staffSocket.leave(currentId);
             
-            if (threadVewingMembers[id]) {
-                threadVewingMembers[id].delete(socketInstance.currentUser);
-                io.to(id).emit('viewers_updated', Array.from(threadVewingMembers[id]));
+            const cache = threadVewingCache[currentId];
+            if (cache) {
+                cache.delete(staffSocket.currentUser);
+                io.to(currentId).emit('viewers_updated', Array.from(cache));
             }
             
-            socketInstance.currentThreadId = null;
+            staffSocket.currentThreadId = null;
         }
     });
 
     /**
      * EVENT: disconnect
-     * Automatic cleanup on browser close.
+     * Automatic cleanup logic.
      */
-    socketInstance.on('disconnect', function() {
-        if (socketInstance.currentThreadId && socketInstance.currentUser) {
-            const id = socketInstance.currentThreadId;
-            if (threadVewingMembers[id]) {
-                threadVewingMembers[id].delete(socketInstance.currentUser);
-                io.to(id).emit('viewers_updated', Array.from(threadVewingMembers[id]));
+    staffSocket.on('disconnect', function() {
+        const hasThread = (staffSocket.currentThreadId !== undefined);
+        const hasUser = (staffSocket.currentUser !== undefined);
+
+        if (hasThread === true && hasUser === true) {
+            const currentId = staffSocket.currentThreadId;
+            const cache = threadVewingCache[currentId];
+            
+            if (cache) {
+                cache.delete(staffSocket.currentUser);
+                io.to(currentId).emit('viewers_updated', Array.from(cache));
             }
         }
     });
 
     /**
      * EVENT: staff_typing
-     * Proxies typing state to Discord user.
+     * Proxies the staff member's typing state to the Discord DM channel.
      */
-    socketInstance.on('staff_typing', async function(payload) {
+    staffSocket.on('staff_typing', async function(payload) {
         const threadId = payload.threadId;
-        const threadDoc = await Thread.findById(threadId);
         
-        if (threadDoc) {
-            const bot = clients.find(function(c) {
-                return (c.user.id === threadDoc.botId);
+        try {
+            const targetThread = await Thread.findById(threadId);
+            if (targetThread === null) {
+                return;
+            }
+
+            const gatewayBot = discordClients.find(function(c) {
+                const isMatch = (c.user.id === targetThread.botId);
+                return isMatch;
             });
             
-            if (bot) {
-                try {
-                    const discordUser = await bot.users.fetch(threadDoc.userId);
-                    const channel = discordUser.dmChannel || await discordUser.createDM();
-                    await channel.sendTyping();
-                } catch(e) { /* Discord DM restricted */ }
+            if (gatewayBot) {
+                const user = await gatewayBot.users.fetch(targetThread.userId);
+                const dmChannel = user.dmChannel || await user.createDM();
+                await dmChannel.sendTyping();
             }
+        } catch (typingProxyError) {
+            // Silently ignore if bot lacks permission or user blocked bot
         }
     });
 });
@@ -883,878 +1093,1253 @@ io.on('connection', function(socketInstance) {
 
 /**
  * ROUTE: Staff Authentication Login
- * POST /api/login
+ * Method: POST
+ * Path: /api/login
  */
 app.post('/api/login', async function(request, response) {
-    const user = request.body.username;
-    const pass = request.body.password;
+    const inputUsername = request.body.username;
+    const inputPassword = request.body.password;
     
-    console.log(`[AUTH] 🔑 Login attempt for user: ${user}`);
+    console.log(`[AUTH] 🔐 Login initialization for: ${inputUsername}`);
     
     try {
-        const staffMember = await Staff.findOne({ username: user });
+        const staffDoc = await Staff.findOne({ 
+            username: inputUsername 
+        });
         
-        if (staffMember === null) {
-            return response.status(401).json({ error: "Access Denied: Invalid Credentials" });
+        if (staffDoc === null) {
+            console.log(`[AUTH] ❌ Login denied: User ${inputUsername} not found.`);
+            return response.status(401).json({ 
+                error: "Authentication Refused: Invalid Credentials" 
+            });
         }
 
-        const isMatch = await bcrypt.compare(pass, staffMember.password);
-        if (isMatch === true) {
+        const isAuthorized = await bcrypt.compare(inputPassword, staffDoc.password);
+        
+        if (isAuthorized === true) {
             
-            // Execute Profile Photo Synchronization
+            // Execute Profile Photo Synchronization (Discord API)
             try {
-                if (clients[0]) {
-                    const discordProfile = await clients[0].users.fetch(staffMember.discordId);
+                const botIsReady = (discordClients[0] !== undefined);
+                if (botIsReady === true) {
+                    const discordProfile = await discordClients[0].users.fetch(staffDoc.discordId);
                     if (discordProfile) {
-                        staffMember.avatar = discordProfile.displayAvatarURL({ extension: 'png', size: 128 });
-                        await staffMember.save();
-                        console.log(`[AUTH] 🖼️ Avatar synchronized for ${user}`);
+                        const newAvatarUrl = discordProfile.displayAvatarURL({ extension: 'png', size: 128 });
+                        staffDoc.avatar = newAvatarUrl;
+                        await staffDoc.save();
+                        console.log(`[AUTH] 🖼️ Profile photo updated for staff member ${inputUsername}`);
                     }
                 }
-            } catch (pfpError) { 
-                console.error(`[AUTH] ⚠️ Avatar sync failed: ${pfpError.message}`); 
+            } catch (avatarSyncError) { 
+                console.error(`[AUTH] ⚠️ Profile sync skipped: ${avatarSyncError.message}`); 
             }
 
-            request.session.staffId = staffMember._id; 
-            request.session.isAdmin = staffMember.isAdmin; 
-            request.session.username = staffMember.username;
+            // Assign session variables
+            request.session.staffId = staffDoc._id; 
+            request.session.isAdmin = staffDoc.isAdmin; 
+            request.session.username = staffDoc.username;
             
-            request.session.save(function() {
-                console.log(`[AUTH] ✅ Session established for ${user}`);
+            // Explicitly save session before responding
+            request.session.save(function(sessionErr) {
+                if (sessionErr) {
+                    return response.status(500).json({ error: "Session persistence error." });
+                }
+                console.log(`[AUTH] ✅ Authentication verified. Session active for ${inputUsername}`);
                 return response.json({ 
                     success: true, 
-                    isAdmin: staffMember.isAdmin, 
-                    username: staffMember.username 
+                    isAdmin: staffDoc.isAdmin, 
+                    username: staffDoc.username 
                 });
             });
         } else {
-            console.log(`[AUTH] ❌ Login failure: ${user}`);
-            return response.status(401).json({ error: "Access Denied: Invalid Credentials" });
+            console.log(`[AUTH] ❌ Login denied: Key mismatch for user ${inputUsername}`);
+            return response.status(401).json({ 
+                error: "Authentication Refused: Invalid Credentials" 
+            });
         }
     } catch (criticalAuthError) {
-        console.error("[AUTH] ❌ Critical login logic error:");
+        console.error("[AUTH] ❌ Internal Server Error during authentication logic:");
         console.error(criticalAuthError);
-        return response.status(500).json({ error: "Internal Authentication Error" });
+        return response.status(500).json({ 
+            error: "Internal Server Error: Logic fault." 
+        });
     }
 });
 
 /**
  * ROUTE: Staff Logout
- * POST /api/logout
+ * Method: POST
+ * Path: /api/logout
  */
 app.post('/api/logout', function(request, response) { 
-    const actor = request.session.username || 'unknown';
-    console.log(`[AUTH] 🚪 Closing session for user: ${actor}`);
+    const actorName = request.session.username || 'guest';
+    console.log(`[AUTH] 🚪 Destroying session for ${actorName}`);
     
-    request.session.destroy(function(err) { 
-        if (err) {
-            console.error("[AUTH] ❌ Session destruction error:");
-            console.error(err);
-            return response.status(500).json({ error: "Internal server error during logout." });
+    request.session.destroy(function(destroyError) { 
+        if (destroyError) {
+            console.error("[AUTH] ❌ Error during session destruction:");
+            console.error(destroyError);
+            return response.status(500).json({ 
+                error: "Internal failure: Could not close session." 
+            });
         }
+        
         response.clearCookie('connect.sid'); 
-        return response.json({ success: true }); 
+        
+        return response.json({ 
+            success: true 
+        }); 
     }); 
 });
 
 /**
- * ROUTE: Session Identity Retrieval
- * GET /api/auth/user
+ * ROUTE: Identity Verification
+ * Method: GET
+ * Path: /api/auth/user
  */
 app.get('/api/auth/user', isAuth, function(request, response) {
-    return response.json({ 
+    const sessionData = { 
         username: request.session.username, 
         isAdmin: request.session.isAdmin 
-    });
+    };
+    
+    return response.json(sessionData);
 });
 
 /**
- * ROUTE: Staff Account Recovery (Public)
- * POST /api/public/request-reset
+ * ROUTE: Staff Password Recovery (Public Access)
+ * Method: POST
+ * Path: /api/public/request-reset
  */
 app.post('/api/public/request-reset', async function(request, response) {
-    const id = request.body.discordId;
-    console.log(`[AUTH] 🔄 Recovery request for ID: ${id}`);
+    const targetDiscordId = request.body.discordId;
+    console.log(`[RECOVERY] 🔄 Secure key reset requested for Discord ID: ${targetDiscordId}`);
     
     try {
-        const staff = await Staff.findOne({ discordId: id });
-        if (staff === null) {
-            return response.status(404).json({ error: "Target ID not registered." });
-        }
-        
-        // Force key generation
-        const secureKey = generateComplexPassword();
-        staff.password = await bcrypt.hash(secureKey, 10);
-        await staff.save();
-        
-        // Dispatch to target
-        const handle = await clients[0].users.fetch(id);
-        const embed = new EmbedBuilder()
-            .setTitle("🔑 Terminal Recovery Triggered")
-            .setDescription(`A secure key reset was authorized.\n\n**New Key:** \`${secureKey}\`\n**Portal:** ${getPanelUrl()}\n\nUpdate this key via the dashboard immediately.`)
-            .setColor('#facc15');
-            
-        await handle.send({ embeds: [embed] });
-        
-        console.log(`[AUTH] ✅ Recovery key dispatched to ${staff.username}`);
-        return response.json({ success: true });
-    } catch (resetErr) { 
-        console.error(`[AUTH] ❌ Recovery failure: ${resetErr.message}`);
-        return response.status(500).json({ error: "Dispatch failed. Verify DM availability." }); 
-    }
-});
-
-/**
- * ROUTE: Self-Service Password Rotation
- * POST /api/staff/change-password
- */
-app.post('/api/staff/change-password', isAuth, async function(request, response) {
-    const current = request.body.currentPassword;
-    const proposed = request.body.newPassword;
-    const actor = request.session.username;
-    
-    console.log(`[AUTH] 🔐 User ${actor} rotating secure key...`);
-
-    try {
-        // Enforce complexity
-        const isValid = validateComplexPassword(proposed);
-        if (isValid === false) {
-            return response.status(400).json({ error: "Proposed key violates complexity policy (8 chars, 1 Capital, 1 Num, 1 Sym)." });
-        }
-
-        const doc = await Staff.findById(request.session.staffId);
-        if (doc === null) {
-            return response.status(404).json({ error: "Staff record missing." });
-        }
-
-        const isAuthorized = await bcrypt.compare(current, doc.password);
-        if (isAuthorized === false) {
-            return response.status(401).json({ error: "Current key verification failed." });
-        }
-
-        doc.password = await bcrypt.hash(proposed, 10);
-        await doc.save();
-        
-        console.log(`[AUTH] ✅ Rotation successful for ${actor}`);
-        return response.json({ success: true });
-    } catch (rotateErr) {
-        console.error("[AUTH] ❌ Rotation logic failure:");
-        console.error(rotateErr);
-        return response.status(500).json({ error: "Persistence error." });
-    }
-});
-
-
-// =================================================================================================
-//  SECTION 10: SUPPORT TICKET OPERATIONS API
-// =================================================================================================
-
-/**
- * ROUTE: List All Active Support Inquiries
- * GET /api/threads
- */
-app.get('/api/threads', isAuth, async function(request, response) { 
-    try {
-        const inbox = await Thread.find().sort({ lastMessageAt: -1 }); 
-        return response.json(inbox);
-    } catch (dbErr) {
-        console.error("[API] Failed to fetch thread list:");
-        console.error(dbErr);
-        return response.status(500).json({ error: "Read failure." });
-    }
-});
-
-/**
- * ROUTE: Send Outbound Support Message
- * POST /api/reply
- */
-app.post('/api/reply', isAuth, async function(request, response) {
-    const id = request.body.threadId;
-    const text = request.body.content;
-    const file = request.body.fileBase64;
-    const fileName = request.body.fileName;
-    
-    try {
-        const thread = await Thread.findById(id);
-        if (thread === null) {
-            return response.status(404).json({ error: "Thread expired or deleted." });
-        }
-        
-        const bot = clients.find(function(c) {
-            return (c.user.id === thread.botId);
+        const staffAccount = await Staff.findOne({ 
+            discordId: targetDiscordId 
         });
         
-        if (bot === undefined) {
-            return response.status(500).json({ error: "Target gateway bot is offline." });
+        if (staffAccount === null) {
+            console.log(`[RECOVERY] ❌ ID ${targetDiscordId} not recognized.`);
+            return response.status(404).json({ 
+                error: "Identity Not Recognized: ID not found in database." 
+            });
+        }
+        
+        // Generate new complex key
+        const newSecureKey = generateComplexPassword();
+        const newHashedKey = await bcrypt.hash(newSecureKey, 10);
+        
+        staffAccount.password = newHashedKey;
+        await staffAccount.save();
+        
+        // Dispatch to target via DM using first bot client
+        const primaryBot = discordClients[0];
+        const userHandle = await primaryBot.users.fetch(targetDiscordId);
+        
+        const recoveryEmbed = new EmbedBuilder()
+            .setTitle("🔒 Identity Recovery Authorized")
+            .setDescription(`Your Miraidon Trade Services staff password has been force-reset.\n\n**New Secure Key:** \`${newSecureKey}\`\n**Portal:** ${getPanelUrl()}\n\nPlease update this key via your settings immediately.`)
+            .setColor('#facc15')
+            .setTimestamp();
+            
+        await userHandle.send({ 
+            embeds: [recoveryEmbed] 
+        });
+        
+        console.log(`[RECOVERY] ✅ Reset confirmed. New key DM'd to ${staffAccount.username}`);
+        return response.json({ 
+            success: true 
+        });
+        
+    } catch (recoveryDispatchError) { 
+        console.error(`[RECOVERY] ❌ Logic fault during key reset: ${recoveryDispatchError.message}`);
+        return response.status(500).json({ 
+            error: "Recovery Dispatch Failure: Ensure Bot has DM permissions." 
+        }); 
+    }
+});
+
+/**
+ * ROUTE: Self-Service Password Update
+ * Method: POST
+ * Path: /api/staff/change-password
+ */
+app.post('/api/staff/change-password', isAuth, async function(request, response) {
+    const currentPassInput = request.body.currentPassword;
+    const newPassInput = request.body.newPassword;
+    const actor = request.session.username;
+    
+    console.log(`[SETTINGS] 🔐 Password change sequence initiated for ${actor}`);
+
+    try {
+        // Step 1: Compliance verification
+        const meetsPolicy = validateComplexPassword(newPassInput);
+        if (meetsPolicy === false) {
+            return response.status(400).json({ 
+                error: "Policy Violation: New key does not meet requirements (8+ chars, Uppercase, Number, Symbol)." 
+            });
         }
 
-        // Aggregate Staff Meta for injection
-        const staffProfile = await Staff.findById(request.session.staffId);
-        const avatar = staffProfile ? staffProfile.avatar : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        // Step 2: Database retrieval
+        const targetStaffDoc = await Staff.findById(request.session.staffId);
+        if (targetStaffDoc === null) {
+            return response.status(404).json({ 
+                error: "Reference Error: Staff record no longer exists." 
+            });
+        }
 
-        const userHandle = await bot.users.fetch(thread.userId);
+        // Step 3: Current authorization verification
+        const currentMatch = await bcrypt.compare(currentPassInput, targetStaffDoc.password);
+        if (currentMatch === false) {
+            console.log(`[SETTINGS] ❌ Key rotation failed for ${actor}: Current key incorrect.`);
+            return response.status(401).json({ 
+                error: "Authorization Failure: Current secure key is incorrect." 
+            });
+        }
+
+        // Step 4: Secure hashing and persistence
+        const newHash = await bcrypt.hash(newPassInput, 10);
+        targetStaffDoc.password = newHash;
+        await targetStaffDoc.save();
         
-        let embed = new EmbedBuilder()
+        console.log(`[SETTINGS] ✅ Key rotation successful for technican ${actor}`);
+        return response.json({ 
+            success: true 
+        });
+    } catch (passwordUpdateError) {
+        console.error("[SETTINGS] ❌ Server-side logic failure during key rotation:");
+        console.error(passwordUpdateError);
+        return response.status(500).json({ 
+            error: "Internal Server Error: Persistence logic failure." 
+        });
+    }
+});
+
+
+// =================================================================================================
+//  SECTION 10: SUPPORT INQUIRY OPERATIONS API (TICKETING)
+// =================================================================================================
+
+/**
+ * ROUTE: Retrieve Active Inbox
+ * Method: GET
+ * Path: /api/threads
+ */
+app.get('/api/threads', isAuth, async function(request, response) { 
+    console.log(`[API] 📬 Inbox refresh requested by ${request.session.username}`);
+    
+    try {
+        // Sort by the most recently messaged thread
+        const inquiryList = await Thread.find().sort({ 
+            lastMessageAt: -1 
+        }); 
+        
+        return response.json(inquiryList);
+    } catch (inquiryFetchError) {
+        console.error("[API] ❌ Failed to retrieve thread collection:");
+        console.error(inquiryFetchError);
+        return response.status(500).json({ 
+            error: "Database Read Failure: Inquiry collection unavailable." 
+        });
+    }
+});
+
+/**
+ * ROUTE: Send Outbound Response to User
+ * Method: POST
+ * Path: /api/reply
+ */
+app.post('/api/reply', isAuth, async function(request, response) {
+    const threadDatabaseId = request.body.threadId;
+    const textContent = request.body.content;
+    const mediaBufferBase64 = request.body.fileBase64;
+    const mediaOriginalName = request.body.fileName;
+    
+    console.log(`[REPLY] 📤 Staff member ${request.session.username} sending response to thread ${threadDatabaseId}`);
+
+    try {
+        // 1. Thread retrieval
+        const targetThread = await Thread.findById(threadDatabaseId);
+        if (targetThread === null) {
+            return response.status(404).json({ 
+                error: "Thread Decommissioned: Inactive or deleted thread ID provided." 
+            });
+        }
+        
+        // 2. Gateway selection
+        const assignedGateway = discordClients.find(function(c) {
+            const isMatch = (c.user.id === targetThread.botId);
+            return isMatch;
+        });
+        
+        if (assignedGateway === undefined) {
+            console.error(`[REPLY] ❌ Bot Gateway ${targetThread.botId} is currently unreachable.`);
+            return response.status(500).json({ 
+                error: "Gateway Offline: Target bot instance is disconnected from Discord." 
+            });
+        }
+
+        // 3. Metadata aggregation (Profile Photos)
+        const staffAccount = await Staff.findById(request.session.staffId);
+        const activeStaffAvatar = staffAccount ? staffAccount.avatar : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+        // 4. Discord User Fetching
+        const discordUserHandle = await assignedGateway.users.fetch(targetThread.userId);
+        
+        // 5. Construct Discord Embed
+        const responseEmbed = new EmbedBuilder()
             .setColor('#3b82f6')
             .setAuthor({ 
-                name: `Staff Member: ${request.session.username}`, 
-                iconURL: bot.user.displayAvatarURL() 
+                name: `Staff Response: ${request.session.username}`, 
+                iconURL: assignedGateway.user.displayAvatarURL() 
             })
-            .setDescription(text || "[Attached File]")
+            .setDescription(textContent || "[Media Attachment Only]")
             .setTimestamp();
         
-        let payload = { embeds: [embed] };
+        const discordOutboundPayload = { 
+            embeds: [responseEmbed] 
+        };
         
-        // Handle Media Attachment
-        if (file) {
-            console.log(`[REPLY] 📎 Injecting media: ${fileName}`);
-            const buffer = Buffer.from(file.split(',')[1], 'base64');
-            payload.files = [new AttachmentBuilder(buffer, { name: fileName || 'file.png' })];
+        // 6. Handle File Attachment Processing
+        if (mediaBufferBase64) {
+            console.log(`[REPLY] 📎 Processing outbound file: ${mediaOriginalName}`);
+            
+            // Extract buffer from base64 string
+            const bufferObject = Buffer.from(mediaBufferBase64.split(',')[1], 'base64');
+            const discordAttachment = new AttachmentBuilder(bufferObject, { 
+                name: mediaOriginalName || 'attachment.png' 
+            });
+            
+            discordOutboundPayload.files = [discordAttachment];
         }
         
-        // Execute Discord Dispatch
-        await userHandle.send(payload);
+        // 7. Dispatch to Discord API
+        await discordUserHandle.send(discordOutboundPayload);
         
-        // Commit to Persistence
-        const msg = { 
+        // 8. Log response to local persistence
+        const staffMessageEntry = { 
             authorTag: `Staff (${request.session.username})`, 
-            authorAvatar: avatar, 
-            content: text || "[Media Attachment]", 
+            authorAvatar: activeStaffAvatar, 
+            content: textContent || "[Media Attachment]", 
             fromBot: true, 
             timestamp: new Date() 
         };
         
-        thread.messages.push(msg);
-        thread.lastMessageAt = new Date();
-        await thread.save();
+        targetThread.messages.push(staffMessageEntry);
+        targetThread.lastMessageAt = new Date();
+        await targetThread.save();
         
-        // Update Statistics
+        // 9. Update Staff Performance Metrics
         await Staff.findByIdAndUpdate(request.session.staffId, { 
             $inc: { repliesSent: 1 } 
         });
         
-        // Push Real-time update to Socket
+        // 10. Synchronize Web UI via Socket Gateway
         io.emit('new_message', { 
-            threadId: thread._id, 
-            ...msg 
+            threadId: targetThread._id, 
+            ...staffMessageEntry 
         });
         
-        console.log(`[REPLY] 📤 Dispatch confirmed to ${thread.userTag}`);
-        return response.json({ success: true });
-    } catch (dispatchErr) { 
-        console.error("[REPLY] ❌ Discord gateway rejection:");
-        console.error(dispatchErr.message);
-        return response.status(500).json({ error: "DM Dispatch Failed: Blocked or Restricted." }); 
+        console.log(`[REPLY] ✅ Response successfully delivered to ${targetThread.userTag}`);
+        return response.json({ 
+            success: true 
+        });
+
+    } catch (dispatchSequenceError) { 
+        console.error("[REPLY] ❌ Critical failure during dispatch sequence:");
+        console.error(dispatchSequenceError.message);
+        return response.status(500).json({ 
+            error: "API Rejection: Discord rejected the DM. User may have blocked the bot or disabled DMs." 
+        }); 
     }
 });
 
 /**
- * ROUTE: Archive and Decommission Ticket
- * POST /api/close-thread
+ * ROUTE: Close Inquiry and Archive
+ * Method: POST
+ * Path: /api/close-thread
  */
 app.post('/api/close-thread', isAuth, async function(request, response) {
-    const id = request.body.threadId;
+    const threadId = request.body.threadId;
     const actor = request.session.username;
     
-    console.log(`[CLOSE] 🔒 Archiving thread ${id}`);
+    console.log(`[INBOX] 🔒 Closure initialization for thread: ${threadId}`);
 
     try {
-        const doc = await Thread.findById(id);
-        if (doc === null) {
-            return response.status(404).json({ error: "Record not found." });
+        const threadDoc = await Thread.findById(threadId);
+        if (threadDoc === null) {
+            return response.status(404).json({ 
+                error: "Reference Error: Ticket not found." 
+            });
         }
 
-        // 1. Serialization for Transcript
-        let txt = `TSP SUPPORT ARCHIVE\n`;
-        txt += `SUBJECT: ${doc.userTag}\n`;
-        txt += `GATEWAY: ${doc.botName}\n`;
-        txt += `CLOSING OFFICER: ${actor}\n`;
-        txt += `==================================================\n\n`;
+        // --- STEP 1: TRANSCRIPT GENERATION ---
+        let transcriptContent = `MIRAIDON TRADE SERVICES: OFFICIAL SUPPORT TRANSCRIPT\n`;
+        transcriptContent += `USER IDENTITY: ${threadDoc.userTag} (ID: ${threadDoc.userId})\n`;
+        transcriptContent += `ASSIGNED GATEWAY: ${threadDoc.botName}\n`;
+        transcriptContent += `CLOSED BY OFFICER: ${actor}\n`;
+        transcriptContent += `CLOSURE TIMESTAMP: ${new Date().toISOString()}\n`;
+        transcriptContent += `================================================================================\n\n`;
         
-        doc.messages.forEach(function(m) { 
-            txt += `[${m.timestamp.toISOString()}] ${m.authorTag}: ${m.content}\n`; 
+        threadDoc.messages.forEach(function(msg) { 
+            const time = msg.timestamp.toISOString();
+            transcriptContent += `[${time}] ${msg.authorTag}: ${msg.content}\n`; 
         });
         
-        const tmpPath = path.join(__dirname, `tmp-${doc.userId}.txt`);
-        fs.writeFileSync(tmpPath, txt);
+        const tempLocalPath = path.join(__dirname, `transcript-${threadDoc.userId}.txt`);
+        fs.writeFileSync(tempLocalPath, transcriptContent);
         
-        // 2. Dispatch to Admin Log Channel
-        const logFile = new AttachmentBuilder(tmpPath);
+        // --- STEP 2: DISPATCH TO DISCORD AUDIT LOG CHANNEL ---
+        const logFile = new AttachmentBuilder(tempLocalPath);
         await sendLog(
-            "🔒 Support Inquiry Closed", 
-            `**User:** ${doc.userTag}\n**Messages:** ${doc.messages.length}\n**Admin:** ${actor}`, 
+            "🔒 Support Inquiry Finalized", 
+            `**User:** ${threadDoc.userTag}\n**Messages:** ${threadDoc.messages.length}\n**Closing Officer:** ${actor}`, 
             '#ef4444', 
             [logFile]
         );
         
-        // 3. Persistent JSON Archive
-        const userFolder = path.join(ARCHIVE_DIR, doc.userId);
-        if (fs.existsSync(userFolder) === false) {
-            fs.mkdirSync(userFolder, { recursive: true });
+        // --- STEP 3: PERSISTENT JSON DATA ARCHIVE ---
+        const targetUserDir = path.join(ARCHIVE_DIR, threadDoc.userId);
+        const folderExists = fs.existsSync(targetUserDir);
+        
+        if (folderExists === false) {
+            fs.mkdirSync(targetUserDir, { recursive: true });
         }
         
-        const filePath = path.join(userFolder, `${Date.now()}-${id}.json`);
+        const jsonArchiveName = `${Date.now()}-${threadId}.json`;
+        const jsonFilePath = path.join(targetUserDir, jsonArchiveName);
+        
         const archivePayload = {
             meta: { 
                 closedBy: actor, 
                 closedAt: new Date(), 
-                userTag: doc.userTag,
-                userId: doc.userId
+                userTag: threadDoc.userTag,
+                userId: threadDoc.userId,
+                totalMessages: threadDoc.messages.length
             },
-            history: doc.messages
+            history: threadDoc.messages
         };
-        fs.writeFileSync(filePath, JSON.stringify(archivePayload, null, 2));
         
-        // 4. Client-Side Rating Trigger
-        const dbId = request.session.staffId;
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`rate_1_${dbId}`).setLabel('1⭐').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`rate_2_${dbId}`).setLabel('2⭐').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`rate_3_${dbId}`).setLabel('3⭐').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`rate_4_${dbId}`).setLabel('4⭐').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId(`rate_5_${dbId}`).setLabel('5⭐').setStyle(ButtonStyle.Success)
+        fs.writeFileSync(jsonFilePath, JSON.stringify(archivePayload, null, 2));
+        
+        // --- STEP 4: TRIGGER USER RATING INTERACTION ---
+        const staffIdForRating = request.session.staffId;
+        const ratingButtonGroup = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`rate_1_${staffIdForRating}`).setLabel('1⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rate_2_${staffIdForRating}`).setLabel('2⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rate_3_${staffIdForRating}`).setLabel('3⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rate_4_${staffIdForRating}`).setLabel('4⭐').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId(`rate_5_${staffIdForRating}`).setLabel('5⭐').setStyle(ButtonStyle.Success)
         );
         
-        const ratingEmbed = new EmbedBuilder()
-            .setTitle("Service Finalized")
-            .setDescription(`Support with **${actor}** is complete. Please rate the quality of assistance provided.`)
-            .setColor('#3b82f6');
+        const ratingRequestEmbed = new EmbedBuilder()
+            .setTitle("Experience Survey")
+            .setDescription(`Your support session with **${actor}** has concluded.\n\nWe strive for excellence. Please rate the quality of service provided today to help us improve our training systems.`)
+            .setColor('#3b82f6')
+            .setFooter({ text: "Thank you for using Miraidon Trade Services!" });
 
-        const bot = clients.find(function(c) {
-            return (c.user.id === doc.botId);
+        const gateway = discordClients.find(function(c) {
+            const idMatch = (c.user.id === threadDoc.botId);
+            return idMatch;
         });
         
-        if (bot) { 
+        if (gateway) { 
             try { 
-                const user = await bot.users.fetch(doc.userId); 
-                await user.send({ embeds: [ratingEmbed], components: [row] }); 
-            } catch(e) {
-                console.log("[CLOSE] ⚠️ Rating DM blocked by user.");
+                const user = await gateway.users.fetch(threadDoc.userId); 
+                await user.send({ 
+                    embeds: [ratingRequestEmbed], 
+                    components: [ratingButtonGroup] 
+                }); 
+                console.log(`[INBOX] 📤 Rating interaction sent to ${threadDoc.userTag}`);
+            } catch(ratingDispatchErr) {
+                console.warn("[INBOX] ⚠️ Could not deliver rating DM to customer.");
             } 
         }
 
-        // 5. Statistics Finalization
+        // --- STEP 5: FINAL CLEANUP AND RECORD REMOVAL ---
         await Staff.findByIdAndUpdate(request.session.staffId, { 
             $inc: { ticketsClosed: 1 } 
         });
         
-        await Thread.findByIdAndDelete(id);
+        await Thread.findByIdAndDelete(threadId);
         
-        // Cleanup
-        if (fs.existsSync(tmpPath)) {
-            fs.unlinkSync(tmpPath);
+        // Unlink temp file from filesystem
+        if (fs.existsSync(tempLocalPath)) {
+            fs.unlinkSync(tempLocalPath);
         }
 
-        console.log(`[CLOSE] ✅ Decommission successful.`);
+        console.log(`[INBOX] ✅ Thread ${threadId} successfully archived and removed from active cache.`);
         return response.json({ success: true });
-    } catch (criticalErr) { 
-        console.error("[CLOSE] ❌ Sequence failure:");
-        console.error(criticalErr);
-        return response.status(500).json({ error: "Internal archival failure." }); 
+
+    } catch (closureCriticalError) { 
+        console.error("[INBOX] ❌ Fatal error in ticket closure sequence:");
+        console.error(closureCriticalError);
+        return response.status(500).json({ 
+            error: "Internal Server Error: Archival logic failed." 
+        }); 
     }
 });
 
 
 // =================================================================================================
-//  SECTION 11: CRM AGGREGATION API
+//  SECTION 11: CRM (CUSTOMER RELATIONSHIP MANAGEMENT) AGGREGATOR
 // =================================================================================================
 
 /**
- * ROUTE: Aggregate User History
- * GET /api/crm/user/:discordId
+ * ROUTE: Aggregate Global User Data
+ * Method: GET
+ * Path: /api/crm/user/:discordId
  */
 app.get('/api/crm/user/:discordId', isAuth, async function(request, response) {
     const id = request.params.discordId;
+    console.log(`[CRM] 🔍 Fetching unified profile for ID: ${id}`);
     
     try {
-        const noteDoc = await UserNote.findOne({ userId: id });
-        const archiveDir = path.join(ARCHIVE_DIR, id);
+        // Query persistent notes
+        const noteDoc = await UserNote.findOne({ 
+            userId: id 
+        });
         
-        let historicFiles = [];
+        // Resolve archive directory path
+        const userArchives = path.join(ARCHIVE_DIR, id);
+        let historyArray = [];
 
-        if (fs.existsSync(archiveDir)) {
-            const files = fs.readdirSync(archiveDir).filter(function(f) {
-                return f.endsWith('.json');
+        const archivesExist = fs.existsSync(userArchives);
+        if (archivesExist === true) {
+            // Read directory and filter for JSON objects
+            const directoryListing = fs.readdirSync(userArchives);
+            const filteredArchives = directoryListing.filter(function(file) {
+                return file.endsWith('.json');
             });
             
-            historicFiles = files.map(function(f) {
+            historyArray = filteredArchives.map(function(filename) {
                 try {
-                    const data = JSON.parse(fs.readFileSync(path.join(archiveDir, f), 'utf8'));
+                    const fullPath = path.join(userArchives, filename);
+                    const rawData = fs.readFileSync(fullPath, 'utf8');
+                    const parsedData = JSON.parse(rawData);
+                    
                     return { 
-                        filename: f, 
-                        closedAt: data.meta.closedAt, 
-                        closedBy: data.meta.closedBy 
+                        filename: filename, 
+                        closedAt: parsedData.meta.closedAt, 
+                        closedBy: parsedData.meta.closedBy,
+                        msgCount: parsedData.meta.totalMessages
                     };
-                } catch (e) { return null; }
-            }).filter(function(x) { 
-                return x !== null; 
-            }).sort(function(a, b) { 
+                } catch (readErr) { 
+                    return null; 
+                }
+            });
+            
+            // Cleanup nulls and sort by date descending
+            historyArray = historyArray.filter(function(item) {
+                return (item !== null);
+            });
+            
+            historyArray.sort(function(a, b) { 
                 return new Date(b.closedAt) - new Date(a.closedAt); 
             });
         }
 
         return response.json({ 
             note: noteDoc ? noteDoc.note : "", 
-            history: historicFiles 
+            history: historyArray 
         });
-    } catch (e) {
-        console.error("[CRM] Data aggregation failure:");
-        console.error(e);
-        return response.status(500).json({ error: "CRM aggregator failure." });
+
+    } catch (crmAggregatorError) {
+        console.error("[CRM] ❌ Failed to aggregate user profile data:");
+        console.error(crmAggregatorError);
+        return response.status(500).json({ 
+            error: "Internal Server Error: Profile aggregation logic failure." 
+        });
     }
 });
 
 /**
- * ROUTE: Retrieve Historic Data
- * GET /api/crm/transcript/:discordId/:filename
+ * ROUTE: Retrieve Historic JSON Transcript
+ * Method: GET
+ * Path: /api/crm/transcript/:discordId/:filename
  */
 app.get('/api/crm/transcript/:discordId/:filename', isAuth, function(request, response) {
     const userId = request.params.discordId;
-    const fileName = request.params.filename;
+    const file = request.params.filename;
     
-    if (fileName.includes('..') || userId.includes('..')) {
-        return response.status(403).json({ error: "Forbidden: Illegal path segments detected." });
+    // SECURITY: Validate path segments
+    const isIllegalId = userId.includes('..');
+    const isIllegalFile = file.includes('..');
+    
+    if (isIllegalId === true || isIllegalFile === true) {
+        console.warn(`[SECURITY] 🛑 Illegal path traversal attempt by staff: ${request.session.username}`);
+        return response.status(403).json({ 
+            error: "Access Denied: Path segments not permitted." 
+        });
     }
     
-    const targetPath = path.join(ARCHIVE_DIR, userId, fileName);
+    const absoluteFilePath = path.join(ARCHIVE_DIR, userId, file);
+    const fileExists = fs.existsSync(absoluteFilePath);
     
-    if (fs.existsSync(targetPath)) {
+    if (fileExists === true) {
         try {
-            const raw = fs.readFileSync(targetPath, 'utf8');
-            return response.json(JSON.parse(raw));
-        } catch (e) {
-            return response.status(500).json({ error: "Corruption detected in archive." });
+            const rawContent = fs.readFileSync(absoluteFilePath, 'utf8');
+            const parsedContent = JSON.parse(rawContent);
+            return response.json(parsedContent);
+        } catch (jsonReadError) {
+            console.error(`[CRM] ❌ Error reading archive file: ${file}`);
+            return response.status(500).json({ 
+                error: "Internal Error: Archive file corrupt or unreadable." 
+            });
         }
     } else {
-        return response.status(404).json({ error: "Archive record missing." });
+        return response.status(404).json({ 
+            error: "Not Found: Archive record missing from disk." 
+        });
     }
 });
 
 /**
- * ROUTE: Update CRM Notes
- * POST /api/crm/note
+ * ROUTE: Update Persistent CRM Note
+ * Method: POST
+ * Path: /api/crm/note
  */
 app.post('/api/crm/note', isAuth, async function(request, response) {
-    const userId = request.body.userId;
-    const content = request.body.note;
+    const targetUserId = request.body.userId;
+    const noteText = request.body.note;
+    const actingOfficer = request.session.username;
     
     try {
         await UserNote.findOneAndUpdate(
-            { userId: userId }, 
+            { userId: targetUserId }, 
             { 
-                note: content, 
-                updatedBy: request.session.username, 
+                note: noteText, 
+                updatedBy: actingOfficer, 
                 updatedAt: new Date() 
             }, 
-            { upsert: true, new: true }
+            { 
+                upsert: true, 
+                new: true 
+            }
         );
-        console.log(`[CRM] 📝 Note modified for ${userId}`);
-        return response.json({ success: true });
-    } catch (e) {
-        console.error("[CRM] Persistence failure:");
-        console.error(e);
-        return response.status(500).json({ error: "Database write error." });
+        
+        console.log(`[CRM] 📝 Note updated for ${targetUserId} by ${actingOfficer}`);
+        return response.json({ 
+            success: true 
+        });
+    } catch (noteUpdateError) {
+        console.error("[CRM] ❌ Failed to persist user note:");
+        console.error(noteUpdateError);
+        return response.status(500).json({ 
+            error: "Database Error: Could not save note." 
+        });
     }
 });
 
 
 // =================================================================================================
-//  SECTION 12: ADMINISTRATIVE SERVICE ENGINE API
+//  SECTION 12: ADMINISTRATIVE CONSOLE ENGINE API
 // =================================================================================================
 
 /**
- * ROUTE: Get Staff Analytics
- * GET /api/admin/stats
+ * ROUTE: Retrieve Staff Performance Statistics
+ * Method: GET
+ * Path: /api/admin/stats
  */
 app.get('/api/admin/stats', isAdmin, async function(request, response) { 
+    console.log(`[ADMIN] Performance data requested by ${request.session.username}`);
+    
     try {
-        const stats = await Staff.find().sort({ ticketsClosed: -1 }); 
-        return response.json(stats); 
-    } catch (e) {
-        return response.status(500).json({ error: "Read failure." });
+        const statsCollection = await Staff.find().sort({ 
+            ticketsClosed: -1 
+        }); 
+        
+        return response.json(statsCollection); 
+    } catch (statsQueryError) {
+        console.error("[ADMIN] ❌ Database read error during stats fetch.");
+        return response.status(500).json({ 
+            error: "Database Read Failure: Statistics unavailable." 
+        });
     }
 });
 
 /**
- * ROUTE: Get Global State
- * GET /api/admin/config
+ * ROUTE: Retrieve Global Configuration Profile
+ * Method: GET
+ * Path: /api/admin/config
  */
 app.get('/api/admin/config', isAdmin, async function(request, response) { 
     try {
-        const cfg = await Config.findOne({ id: 'global' }); 
-        return response.json(cfg); 
-    } catch (e) {
-        return response.status(500).json({ error: "Read failure." });
+        const globalConfigDoc = await Config.findOne({ id: 'global' }); 
+        return response.json(globalConfigDoc); 
+    } catch (configQueryError) {
+        return response.status(500).json({ 
+            error: "Database Read Failure: Config unavailable." 
+        });
     }
 });
 
 /**
- * ROUTE: Update Support Health
- * POST /api/admin/config/toggle
+ * ROUTE: Update System Health and Schedule
+ * Method: POST
+ * Path: /api/admin/config/toggle
  */
 app.post('/api/admin/config/toggle', isAdmin, async function(request, response) { 
     const { status, note, openTime, closeTime } = request.body;
     
+    console.log(`[ADMIN] Updating global configuration profile...`);
+    
     try {
-        const cfg = await Config.findOne({ id: 'global' }); 
+        const doc = await Config.findOne({ id: 'global' }); 
         
-        if (status !== undefined) { cfg.supportOnline = status; }
-        if (note !== undefined) { cfg.offlineNote = note; }
-        if (openTime) { cfg.openTime = openTime; }
-        if (closeTime) { cfg.closeTime = closeTime; }
+        if (status !== undefined) {
+            doc.supportOnline = status;
+        }
         
-        await cfg.save(); 
-        console.log(`[ADMIN] ⚙️ System health updated.`);
-        return response.json({ success: true }); 
-    } catch (e) {
-        console.error("[ADMIN] Persistence failure.");
-        return response.status(500).json({ error: "Write failure." });
+        if (note !== undefined) {
+            doc.offlineNote = note;
+        }
+        
+        if (openTime !== undefined) {
+            doc.openTime = openTime;
+        }
+        
+        if (closeTime !== undefined) {
+            doc.closeTime = closeTime;
+        }
+        
+        await doc.save(); 
+        
+        console.log(`[ADMIN] ✅ Global configuration persisted.`);
+        return response.json({ 
+            success: true 
+        }); 
+    } catch (configSaveError) {
+        console.error("[ADMIN] ❌ Configuration persistence failure:");
+        console.error(configSaveError);
+        return response.status(500).json({ 
+            error: "Internal Server Error: Config write failure." 
+        });
     }
 });
 
 /**
- * ROUTE: Sync Active Servers
- * GET /api/admin/servers
+ * ROUTE: Aggregate Active Fleet Status
+ * Method: GET
+ * Path: /api/admin/servers
  */
 app.get('/api/admin/servers', isAdmin, async function(request, response) {
-    let aggregate = [];
+    let fleetCollection = [];
     
-    clients.forEach(function(c) {
-        if (c.isReady() === false) return;
+    discordClients.forEach(function(client) {
+        const clientActive = (client.isReady() === true);
+        if (clientActive === false) {
+            return;
+        }
         
-        c.guilds.cache.forEach(function(g) {
-            aggregate.push({
-                id: g.id,
-                name: g.name,
-                members: g.memberCount,
-                botName: c.user.username,
-                botId: c.user.id
+        client.guilds.cache.forEach(function(guild) {
+            fleetCollection.push({
+                id: guild.id,
+                name: guild.name,
+                members: guild.memberCount,
+                botName: client.user.username,
+                botId: client.user.id
             });
         });
     });
     
-    return response.json(aggregate);
+    return response.json(fleetCollection);
 });
 
-// 12.1. FLEET GRANULAR CONTROL (NEW v10.6 Addition)
+// 12.1. FLEET GRANULAR CONTROL MODULE
 
 /**
- * ROUTE: Toggle Trading Module for Individual Bot
- * POST /api/admin/fleet/toggle-trading
+ * ROUTE: Toggle Trading Module for specific Bot ID
+ * Method: POST
+ * Path: /api/admin/fleet/toggle-trading
  */
 app.post('/api/admin/fleet/toggle-trading', isAdmin, async function(request, response) {
-    const id = request.body.botId;
-    const status = request.body.status;
+    const targetBotId = request.body.botId;
+    const newTradingStatus = request.body.status;
     
-    console.log(`[FLEET] ⚙️ Request: Toggle Bot ${id} trading state to ${status}`);
+    console.log(`[FLEET] Toggle request received for bot ${targetBotId} (State: ${newTradingStatus})`);
 
     try {
-        const config = await Config.findOne({ id: 'global' });
+        const configurationDoc = await Config.findOne({ id: 'global' });
         
-        // Find existing record or create entry
-        let botRecord = config.botFleetStatus.find(function(b) {
-            return (b.botId === id);
+        // Find existing record in fleet status array
+        let existingRecord = configurationDoc.botFleetStatus.find(function(item) {
+            const match = (item.botId === targetBotId);
+            return match;
         });
 
-        if (botRecord) {
-            botRecord.tradingActive = status;
+        if (existingRecord) {
+            // Update existing entry
+            existingRecord.tradingActive = newTradingStatus;
+            console.log(`[FLEET] Updated state for existing bot ${targetBotId}`);
         } else {
-            config.botFleetStatus.push({ 
-                botId: id, 
-                tradingActive: status 
+            // Push new entry to array
+            configurationDoc.botFleetStatus.push({ 
+                botId: targetBotId, 
+                tradingActive: newTradingStatus 
+            });
+            console.log(`[FLEET] Created state entry for new bot ${targetBotId}`);
+        }
+        
+        await configurationDoc.save();
+        
+        return response.json({ 
+            success: true 
+        });
+    } catch (fleetTogglePersistenceError) {
+        console.error("[FLEET] ❌ Failed to persist trading state change:");
+        console.error(fleetTogglePersistenceError);
+        return response.status(500).json({ 
+            error: "Database configuration write failure." 
+        });
+    }
+});
+
+// 12.2. REMOTE FLEET DEPLOYMENT ACTIONS
+
+app.post('/api/admin/leave-server', isAdmin, async function(request, response) {
+    const targetServerId = request.body.serverId;
+    const handlingBotId = request.body.botId;
+    
+    try {
+        const bot = discordClients.find(function(c) {
+            return (c.user.id === handlingBotId);
+        });
+        
+        const targetGuild = await bot.guilds.fetch(targetServerId);
+        await targetGuild.leave();
+        
+        console.log(`[ADMIN] 🚪 Bot ejected from server: ${targetServerId}`);
+        return response.json({ success: true });
+    } catch (e) {
+        return response.status(500).json({ error: "Discord API rejected ejection request." });
+    }
+});
+
+app.post('/api/admin/create-invite', isAdmin, async function(request, response) {
+    const targetServerId = request.body.serverId;
+    const handlingBotId = request.body.botId;
+    
+    try {
+        const bot = discordClients.find(function(c) {
+            return (c.user.id === handlingBotId);
+        });
+        
+        const targetGuild = await bot.guilds.fetch(targetServerId);
+        const inviteChannel = targetGuild.channels.cache.find(function(channel) {
+            const isText = (channel.type === 0);
+            const hasPermission = channel.permissionsFor(bot.user).has('CreateInstantInvite');
+            return (isText && hasPermission);
+        });
+        
+        if (inviteChannel) {
+            const newInvite = await inviteChannel.createInvite({ 
+                maxAge: 0, 
+                maxUses: 0 
+            });
+            return response.json({ 
+                url: newInvite.url 
+            });
+        } else {
+            return response.status(403).json({ 
+                error: "Permissions Error: Bot lacks invite capability in target guild." 
             });
         }
-        
-        await config.save();
-        console.log(`[FLEET] ✅ State persisted for bot ${id}`);
-        return response.json({ success: true });
-    } catch (persistenceError) {
-        console.error("[FLEET] ❌ Persistence failure in toggle routine:");
-        console.error(persistenceError);
-        return response.status(500).json({ error: "Database configuration write failure." });
+    } catch (e) {
+        return response.status(500).json({ error: "Invite generation sequence failure." });
     }
 });
 
-// 12.2. FLEET DEPLOYMENT TOOLS
-
-app.post('/api/admin/leave-server', isAdmin, async function(req, res) {
-    const sid = req.body.serverId;
-    const bid = req.body.botId;
+app.post('/api/admin/dm-owner', isAdmin, async function(request, response) {
+    const targetServerId = request.body.serverId;
+    const handlingBotId = request.body.botId;
+    const outboundMessageText = request.body.message;
+    
     try {
-        const bot = clients.find(function(c) { return c.user.id === bid; });
-        const guild = await bot.guilds.fetch(sid);
-        await guild.leave();
-        console.log(`[FLEET] 🚪 Bot ${bid} ejected from server ${sid}`);
-        return res.json({ success: true });
-    } catch (err) {
-        return res.status(500).json({ error: "API rejection." });
-    }
-});
-
-app.post('/api/admin/create-invite', isAdmin, async function(req, res) {
-    const sid = req.body.serverId;
-    const bid = req.body.botId;
-    try {
-        const bot = clients.find(function(c) { return c.user.id === bid; });
-        const guild = await bot.guilds.fetch(sid);
-        const channel = guild.channels.cache.find(function(ch) {
-            return (ch.type === 0 && ch.permissionsFor(bot.user).has('CreateInstantInvite'));
+        const bot = discordClients.find(function(c) {
+            return (c.user.id === handlingBotId);
         });
         
-        if (channel) {
-            const link = await channel.createInvite({ maxAge: 0, maxUses: 0 });
-            return res.json({ url: link.url });
-        } else {
-            return res.status(403).json({ error: "Forbidden: Client lacks permissions." });
-        }
-    } catch (err) {
-        return res.status(500).json({ error: "Logic failure." });
-    }
-});
-
-app.post('/api/admin/dm-owner', isAdmin, async function(req, res) {
-    const sid = req.body.serverId;
-    const bid = req.body.botId;
-    const text = req.body.message;
-    try {
-        const bot = clients.find(function(c) { return c.user.id === bid; });
-        const guild = await bot.guilds.fetch(sid);
-        const owner = await bot.users.fetch(guild.ownerId);
+        const guildObject = await bot.guilds.fetch(targetServerId);
+        const ownerUser = await bot.users.fetch(guildObject.ownerId);
         
-        await owner.send(`**Administrative Alert (${guild.name}):**\n${text}`);
-        return res.json({ success: true });
-    } catch (err) {
-        return res.status(500).json({ error: "DM Dispatch Failure." });
+        const administrativeEmbed = new EmbedBuilder()
+            .setTitle("System Administrator Notification")
+            .setDescription(`**Subject:** Miraidon Instance Management\n**Guild:** ${guildObject.name}\n\n**Message:**\n${outboundMessageText}`)
+            .setColor('#3b82f6')
+            .setFooter({ text: "Internal Management Communication" })
+            .setTimestamp();
+            
+        await ownerUser.send({ 
+            embeds: [administrativeEmbed] 
+        });
+        
+        return response.json({ success: true });
+    } catch (e) {
+        return response.status(500).json({ error: "DM Dispatch Failure: Owner blocked bot or DMs disabled." });
     }
 });
 
-app.post('/api/admin/bulk-message', isAdmin, async function(req, res) {
-    const msg = req.body.message;
-    console.log(`[BROADCAST] 📢 Executing global DM sequence...`);
+/**
+ * ROUTE: Mass Broadcast Dispatch
+ * Method: POST
+ * Path: /api/admin/bulk-message
+ */
+app.post('/api/admin/bulk-message', isAdmin, async function(request, response) {
+    const content = request.body.message;
+    console.log(`[BROADCAST] ⚠️ Emergency broadcast sequence initialized by ${request.session.username}`);
     
-    let total = 0;
-    for (const c of clients) {
-        if (c.isReady() === false) continue;
-        for (const [id, g] of c.guilds.cache) {
+    let successfulDispatches = 0;
+    
+    for (const client of discordClients) {
+        if (client.isReady() === false) {
+            continue;
+        }
+        
+        for (const [id, guild] of client.guilds.cache) {
             try {
-                const o = await c.users.fetch(g.ownerId);
-                await o.send(`**Miraidon Trade Services Global Notification:**\n${msg}`);
-                total++;
-            } catch (err) { /* Blocked */ }
+                const ownerObject = await client.users.fetch(guild.ownerId);
+                
+                const broadcastEmbed = new EmbedBuilder()
+                    .setTitle("Global Service Announcement")
+                    .setDescription(content)
+                    .setColor('#ef4444')
+                    .setFooter({ text: "TSP Official Announcement" })
+                    .setTimestamp();
+                    
+                await ownerObject.send({ embeds: [broadcastEmbed] });
+                successfulDispatches++;
+            } catch (broadcastErr) {
+                // Ignore failures to reach specific owners
+            }
         }
     }
     
-    console.log(`[BROADCAST] ✅ Sequence completed. Count: ${total}`);
-    return res.json({ sentTo: total });
+    console.log(`[BROADCAST] ✅ Sequence complete. Total reach: ${successfulDispatches} servers.`);
+    return response.json({ 
+        sentTo: successfulDispatches 
+    });
 });
 
-// 12.3. STAFF LIFECYCLE MANAGEMENT
+// 12.3. STAFF LIFECYCLE MANAGEMENT TOOLS
 
-app.post('/api/admin/staff/add', isAdmin, async function(req, res) {
-    const { username, discordId, adminStatus } = req.body;
+/**
+ * ROUTE: Add New Staff Member
+ * Method: POST
+ * Path: /api/admin/staff/add
+ */
+app.post('/api/admin/staff/add', isAdmin, async function(request, response) {
+    const { username, discordId, adminStatus } = request.body;
+    
+    console.log(`[STAFF_MGMT] 👤 Adding technician: ${username}`);
     
     try {
-        const key = generateComplexPassword();
-        const hash = await bcrypt.hash(key, 10);
+        const firstTimeKey = generateComplexPassword();
+        const hashedFirstTimeKey = await bcrypt.hash(firstTimeKey, 10);
         
-        const doc = new Staff({ 
+        const newStaffDoc = new Staff({ 
             username: username, 
             discordId: discordId, 
-            password: hash, 
+            password: hashedFirstTimeKey, 
             isAdmin: adminStatus 
         });
         
-        await doc.save();
+        await newStaffDoc.save();
         
-        // Automated Dispatch
+        // Automated Dispatch Sequence
         try {
-            const handle = await clients[0].users.fetch(discordId);
-            const embed = new EmbedBuilder()
-                .setTitle("Clearance Granted")
-                .setDescription(`Administrative access created.\n\n**User:** \`${username}\`\n**Key:** \`${key}\`\n**URL:** ${getPanelUrl()}`)
-                .setColor('#10b981');
-            await handle.send({ embeds: [embed] });
-        } catch (dmErr) {
-            console.warn("[STAFF] ⚠️ Logic successful but DM failed.");
+            const primaryGateway = discordClients[0];
+            const userHandle = await primaryGateway.users.fetch(discordId);
+            
+            const accessEmbed = new EmbedBuilder()
+                .setTitle("Support Access Granted")
+                .setDescription(`A technician account has been provisioned for you.\n\n**Identity:** \`${username}\`\n**Secure Key:** \`${firstTimeKey}\`\n**Gateway:** ${getPanelUrl()}\n\n*Note: Rotate your secure key upon first login.*`)
+                .setColor('#10b981')
+                .setTimestamp();
+                
+            await userHandle.send({ 
+                embeds: [accessEmbed] 
+            });
+        } catch (accessDispatchError) {
+            console.error("[STAFF_MGMT] ⚠️ Credentials created but DM failed.");
         }
         
-        return res.json({ success: true });
-    } catch (e) {
-        return res.status(500).json({ error: "Persistence error." });
-    }
-});
+        return response.json({ success: true });
 
-app.post('/api/admin/staff/reset', isAdmin, async function(req, res) {
-    const id = req.body.staffId;
-    
-    try {
-        const staff = await Staff.findById(id);
-        if (staff === null) {
-            return res.status(404).json({ error: "Record not found." });
-        }
-
-        const key = generateComplexPassword();
-        staff.password = await bcrypt.hash(key, 10);
-        await staff.save();
-        
-        // Dispatch
-        try {
-            const handle = await clients[0].users.fetch(staff.discordId);
-            const embed = new EmbedBuilder()
-                .setTitle("Secure Key Reset")
-                .setDescription(`An administrator has re-keyed your account.\n\n**Key:** \`${key}\``)
-                .setColor('#f59e0b');
-            await handle.send({ embeds: [embed] });
-        } catch (dmErr) {
-            console.warn("[STAFF] ⚠️ Re-key successful but DM failed.");
-        }
-        
-        return res.json({ success: true });
-    } catch (e) {
-        return res.status(500).json({ error: "Logic error." });
-    }
-});
-
-app.post('/api/admin/staff/delete', isAdmin, async function(req, res) {
-    const id = req.body.staffId;
-    
-    if (id === req.session.staffId.toString()) {
-        return res.status(400).json({ error: "Self-deletion prohibited." });
-    }
-    
-    try {
-        await Staff.findByIdAndDelete(id);
-        return res.json({ success: true });
-    } catch (e) {
-        return res.status(500).json({ error: "DB deletion error." });
+    } catch (staffAddError) {
+        console.error("[STAFF_MGMT] ❌ Failed to create staff record:");
+        console.error(staffAddError);
+        return response.status(500).json({ 
+            error: "Database Error: Username may already be in use." 
+        });
     }
 });
 
 /**
- * Administrative Feature: Manual Outbound Initialization
- * POST /api/admin/manual-dm
+ * ROUTE: Force Re-key Staff Account
+ * Method: POST
+ * Path: /api/admin/staff/reset
  */
-app.post('/api/admin/manual-dm', isAdmin, async function(request, response) {
-    const id = request.body.discordId;
-    const text = request.body.content;
-    const admin = request.session.username;
+app.post('/api/admin/staff/reset', isAdmin, async function(request, response) {
+    const targetId = request.body.staffId;
     
     try {
-        const bot = clients[0];
-        const user = await bot.users.fetch(id);
+        const staffDoc = await Staff.findById(targetId);
         
-        const embed = new EmbedBuilder()
-            .setColor('#3b82f6')
-            .setAuthor({ 
-                name: `System Admin: ${admin}`, 
-                iconURL: bot.user.displayAvatarURL() 
-            })
-            .setDescription(text)
-            .setTimestamp();
+        if (staffDoc === null) {
+            return response.status(404).json({ error: "Entity not found." });
+        }
+
+        const freshKey = generateComplexPassword();
+        const freshHash = await bcrypt.hash(freshKey, 10);
+        
+        staffDoc.password = freshHash;
+        await staffDoc.save();
+        
+        // Dispatch to technician
+        try {
+            const gateway = discordClients[0];
+            const user = await gateway.users.fetch(staffDoc.discordId);
             
-        await user.send({ embeds: [embed] });
-        
-        let thread = await Thread.findOne({ userId: id });
-        
-        if (thread === null) {
-            thread = new Thread({ 
-                userId: id, 
-                userTag: user.tag, 
-                userAvatar: user.displayAvatarURL({ extension: 'png' }), 
-                botId: bot.user.id, 
-                botName: bot.user.username, 
-                messages: [] 
-            });
-            await sendLog("🆕 Manual Ticket", `Admin ${admin} initiated contact with ${user.tag}`, '#facc15');
+            const resetEmbed = new EmbedBuilder()
+                .setTitle("Security Update: Re-Keyed")
+                .setDescription(`An administrator has re-keyed your authentication credentials.\n\n**New Secure Key:** \`${freshKey}\``)
+                .setColor('#f59e0b')
+                .setTimestamp();
+                
+            await user.send({ embeds: [resetEmbed] });
+        } catch (dmError) {
+            console.warn("[STAFF_MGMT] ⚠️ Reset successful but DM failed.");
         }
         
-        const profile = await Staff.findById(request.session.staffId);
+        return response.json({ success: true });
+    } catch (resetProcessError) {
+        console.error("[STAFF_MGMT] ❌ Failure in reset routine:");
+        console.error(resetProcessError);
+        return response.status(500).json({ 
+            error: "Internal Error: Identity reset logic fault." 
+        });
+    }
+});
+
+/**
+ * ROUTE: Delete Staff Account
+ * Method: POST
+ * Path: /api/admin/staff/delete
+ */
+app.post('/api/admin/staff/delete', isAdmin, async function(request, response) {
+    const idToDelete = request.body.staffId;
+    const currentSessionId = request.session.staffId.toString();
+    
+    // Prevent self-deletion lockouts
+    if (idToDelete === currentSessionId) {
+        return response.status(400).json({ 
+            error: "Forbidden: Cannot delete your own administrative session." 
+        });
+    }
+    
+    try {
+        await Staff.findByIdAndDelete(idToDelete);
+        console.log(`[STAFF_MGMT] 🗑️ Record purged: ${idToDelete}`);
+        return response.json({ 
+            success: true 
+        });
+    } catch (dbDeletionError) {
+        console.error("[STAFF_MGMT] ❌ Deletion failure.");
+        return response.status(500).json({ 
+            error: "Database removal failure." 
+        });
+    }
+});
+
+/**
+ * ROUTE: Manual Outbound Thread Initialization
+ * Method: POST
+ * Path: /api/admin/manual-dm
+ */
+app.post('/api/admin/manual-dm', isAdmin, async function(request, response) {
+    const targetUserId = request.body.discordId;
+    const msgContent = request.body.content;
+    const adminUser = request.session.username;
+    
+    console.log(`[ADMIN] 📤 Manual dispatch sequence started by ${adminUser} for ID ${targetUserId}`);
+
+    try {
+        const gateway = discordClients[0];
+        const discordUser = await gateway.users.fetch(targetUserId);
         
-        const msg = { 
-            authorTag: `Staff (${admin})`, 
-            authorAvatar: profile ? profile.avatar : '',
-            content: text, 
+        const manualEmbed = new EmbedBuilder()
+            .setColor('#3b82f6')
+            .setAuthor({ 
+                name: `System Administrator: ${adminUser}`, 
+                iconURL: gateway.user.displayAvatarURL() 
+            })
+            .setDescription(msgContent)
+            .setTimestamp();
+            
+        await discordUser.send({ embeds: [manualEmbed] });
+        
+        // Sync to active threads
+        let threadObject = await Thread.findOne({ 
+            userId: targetUserId 
+        });
+        
+        if (threadObject === null) {
+            threadObject = new Thread({ 
+                userId: targetUserId, 
+                userTag: discordUser.tag, 
+                userAvatar: discordUser.displayAvatarURL({ extension: 'png' }), 
+                botId: gateway.user.id, 
+                botName: gateway.user.username, 
+                messages: [] 
+            });
+            await sendLog("🆕 Manual Thread Initialized", `Administrator ${adminUser} initiated contact with user ${discordUser.tag}`, '#facc15');
+        }
+        
+        const adminProfile = await Staff.findById(request.session.staffId);
+        
+        const adminMsgEntry = { 
+            authorTag: `Staff (${adminUser})`, 
+            authorAvatar: adminProfile ? adminProfile.avatar : '',
+            content: msgContent, 
             fromBot: true, 
             timestamp: new Date() 
         };
         
-        thread.messages.push(msg);
-        thread.lastMessageAt = new Date();
-        await thread.save();
+        threadObject.messages.push(adminMsgEntry);
+        threadObject.lastMessageAt = new Date();
+        await threadObject.save();
         
-        io.emit('new_message', { threadId: thread._id, ...msg });
+        // Emit Socket Update
+        io.emit('new_message', { 
+            threadId: threadObject._id, 
+            ...adminMsgEntry 
+        });
         
-        console.log(`[ADMIN] 📤 Outbound confirmed: ${user.tag}`);
+        console.log(`[ADMIN] ✅ Manual DM confirmed delivery to ${discordUser.tag}`);
         return response.json({ success: true });
-    } catch (e) {
-        console.error(`[ADMIN] ❌ Outbound failure: ${e.message}`);
-        return response.status(500).json({ error: "Gateway rejection." });
+
+    } catch (manualDmSequenceError) {
+        console.error(`[ADMIN] ❌ Gateway rejection for manual DM: ${manualDmSequenceError.message}`);
+        return response.status(500).json({ 
+            error: "Gateway Rejection: Provided Discord ID is invalid or bot is blocked." 
+        });
     }
 });
 
 
 // =================================================================================================
-//  SECTION 13: CONTENT AND LICENSE PERSISTENCE API
+//  SECTION 13: CONTENT AND LICENSE DATABASE API
 // =================================================================================================
 
-// 13.1. STAFF MACRO API
+// 13.1. STAFF MACRO API ENGINE
 
 app.get('/api/macros', isAuth, async function(req, res) {
     try {
-        const list = await Macro.find().sort({ title: 1 });
-        return res.json(list);
-    } catch(e) { return res.status(500).json({error:"Read failure."}); }
+        const macroList = await Macro.find().sort({ title: 1 });
+        return res.json(macroList);
+    } catch (macroQueryError) {
+        return res.status(500).json({ error: "Database read failure." });
+    }
 });
 
 app.post('/api/admin/macros/add', isAdmin, async function(req, res) {
+    const { title, content } = req.body;
+    
+    if (!title || !content) {
+        return res.status(400).json({ error: "Validation: Missing title or content fields." });
+    }
+
     try {
-        const doc = new Macro(req.body);
-        await doc.save();
+        const newMacroDoc = new Macro({ 
+            title: title, 
+            content: content 
+        });
+        await newMacroDoc.save();
+        console.log(`[ADMIN] ➕ Canned response added: ${title}`);
         return res.json({ success: true });
-    } catch (e) { return res.status(500).json({ error: "Write failure." }); }
+    } catch (macroSaveError) {
+        return res.status(500).json({ error: "Database write failure." });
+    }
 });
 
 app.post('/api/admin/macros/delete', isAdmin, async function(req, res) {
+    const targetId = req.body.id;
     try {
-        await Macro.findByIdAndDelete(req.body.id);
+        await Macro.findByIdAndDelete(targetId);
         return res.json({ success: true });
-    } catch (e) { return res.status(500).json({ error: "Deletion failure." }); }
+    } catch (macroDelError) {
+        return res.status(500).json({ error: "Database removal failure." });
+    }
 });
 
-// 13.2. FAQ DATABASE API
+// 13.2. FAQ KNOWLEDGE BASE API ENGINE
 
 app.get('/api/faq', async function(req, res) {
     try {
-        const list = await FAQ.find().sort({ createdAt: 1 });
-        return res.json(list);
-    } catch(e) { return res.status(500).json({error:"Read failure."}); }
+        const faqList = await FAQ.find().sort({ 
+            createdAt: 1 
+        });
+        return res.json(faqList);
+    } catch (faqQueryError) {
+        return res.status(500).json({ error: "Database read failure." });
+    }
 });
 
 app.post('/api/admin/faq/add', isAdmin, async function(req, res) {
+    const { question, answer } = req.body;
+    
+    if (!question || !answer) {
+        return res.status(400).json({ error: "Validation: Question and Answer are required." });
+    }
+
     try {
-        const doc = new FAQ(req.body);
-        await doc.save();
+        const newFaqDoc = new FAQ({ 
+            question: question, 
+            answer: answer 
+        });
+        await newFaqDoc.save();
+        console.log(`[ADMIN] ❓ FAQ entry added.`);
         return res.json({ success: true });
-    } catch (e) { return res.status(500).json({ error: "Write failure." }); }
+    } catch (faqSaveError) {
+        return res.status(500).json({ error: "Database write failure." });
+    }
 });
 
 app.post('/api/admin/faq/delete', isAdmin, async function(req, res) {
+    const targetId = req.body.id;
     try {
-        await FAQ.findByIdAndDelete(req.body.id);
+        await FAQ.findByIdAndDelete(targetId);
         return res.json({ success: true });
-    } catch (e) { return res.status(500).json({ error: "Deletion failure." }); }
+    } catch (faqDelError) {
+        return res.status(500).json({ error: "Database removal failure." });
+    }
 });
 
-// 13.3. LICENSE PROVISIONING (SELL.APP GATEWAY)
+// 13.3. LICENSE PROVISIONING (SELL.APP API INTERFACE)
 
-app.post('/api/admin/license/activate', isAdmin, async function(req, res) {
-    const { license_key, instance_name, discord_id, duration, server_name, server_id, type } = req.body;
+/**
+ * ROUTE: Activate License
+ * Description: Handshakes with Sell.App and creates a server tracking record.
+ */
+app.post('/api/admin/license/activate', isAdmin, async function(request, response) {
+    const { 
+        license_key, 
+        instance_name, 
+        discord_id, 
+        duration, 
+        server_name, 
+        server_id, 
+        type 
+    } = request.body;
     
-    console.log(`[LICENSE] 🚀 Handshaking with Sell.App for key: ${license_key}`);
+    console.log(`[LICENSE] 🚀 Handshaking with Sell.App API for key: ${license_key}`);
     
     try {
-        // API Execution
-        const apiResponse = await axios.post('https://sell.app/api/v2/licenses/activate', { 
+        // 1. External Activation Request
+        const sellAppApiResponse = await axios.post('https://sell.app/api/v2/licenses/activate', { 
             license_key: license_key, 
             instance_name: instance_name 
         }, { 
@@ -1764,17 +2349,18 @@ app.post('/api/admin/license/activate', isAdmin, async function(req, res) {
             } 
         });
         
-        // Expiration Mapping
-        let expiryDate = null; 
+        // 2. Calculation of Service Expiration
+        let serviceExpiryDate = null; 
+        
         if (duration !== 'Lifetime') {
-            const count = parseInt(duration);
-            if (isNaN(count) === false) {
-                expiryDate = new Date(Date.now() + count * 24 * 60 * 60 * 1000);
+            const numericDays = parseInt(duration);
+            if (isNaN(numericDays) === false) {
+                serviceExpiryDate = new Date(Date.now() + (numericDays * 24 * 60 * 60 * 1000));
             }
         }
         
-        // Save to Cluster
-        const record = new License({ 
+        // 3. Persistent Clustering
+        const licenseRecordDoc = new License({ 
             key: license_key,
             instanceId: instance_name,
             discordId: discord_id,
@@ -1783,190 +2369,229 @@ app.post('/api/admin/license/activate', isAdmin, async function(req, res) {
             type: type,
             duration: duration,
             activatedAt: new Date(),
-            expiresAt: expiryDate,
+            expiresAt: serviceExpiryDate,
             reviewRequestSent: false
         });
-        await record.save();
         
-        await sendLog("🔑 License Provisioned", `**User:** <@${discord_id}>\n**Server:** ${server_name}\n**Tier:** ${type}`, '#10b981');
+        await licenseRecordDoc.save();
         
-        // Notify Customer
+        await sendLog(
+            "🔑 License Record Provisioned", 
+            `**Technician:** ${request.session.username}\n**Client:** <@${discord_id}>\n**Server:** ${server_name}\n**Product:** ${type}`, 
+            '#10b981'
+        );
+        
+        // 4. Client Notification Sequence
         try {
-            const handle = await clients[0].users.fetch(discord_id);
-            const embed = new EmbedBuilder()
+            const primaryBot = discordClients[0];
+            const clientHandle = await primaryBot.users.fetch(discord_id);
+            
+            const successEmbed = new EmbedBuilder()
                 .setTitle("Service Activated ✅")
-                .setDescription(`Your Miraidon Trade Services License is now linked to **${server_name}**.`)
+                .setDescription(`Your Miraidon instance is now linked to the community: **${server_name}**.`)
                 .addFields(
-                    { name: "Product", value: type, inline: true },
-                    { name: "Validity", value: duration, inline: true }
+                    { name: "Subscription Tier", value: type, inline: true },
+                    { name: "Service Validity", value: duration, inline: true }
                 )
                 .setColor('#10b981')
                 .setTimestamp();
-            await handle.send({ embeds: [embed] });
-        } catch (dmErr) {
-            console.log("[LICENSE] ⚠️ Blocked DM.");
+                
+            await clientHandle.send({ embeds: [successEmbed] });
+            console.log(`[LICENSE] ✅ Activation confirmation DM'd to ${discord_id}`);
+        } catch (clientDmFailure) {
+            console.warn("[LICENSE] ⚠️ Record created but client DM was blocked.");
         }
         
-        return res.json({ success: true });
-    } catch (e) {
-        console.error("[LICENSE] ❌ Activation Engine Error:");
-        console.error(e.response ? e.response.data : e.message);
-        return res.status(400).json({ error: "Rejection: Invalid Key or Instance mismatch." });
+        return response.json({ 
+            success: true 
+        });
+
+    } catch (activationLogicError) {
+        console.error("[LICENSE] ❌ Activation Sequence Aborted:");
+        console.error(activationLogicError.response ? activationLogicError.response.data : activationLogicError.message);
+        return response.status(400).json({ 
+            error: "Activation Rejected: Verify key validity and instance uniqueness." 
+        });
     }
 });
 
 
 // =================================================================================================
-//  SECTION 14: SERVICE STATUS AGGREGATION (NEW v10.6 Addition)
+//  SECTION 14: SERVICE STATUS AGGREGATION ENGINE
 // =================================================================================================
 
 /**
- * ROUTE: Public Health Check
- * GET /api/status
- * Aggregates support window and bot trading states.
+ * ROUTE: Public Pulse Check
+ * Method: GET
+ * Path: /api/status
+ * Aggregates support windows and granular fleet health for the public status page.
  */
-app.get('/api/status', async function(req, res) {
-    console.log("[HEALTH] 💓 Public heartbeat requested.");
+app.get('/api/status', async function(request, response) {
+    console.log("[HEALTH] 💓 Health aggregation check requested.");
     
     try {
-        const cfg = await Config.findOne({ id: 'global' });
+        const configRecord = await Config.findOne({ id: 'global' });
         
-        // Time Calc (AST)
-        const date = new Date();
-        const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' }).formatToParts(date);
-        const curMin = (parseInt(parts.find(p => p.type === 'hour').value) * 60) + parseInt(parts.find(p => p.type === 'minute').value);
+        // Support schedule calculations (AST context)
+        const currentNow = new Date();
+        const formatParts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' }).formatToParts(currentNow);
         
-        const [oH, oM] = cfg.openTime.split(':').map(Number);
-        const [cH, cM] = cfg.closeTime.split(':').map(Number);
+        const hourNow = parseInt(formatParts.find(p => p.type === 'hour').value);
+        const minNow = parseInt(formatParts.find(p => p.type === 'minute').value);
+        const currentTotalMinutes = (hourNow * 60) + minNow;
         
-        const open = (oH * 60) + oM;
-        const close = (cH * 60) + cM;
+        const [openingH, openingM] = configRecord.openTime.split(':').map(Number);
+        const [closingH, closingM] = configRecord.closeTime.split(':').map(Number);
+        
+        const openTotal = (openingH * 60) + openingM;
+        const closeTotal = (closingH * 60) + closingM;
 
-        const inWindow = (curMin >= open && curMin <= close);
-        const deskStatus = (cfg.supportOnline && inWindow);
+        const isTimeWindowActive = (currentTotalMinutes >= openTotal && currentTotalMinutes <= closeTotal);
+        const finalDeskStatus = (configRecord.supportOnline === true && isTimeWindowActive === true);
 
-        // Fleet mapping
-        const fleetData = clients.map(function(c) {
-            const botConf = cfg.botFleetStatus.find(function(b) {
-                return (b.botId === c.user.id);
+        // Map fleet health data
+        const fleetHealthCollection = discordClients.map(function(clientInstance) {
+            const statusEntry = configRecord.botFleetStatus.find(function(entry) {
+                const isMatch = (entry.botId === clientInstance.user.id);
+                return isMatch;
             });
             
             return {
-                name: c.user.username,
-                isOnline: c.isReady(),
-                isTrading: botConf ? botConf.tradingActive : true
+                name: clientInstance.user.username,
+                isOnline: clientInstance.isReady(),
+                isTrading: statusEntry ? statusEntry.tradingActive : true
             };
         });
 
-        return res.json({ 
+        // Combined health object
+        const finalResponse = { 
             support: { 
-                isOpen: deskStatus, 
-                window: `${cfg.openTime} - ${cfg.closeTime} AST`, 
-                note: cfg.offlineNote 
+                isOpen: finalDeskStatus, 
+                window: `${configRecord.openTime} - ${configRecord.closeTime} AST`, 
+                note: configRecord.offlineNote 
             }, 
-            fleet: fleetData 
+            fleet: fleetHealthCollection 
+        };
+
+        return response.json(finalResponse);
+
+    } catch (healthAggregationError) {
+        console.error("[HEALTH] ❌ Logic fault in pulse check engine:");
+        console.error(healthAggregationError);
+        return response.status(500).json({ 
+            error: "Internal Error: Heartbeat aggregator failed." 
         });
-    } catch (healthError) {
-        console.error("[HEALTH] ❌ Aggregator failure.");
-        return res.status(500).json({ error: "Logic error." });
     }
 });
 
 
 // =================================================================================================
-//  SECTION 15: AUTOMATION AND RECURRING MAINTENANCE (CRON)
+//  SECTION 15: AUTOMATION MAINTENANCE AND BACKGROUND CRON TASKS
 // =================================================================================================
 
 /**
- * TASK: checkExpirations
- * Interval: 60 minutes
- * Scans for licenses nearing 72-hour cutoff.
+ * ENGINE: Background Automation
+ * Logic: Every 60 minutes
+ * Responsibilities: License warnings and Trustpilot milestone requests.
  */
-async function checkExpirations() {
-    console.log("[CRON] 🕒 Scanning expiry window...");
+
+async function executeAutomationCycle() {
+    console.log("================================================================================");
+    console.log("[CRON] 🕒 Initializing background maintenance cycle...");
+    console.log("================================================================================");
     
     const now = new Date();
-    const future = new Date();
-    future.setDate(now.getDate() + 3);
+    
+    // --- TASK 1: LICENSE EXPIRATION WARNINGS (72 Hour Window) ---
+    const expiryHorizon = new Date();
+    expiryHorizon.setDate(now.getDate() + 3);
     
     try {
-        const expiring = await License.find({ 
-            expiresAt: { $gt: now, $lt: future }, 
+        const expiringInvoices = await License.find({ 
+            expiresAt: { $gt: now, $lt: expiryHorizon }, 
             reminderSent: false 
         });
 
-        for (const doc of expiring) {
+        console.log(`[CRON] -> Found ${expiringInvoices.length} accounts nearing expiration.`);
+
+        for (const invoice of expiringInvoices) {
             try {
-                const user = await clients[0].users.fetch(doc.discordId);
-                const embed = new EmbedBuilder()
-                    .setTitle("⚠️ Service Interruption Imminent")
-                    .setDescription(`Your license for **${doc.serverName || 'your guild'}** expires in less than 3 days.\n\nPlease visit https://miraidon.sell.app/ to purchase New License immediately.\nAfter Purchase DM us your License Key so we can update your subscription`)
-                    .setColor('#f59e0b');
-                    
-                await user.send({ embeds: [embed] });
+                const primaryBot = discordClients[0];
+                const targetCustomer = await primaryBot.users.fetch(invoice.discordId);
                 
-                doc.reminderSent = true;
-                await doc.save();
-                console.log(`[CRON] 📤 Expiry warning: ${doc.discordId}`);
-            } catch (e) {
-                console.warn(`[CRON] ⚠️ DM unreachable: ${doc.discordId}`);
+                const warningEmbed = new EmbedBuilder()
+                    .setTitle("⚠️ Service Interruption Warning")
+                    .setDescription(`Your Miraidon Trade Services license for **${invoice.serverName || 'your community'}** will expire in less than 72 hours.\n\nTo prevent logic shutdown for your guild, please visit [Sell.app](https://miraidon.sell.app/) and renew your subscription.\nAfter Purchase please us your new Licence Key.`)
+                    .setColor('#f59e0b')
+                    .setTimestamp();
+                    
+                await targetCustomer.send({ 
+                    embeds: [warningEmbed] 
+                });
+                
+                invoice.reminderSent = true;
+                await invoice.save();
+                console.log(`[CRON] -> Expiry warning delivered to ID: ${invoice.discordId}`);
+            } catch (customerWarnErr) {
+                console.warn(`[CRON] -> Delivery failed for customer ${invoice.discordId}. Marking as sent to prevent loops.`);
+                invoice.reminderSent = true;
+                await invoice.save();
             }
         }
-    } catch (e) {
-        console.error("[CRON] ❌ Query error.");
+    } catch (expiryQueryErr) {
+        console.error("[CRON] ❌ Expiry scan database error.");
     }
-}
 
-/**
- * TASK: checkReviewEligibility
- * Interval: 60 minutes
- * Scans for 14-day milestones to request Trustpilot feedback.
- */
-async function checkReviewEligibility() {
-    console.log("[CRON] 🕒 Scanning review milestones...");
-    
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 14);
+    // --- TASK 2: TRUSTPILOT REVIEW ELIGIBILITY (14 Day Milestone) ---
+    const reviewMilestoneDate = new Date();
+    reviewMilestoneDate.setDate(reviewMilestoneDate.getDate() - 14);
 
     try {
-        const candidates = await License.find({
-            activatedAt: { $lt: cutoff },
+        const eligibleCandidates = await License.find({
+            activatedAt: { $lt: reviewMilestoneDate },
             reviewRequestSent: false
         });
 
-        for (const target of candidates) {
-            try {
-                const user = await clients[0].users.fetch(target.discordId);
-                
-                const embed = new EmbedBuilder()
-                    .setTitle("🌟 Your Opinion Matters")
-                    .setColor('#10b981')
-                    .setDescription("Two weeks ago, you activated a Licence Key for your community. We hope the speed and reliability have met your expectations.\n\nCould you spare 60 seconds to review us on **Trustpilot**?")
-                    .addFields({ 
-                        name: 'Trustpilot Page', 
-                        value: 'https://www.trustpilot.com/review/miraidon.ca' 
-                    });
+        console.log(`[CRON] -> Found ${eligibleCandidates.length} clients eligible for review milestone.`);
 
-                await user.send({ embeds: [embed] });
+        for (const clientRecord of eligibleCandidates) {
+            try {
+                const primaryBot = discordClients[0];
+                const clientHandle = await primaryBot.users.fetch(clientRecord.discordId);
                 
-                target.reviewRequestSent = true;
-                await target.save();
-                console.log(`[CRON] 📤 Trustpilot request: ${target.discordId}`);
-            } catch (e) {
-                console.warn(`[CRON] ⚠️ Milestone DM failed: ${target.discordId}`);
-                target.reviewRequestSent = true;
-                await target.save();
+                const reviewRequestEmbed = new EmbedBuilder()
+                    .setTitle("🌟 How is Miraidon treating you?")
+                    .setColor('#10b981')
+                    .setDescription("Greetings! You have been utilizing Miraidon Trade Services for exactly two weeks now.\nOn one of our Premium plans. \nOur system relies on community feedback to maintain its verified status. If you have 60 seconds, could you share your experience on **Trustpilot**?")
+                    .addFields({ 
+                        name: 'Review URL', 
+                        value: 'https://www.trustpilot.com/review/miraidon.ca' 
+                    })
+                    .setFooter({ text: "Feedback drives our development." });
+
+                await clientHandle.send({ 
+                    embeds: [reviewRequestEmbed] 
+                });
+                
+                clientRecord.reviewRequestSent = true;
+                await clientRecord.save();
+                console.log(`[CRON] -> Trustpilot request delivered to ID: ${clientRecord.discordId}`);
+            } catch (reviewDispatchErr) {
+                console.warn(`[CRON] -> Milestone DM blocked for ${clientRecord.discordId}. Marking complete.`);
+                clientRecord.reviewRequestSent = true;
+                await clientRecord.save();
             }
         }
-    } catch (e) {
-        console.error("[CRON] ❌ Milestone check failure.");
+    } catch (reviewQueryErr) {
+        console.error("[CRON] ❌ Milestone scan database error.");
     }
+    
+    console.log("[CRON] ✅ Maintenance cycle completed.");
 }
 
-// 15.1. CRON SCHEDULER (Hourly Execution)
+// Initialize hourly scheduler
 setInterval(function() {
-    checkExpirations();
-    checkReviewEligibility();
+    executeAutomationCycle();
 }, 1000 * 60 * 60);
 
 
@@ -1976,14 +2601,15 @@ setInterval(function() {
 
 /**
  * FINAL BOOT SEQUENCE:
- * Opens the server to the global internet on the assigned PORT.
+ * Binds the Express application to the environment's listening port.
  */
-const PORT = process.env.PORT || 10000;
+const SYSTEM_PORT = process.env.PORT || 10000;
 
-server.listen(PORT, function() {
+server.listen(SYSTEM_PORT, function() {
     console.log("================================================================================");
-    console.log(`🚀 MIRAIDON MASTER CONTROLLER ACTIVE`);
-    console.log(`📡 LISTENING ON PORT: ${PORT}`);
-    console.log(`🛠️ VERSION: 10.6.1 (UNABRIDGED)`);
+    console.log("🚀 MIRAIDON MASTER CONTROLLER ARCHITECTURE: ONLINE");
+    console.log(`📡 NETWORK BOUNDARY: PORT ${SYSTEM_PORT}`);
+    console.log(`🛠️ SOFTWARE VERSION: 11.2 (ARCHITECTURAL RESTORATION)`);
+    console.log(`📅 STARTUP TIMESTAMP: ${new Date().toLocaleString()}`);
     console.log("================================================================================");
 });
