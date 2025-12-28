@@ -2,241 +2,310 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Console - Miraidon Trade Services</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        /* * STYLING ARCHITECTURE
-         * Expanded CSS to ensure UI consistency and maximum readability.
+        /**
+         * GLOBAL ADMINISTRATIVE UI ARCHITECTURE
+         * Designed for maximal clarity and durability.
          */
-        body { 
+        body 
+        { 
             background-color: #020617; 
-            color: white; 
+            color: #ffffff; 
             font-family: 'Courier New', Courier, monospace; 
+            padding: 24px;
+            margin: 0px;
         }
         
-        /* Form Element Styling */
-        input, select, textarea { 
+        /* FORM ELEMENT DECORATION */
+        input, select, textarea 
+        { 
             background-color: #0f172a; 
             border: 1px solid #334155; 
-            padding: 8px; 
+            padding: 10px; 
             width: 100%; 
-            color: white; 
+            color: #ffffff; 
             outline: none; 
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 12px;
+            transition: border-color 0.2s ease;
         }
         
-        input:focus, select:focus, textarea:focus { 
+        input:focus, select:focus, textarea:focus 
+        { 
             border-color: #6366f1; 
             background-color: #1e293b;
         }
 
-        /* Container Custom Scrollbars */
-        ::-webkit-scrollbar { 
+        /* CUSTOM SCROLLBAR LOGIC */
+        ::-webkit-scrollbar 
+        { 
             width: 8px; 
         }
-        ::-webkit-scrollbar-track { 
+        ::-webkit-scrollbar-track 
+        { 
             background: #0f172a; 
         }
-        ::-webkit-scrollbar-thumb { 
+        ::-webkit-scrollbar-thumb 
+        { 
             background: #334155; 
             border-radius: 4px; 
         }
-        ::-webkit-scrollbar-thumb:hover { 
+        ::-webkit-scrollbar-thumb:hover 
+        { 
             background: #475569; 
         }
 
-        /* Layout Component Classes */
-        .section-header { 
+        /* SECTIONAL COMPONENTS */
+        .section-header 
+        { 
             font-weight: bold; 
-            margin-bottom: 12px; 
-            padding-bottom: 4px; 
+            margin-bottom: 16px; 
+            padding-bottom: 8px; 
             border-bottom: 1px solid; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .stat-value { 
+        .stat-value 
+        { 
             font-size: 14px; 
             color: #f8fafc; 
             font-weight: bold; 
         }
 
-        .action-btn {
+        .action-button-small 
+        {
             font-size: 9px;
             font-weight: 900;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 4px;
             text-transform: uppercase;
             transition: all 0.2s ease;
         }
     </style>
 </head>
-<body class="p-6 h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden">
     
-    <nav class="mb-6 flex justify-between items-center shrink-0">
+    <nav class="mb-8 flex justify-between items-center shrink-0">
         <div class="flex flex-col">
-            <span class="font-bold text-amber-500 text-xl tracking-wider uppercase">Miraidon Console</span>
-            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Admin Control v10.9</span>
+            <span class="font-black text-amber-500 text-2xl tracking-tighter uppercase">Miraidon Master Console</span>
+            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Administrative Control Layer / v11.10</span>
         </div>
-        <a href="/staff/dashboard.html" class="text-xs text-slate-400 hover:text-white border border-slate-700 px-4 py-2 rounded transition hover:bg-slate-800">
-            ← BACK TO DASHBOARD
-        </a>
+        
+        <div class="flex gap-4">
+            <button onclick="refreshAllData()" 
+                    class="text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700 px-4 py-2 rounded-lg hover:bg-slate-700 transition">
+                FORCE REFRESH
+            </button>
+            <a href="/staff/dashboard.html" 
+               class="text-[10px] font-black bg-blue-900/20 text-blue-400 border border-blue-900/50 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition">
+                ← TERMINAL DASHBOARD
+            </a>
+        </div>
     </nav>
     
-    <div class="flex-1 overflow-y-auto space-y-8 pr-2 pb-10">
+    <div class="flex-1 overflow-y-auto space-y-10 pr-4 pb-20">
 
-        <div class="p-6 border border-slate-700 rounded bg-slate-900/30 shadow-xl">
+        <div class="p-6 border border-slate-800 rounded-xl bg-slate-900/30 shadow-2xl">
             <h2 class="section-header text-slate-300 border-slate-700">
-                <span>STAFF PERFORMANCE DATA</span>
-                <button onclick="load()" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded transition border border-slate-600 uppercase">Refresh Stats</button>
+                Personnel Performance Metrics
             </h2>
             
-            <div class="grid grid-cols-5 gap-4 px-4 py-2 bg-slate-950 border border-slate-800 rounded-t text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                <div>Team Member</div>
-                <div class="text-center">Closed</div>
-                <div class="text-center">Replies</div>
-                <div class="text-center">Avg Rating</div>
-                <div class="text-right">Actions</div>
+            <div class="grid grid-cols-5 gap-4 px-6 py-3 bg-slate-950 border border-slate-800 rounded-t-xl text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <div>Support Member</div>
+                <div class="text-center">Tickets Finalized</div>
+                <div class="text-center">Outbound Replies</div>
+                <div class="text-center">Quality Rating</div>
+                <div class="text-right">Identity Actions</div>
             </div>
             
-            <div id="staff-stats-container" class="bg-slate-900/50 border-x border-b border-slate-800 rounded-b divide-y divide-slate-800">
+            <div id="performance-table-body" class="bg-slate-900/50 border-x border-b border-slate-800 rounded-b-xl divide-y divide-slate-800">
                 </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="p-6 border border-slate-700 rounded-xl bg-slate-900/50 shadow-2xl">
+            <h2 class="section-header text-slate-300 border-slate-700">
+                Active Fleet Control & Server Inventory
+            </h2>
+            <div id="fleet-inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[500px] overflow-y-auto p-2">
+                <div class="col-span-full py-20 text-center text-slate-700 italic uppercase font-bold tracking-widest">
+                    Initializing fleet handshake...
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
             
-            <div class="p-6 border border-amber-900 rounded bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-amber-400 border-amber-900 uppercase">Provision New Staff</h2>
+            <div class="p-6 border border-teal-900 rounded-xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-teal-400 border-teal-900">System Global Logic</h2>
                 
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Username</label>
-                        <input id="su" placeholder="Display Name">
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-black text-slate-200 uppercase tracking-tighter">Support Terminal Status</span>
+                            <span class="text-[9px] text-slate-600 font-bold uppercase">Master override for inquiry generation</span>
+                        </div>
+                        <input type="checkbox" id="cfg-online-toggle" class="w-6 h-6 accent-teal-500 cursor-pointer">
                     </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Discord User ID</label>
-                        <input id="sd" placeholder="18-digit identifier">
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Window Start (AST)</label>
+                            <input type="time" id="cfg-open-time">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Window End (AST)</label>
+                            <input type="time" id="cfg-close-time">
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2 p-3 bg-slate-950 rounded border border-slate-800">
-                        <input type="checkbox" id="sa" style="width:auto" class="w-4 h-4 cursor-pointer">
-                        <label for="sa" class="text-xs font-bold text-slate-300 uppercase cursor-pointer">Assign Administrator Permissions</label>
+
+                    <div>
+                        <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Maintenance Notice Text</label>
+                        <textarea id="cfg-offline-note" class="h-24" placeholder="Enter notice for trainees when terminal is offline..."></textarea>
                     </div>
                     
-                    <button onclick="addS()" class="w-full bg-amber-600 hover:bg-amber-500 text-white p-3 rounded font-bold text-xs transition shadow-lg shadow-amber-900/20 uppercase">
-                        Create Staff Account
+                    <button onclick="commitConfigChanges()" 
+                            class="w-full bg-teal-600 hover:bg-teal-500 text-white p-4 rounded-xl font-black text-xs uppercase transition shadow-lg shadow-teal-900/20">
+                        Commit Logic Changes
                     </button>
-                    <p class="text-[9px] text-slate-500 italic text-center uppercase tracking-tighter">System will automatically DM the login key to the provided Discord ID.</p>
                 </div>
             </div>
 
-            <div class="p-6 border border-blue-900 rounded bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-blue-400 border-blue-900 uppercase">Manual Outbound Message</h2>
+            <div class="p-6 border border-indigo-900 rounded-xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-indigo-400 border-indigo-900">License Provisioning Engine</h2>
                 
-                <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Target Discord ID</label>
-                <input id="md-id" placeholder="000000000000000000" class="mb-4">
-                
-                <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Initial Message</label>
-                <textarea id="md-msg" placeholder="Start the conversation..." class="h-24 mb-4"></textarea>
-                
-                <button onclick="openTicket()" class="w-full bg-blue-600 hover:bg-blue-500 text-white p-3 rounded font-bold text-xs transition uppercase">
-                    Initialize Thread
-                </button>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            <div class="p-6 border border-teal-900 rounded bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-teal-400 border-teal-900 uppercase">Service Controls</h2>
-                
-                <div class="flex items-center justify-between mb-4 bg-slate-950 p-4 rounded border border-slate-800">
-                    <label class="text-sm font-bold text-slate-200 uppercase tracking-tighter">Global Support Toggle</label>
-                    <input type="checkbox" id="cfg-online" class="w-6 h-6 accent-teal-500 cursor-pointer">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Open (AST)</label>
-                        <input type="time" id="cfg-open">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <input id="lic-key" placeholder="Sell.App License Key">
+                        <input id="lic-discord-id" placeholder="Client Discord ID">
                     </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Close (AST)</label>
-                        <input type="time" id="cfg-close">
+                    
+                    <input id="lic-instance" placeholder="Target Instance ID / HWID">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <input id="lic-server-name" placeholder="Community Name">
+                        <input id="lic-server-id" placeholder="Community ID">
                     </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Horizon</label>
+                            <select id="lic-duration">
+                                <option value="30 Days">30 Calendar Days</option>
+                                <option value="90 Days">90 Calendar Days</option>
+                                <option value="365 Days">365 Calendar Days</option>
+                                <option value="Lifetime">Indefinite (Lifetime)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Product Tier</label>
+                            <select id="lic-type">
+                                <option value="Premium Bundle">Premium Bundle (Miraidon)</option>
+                                <option value="Mable Rental">Mable Rental (Professor)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button onclick="executeLicenseActivation()" 
+                            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-xl font-black text-xs uppercase transition shadow-lg shadow-indigo-900/20 pt-10 mt-4">
+                        Activate Identity & Link Community
+                    </button>
                 </div>
-
-                <label class="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Public Offline Notice</label>
-                <input id="cfg-note" class="mb-6" placeholder="Maintenance message...">
-                
-                <button onclick="saveConfig()" class="w-full bg-teal-600 hover:bg-teal-500 text-white p-3 rounded font-bold text-xs transition uppercase">
-                    Commit Changes
-                </button>
-            </div>
-
-            <div class="p-6 border border-indigo-900 rounded bg-slate-900/50 shadow-lg shadow-indigo-900/10">
-                <h2 class="section-header text-indigo-400 border-indigo-900 uppercase">License Engine</h2>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <input id="lk" placeholder="License Key">
-                    <input id="ld" placeholder="Discord User ID">
-                </div>
-                <input id="li" placeholder="Instance identifier" class="mb-4">
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <input id="sn" placeholder="Server Name">
-                    <input id="sid" placeholder="Server ID">
-                </div>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <select id="dur">
-                        <option value="30 Days">30 Days</option>
-                        <option value="90 Days">90 Days</option>
-                        <option value="Lifetime">Lifetime</option>
-                    </select>
-                    <select id="type">
-                        <option value="Premium Bundle">Premium Bundle</option>
-                        <option value="Mable Rental">Mable Rental</option>
-                    </select>
-                </div>
-                <button onclick="lic()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded font-bold text-xs transition uppercase">
-                    Activate Product
-                </button>
             </div>
         </div>
 
-        <div class="p-6 border border-slate-700 rounded bg-slate-900/30 shadow-lg">
-            <h2 class="section-header text-slate-300 border-slate-700 uppercase">Active Fleet Control</h2>
-            <div id="server-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
             
-            <div class="p-6 border border-purple-900 rounded bg-slate-900/50 shadow-lg shadow-purple-900/10">
-                <h2 class="section-header text-purple-400 border-purple-900 uppercase">Canned Responses</h2>
-                <div id="macro-list" class="h-32 overflow-y-auto mb-4 text-xs border border-slate-800 p-2 rounded bg-slate-950 divide-y divide-slate-800"></div>
+            <div class="p-6 border border-amber-900 rounded-xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-amber-400 border-amber-900">Provision Support Personnel</h2>
                 
-                <input id="mt" placeholder="Response Title" class="mb-2">
-                <textarea id="mc" placeholder="Message content..." class="h-20 mb-2"></textarea>
-                <button onclick="addMacro()" class="w-full bg-purple-600 hover:bg-purple-500 text-white p-2 rounded font-bold text-xs transition uppercase">Save Macro</button>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <input id="staff-username" placeholder="Technician Handle">
+                        <input id="staff-discord-id" placeholder="Technician Discord ID">
+                    </div>
+                    
+                    <div class="flex items-center gap-4 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                        <input type="checkbox" id="staff-admin-toggle" style="width:auto;" class="w-5 h-5 cursor-pointer">
+                        <label for="staff-admin-toggle" class="text-xs font-black text-slate-300 uppercase">Grant Level 2 Administrative Clearance</label>
+                    </div>
+                    
+                    <button onclick="executeStaffCreation()" 
+                            class="w-full bg-amber-600 hover:bg-amber-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">
+                        Authorize Personnel
+                    </button>
+                </div>
             </div>
 
-            <div class="p-6 border border-pink-900 rounded bg-slate-900/50 shadow-lg shadow-pink-900/10">
-                <h2 class="section-header text-pink-400 border-pink-900 uppercase">Knowledge Base</h2>
-                <input id="fq" placeholder="Question..." class="mb-4">
-                <textarea id="fa" placeholder="Detailed Answer..." class="h-32 mb-4"></textarea>
-                <button onclick="addFaq()" class="w-full bg-pink-600 hover:bg-pink-500 text-white p-3 rounded font-bold text-xs transition uppercase">Save Entry</button>
+            <div class="p-6 border border-blue-900 rounded-xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-blue-400 border-blue-900">Manual Outbound Handshake</h2>
+                
+                <div class="space-y-4">
+                    <input id="manual-discord-id" placeholder="Target Trainer Discord ID">
+                    <textarea id="manual-message-body" class="h-20" placeholder="Enter initialization message..."></textarea>
+                    
+                    <button onclick="executeManualDispatch()" 
+                            class="w-full bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">
+                        Initialize Outbound Thread
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="p-6 border border-red-900 rounded bg-slate-900/50 shadow-xl max-w-2xl mx-auto">
-            <h2 class="section-header text-red-400 border-red-900 uppercase">Service Broadcast</h2>
-            <p class="text-[10px] text-red-500 mb-4 bg-red-950/30 p-2 border border-red-900/50 font-black uppercase tracking-tighter">
-                ⚠️ DANGER: Sends DM to ALL server owners. Use for emergency downtime or major updates only.
-            </p>
-            <textarea id="bm" placeholder="Broadcast text..." class="h-24 mb-4"></textarea>
-            <button onclick="broadcast()" class="w-full bg-red-600 hover:bg-red-500 text-white p-3 rounded font-bold text-xs transition uppercase tracking-widest">
-                Execute Mass Dispatch
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            
+            <div class="p-6 border border-purple-900 rounded-xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-purple-400 border-purple-900">Canned Response Database</h2>
+                
+                <div id="macro-management-list" class="h-40 overflow-y-auto mb-6 bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-1">
+                    </div>
+                
+                <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <input id="macro-title-input" placeholder="Macro Title">
+                    <textarea id="macro-content-input" placeholder="Macro Content..."></textarea>
+                    <button onclick="executeMacroCreation()" 
+                            class="w-full bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-lg font-black text-xs uppercase transition">
+                        Update Database
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 border border-pink-900 rounded-xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-pink-400 border-pink-900">Public Knowledge Base</h2>
+                
+                <div class="space-y-4">
+                    <input id="faq-question-input" placeholder="The Inquiry (Question)">
+                    <textarea id="faq-answer-input" class="h-40" placeholder="The Resolution (Answer)"></textarea>
+                    <button onclick="executeFaqCreation()" 
+                            class="w-full bg-pink-600 hover:bg-pink-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">
+                        Append to FAQ Collection
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-8 border border-red-900 rounded-xl bg-slate-900/50 shadow-2xl max-w-3xl mx-auto">
+            <h2 class="section-header text-red-400 border-red-900">Global Emergency Broadcast</h2>
+            <div class="bg-red-950/40 border border-red-900/50 p-4 rounded-xl mb-6">
+                <span class="text-[10px] text-red-500 font-black uppercase tracking-widest block mb-2">⚠️ WARNING: MASS DISPATCH DETECTED</span>
+                <span class="text-[9px] text-red-200/60 font-bold leading-tight block">
+                    Execution of this function will DM every community owner currently hosting a Miraidon instance. Use only for critical security patches or emergency downtime.
+                </span>
+            </div>
+            
+            <textarea id="broadcast-message-field" class="h-32 mb-6" placeholder="Enter emergency notice content..."></textarea>
+            
+            <button onclick="executeGlobalBroadcast()" 
+                    class="w-full bg-red-600 hover:bg-red-500 text-white p-5 rounded-xl font-black text-sm uppercase transition tracking-widest shadow-lg shadow-red-900/40">
+                Execute Mass Dispatch Sequence
             </button>
         </div>
 
@@ -244,263 +313,376 @@
 
     <script>
         /**
-         * Function: req
-         * Core API wrapper for administrative tasks.
+         * Function: apiRequest
+         * Explicit, verbose network handler.
          */
-        async function req(url, method, body) {
-            if (method === undefined) { method = 'GET'; }
-            const options = { 
-                method: method, 
-                headers: { 'Content-Type': 'application/json' } 
+        async function apiRequest(urlPath, methodType, payloadBody)
+        {
+            var method = "GET";
+            if (methodType !== undefined) { method = methodType; }
+
+            var fetchSettings = {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json"
+                }
             };
-            if (body !== undefined && body !== null) { 
-                options.body = JSON.stringify(body); 
+
+            if (payloadBody !== undefined && payloadBody !== null)
+            {
+                fetchSettings.body = JSON.stringify(payloadBody);
             }
-            
-            try {
-                const response = await fetch(url, options);
-                if (response.status === 401) { 
-                    window.location.href = '/login.html'; 
+
+            try 
+            {
+                var response = await fetch(urlPath, fetchSettings);
+                
+                if (response.status === 401)
+                {
+                    window.location.href = "/login.html";
                     return null;
                 }
-                const json = await response.json();
-                return json;
-            } catch (err) {
-                console.error("API Call Failed: " + err.message);
+                
+                var data = await response.json();
+                return data;
+            }
+            catch (error)
+            {
+                console.error("[ADMIN_ENGINE] Network failure: " + error.message);
                 return { error: true };
             }
         }
 
         /**
-         * Function: load
-         * Re-aggregates all system data and refreshes the UI components.
+         * Function: refreshAllData
+         * Centralized data aggregation for the administrative console.
          */
-        async function load() {
-            // 1. Refresh System Health Configuration
-            try {
-                const config = await req('/api/admin/config');
-                if (config) {
-                    document.getElementById('cfg-online').checked = config.supportOnline;
-                    document.getElementById('cfg-note').value = config.offlineNote;
-                    document.getElementById('cfg-open').value = config.openTime;
-                    document.getElementById('cfg-close').value = config.closeTime;
-                }
-            } catch(e) { console.error("Config fetch error."); }
+        async function refreshAllData()
+        {
+            console.log("[ADMIN_ENGINE] Initializing unified data refresh...");
 
-            // 2. Aggregate Performance Statistics
-            const stats = await req('/api/admin/stats');
-            const performanceContainer = document.getElementById('staff-stats-container');
-            
-            if (stats && stats.length > 0) {
-                performanceContainer.innerHTML = stats.map(function(m) {
-                    let avgRating = 0;
-                    if (m.ratingCount > 0) {
-                        avgRating = (m.ratingSum / m.ratingCount).toFixed(2);
-                    }
+            // 1. REFRESH GLOBAL CONFIGURATION
+            var configData = await apiRequest("/api/admin/config");
+            if (configData !== null)
+            {
+                document.getElementById("cfg-online-toggle").checked = configData.supportOnline;
+                document.getElementById("cfg-offline-note").value = configData.offlineNote;
+                document.getElementById("cfg-open-time").value = configData.openTime;
+                document.getElementById("cfg-close-time").value = configData.closeTime;
+            }
+
+            // 2. REFRESH PERFORMANCE ANALYTICS
+            var staffStats = await apiRequest("/api/admin/stats");
+            var performanceContainer = document.getElementById("performance-table-body");
+            performanceContainer.innerHTML = "";
+
+            if (staffStats !== null)
+            {
+                for (var i = 0; i < staffStats.length; i++)
+                {
+                    var technician = staffStats[i];
                     
-                    return `
-                        <div class="grid grid-cols-5 gap-4 px-4 py-3 items-center hover:bg-slate-800/30 transition">
-                            <div class="flex items-center gap-3">
-                                <img src="${m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-8 h-8 rounded-full border border-slate-700">
-                                <div class="flex flex-col min-w-0">
-                                    <span class="font-bold text-white text-xs truncate">${m.username}</span>
-                                    <span class="text-[9px] text-slate-500 uppercase">${m.isAdmin ? 'Admin' : 'Staff'}</span>
-                                </div>
-                            </div>
-                            <div class="text-center stat-value">${m.ticketsClosed || 0}</div>
-                            <div class="text-center stat-value">${m.repliesSent || 0}</div>
-                            <div class="text-center">
-                                <span class="stat-value text-amber-400">${avgRating}</span>
-                                <span class="text-[9px] text-slate-600 block uppercase tracking-tighter">Reviews: ${m.ratingCount || 0}</span>
-                            </div>
-                            <div class="text-right flex justify-end gap-2">
-                                <button onclick="resetPass('${m._id}')" class="action-btn bg-blue-900/40 text-blue-400 border border-blue-900/50 hover:bg-blue-600 hover:text-white">RE-KEY</button>
-                                <button onclick="delS('${m._id}')" class="action-btn bg-red-900/40 text-red-400 border border-red-900/50 hover:bg-red-600 hover:text-white">PURGE</button>
-                            </div>
-                        </div>`;
-                }).join('');
+                    var ratingSum = technician.ratingSum || 0;
+                    var ratingCount = technician.ratingCount || 0;
+                    var averageRating = "N/A";
+                    
+                    if (ratingCount > 0)
+                    {
+                        var rawAverage = (ratingSum / ratingCount);
+                        averageRating = rawAverage.toFixed(2);
+                    }
+
+                    var row = document.createElement("div");
+                    row.className = "grid grid-cols-5 gap-4 px-6 py-4 items-center hover:bg-slate-800/30 transition";
+                    
+                    var adminLabel = "";
+                    if (technician.isAdmin === true) { adminLabel = " [ADMIN]"; }
+
+                    row.innerHTML = '<div class="flex items-center gap-3">' +
+                        '<img src="' + technician.avatar + '" class="w-8 h-8 rounded-full border border-slate-700">' +
+                        '<div class="flex flex-col">' +
+                        '<span class="font-bold text-white text-xs uppercase">' + technician.username + '</span>' +
+                        '<span class="text-[8px] text-slate-600 font-bold uppercase">' + adminLabel + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="text-center stat-value">' + technician.ticketsClosed + '</div>' +
+                        '<div class="text-center stat-value">' + technician.repliesSent + '</div>' +
+                        '<div class="text-center">' +
+                        '<span class="stat-value text-amber-400">' + averageRating + '</span>' +
+                        '<span class="text-[8px] text-slate-600 block font-bold uppercase">Reviews: ' + ratingCount + '</span>' +
+                        '</div>' +
+                        '<div class="flex justify-end gap-2">' +
+                        '<button onclick="rekeyStaffAccount(\'' + technician._id + '\')" class="action-button-small bg-blue-900/40 text-blue-400 border border-blue-900/50 hover:bg-blue-600 hover:text-white transition">RE-KEY</button>' +
+                        '<button onclick="purgeStaffAccount(\'' + technician._id + '\')" class="action-button-small bg-red-900/40 text-red-400 border border-red-900/50 hover:bg-red-600 hover:text-white transition">PURGE</button>' +
+                        '</div>';
+                    
+                    performanceContainer.appendChild(row);
+                }
             }
 
-            // 3. Refresh Macros
-            const macros = await req('/api/macros');
-            document.getElementById('macro-list').innerHTML = macros.map(function(m) {
-                return `
-                    <div class="flex justify-between p-2 hover:bg-slate-900 transition">
-                        <span class="font-bold tracking-tight">${m.title}</span>
-                        <button onclick="delMacro('${m._id}')" class="text-red-500 font-black px-2 hover:text-white transition">✕</button>
-                    </div>`;
-            }).join('');
+            // 3. REFRESH MACRO DATABASE
+            var macros = await apiRequest("/api/macros");
+            var macroBox = document.getElementById("macro-management-list");
+            macroBox.innerHTML = "";
 
-            // 4. Refresh Fleet Inventory
-            const servers = await req('/api/admin/servers');
-            const configDataForFleet = await req('/api/admin/config');
+            if (macros !== null)
+            {
+                for (var j = 0; j < macros.length; j++)
+                {
+                    var macro = macros[j];
+                    var item = document.createElement("div");
+                    item.className = "flex justify-between items-center p-3 hover:bg-slate-900 transition border-b border-slate-900";
+                    item.innerHTML = '<span class="text-[11px] font-bold text-slate-300 uppercase">' + macro.title + '</span>' +
+                        '<button onclick="purgeMacroEntry(\'' + macro._id + '\')" class="text-red-500 font-black px-2 hover:scale-125 transition">✕</button>';
+                    macroBox.appendChild(item);
+                }
+            }
+
+            // 4. REFRESH FLEET INVENTORY (EXPANDED FIX)
+            var servers = await apiRequest("/api/admin/servers");
+            var fleetGrid = document.getElementById("fleet-inventory-grid");
+            fleetGrid.innerHTML = "";
+
+            if (servers !== null && configData !== null)
+            {
+                for (var k = 0; k < servers.length; k++)
+                {
+                    var server = servers[k];
+                    
+                    // Cross-reference trading status from global config
+                    var tradingStatus = true;
+                    if (configData.botFleetStatus !== undefined)
+                    {
+                        for (var x = 0; x < configData.botFleetStatus.length; x++)
+                        {
+                            var statusEntry = configData.botFleetStatus[x];
+                            if (statusEntry.botId === server.botId)
+                            {
+                                tradingStatus = statusEntry.tradingActive;
+                                break;
+                            }
+                        }
+                    }
+
+                    var card = document.createElement("div");
+                    card.className = "p-5 bg-slate-950 border border-slate-800 rounded-xl shadow-lg flex flex-col justify-between group";
+                    
+                    var statusColor = "text-green-500 border-green-900";
+                    var statusText = "TRADING: ONLINE";
+                    if (tradingStatus === false)
+                    {
+                        statusColor = "text-red-500 border-red-900";
+                        statusText = "TRADING: OFFLINE";
+                    }
+
+                    card.innerHTML = '<div class="space-y-3">' +
+                        '<div class="flex justify-between items-start">' +
+                        '<div class="font-black text-sm uppercase text-slate-200 truncate pr-2">' + server.name + '</div>' +
+                        '<button onclick="toggleBotTradingModule(\'' + server.botId + '\', ' + !tradingStatus + ')" ' +
+                        'class="text-[8px] font-black px-2 py-1 rounded border transition uppercase ' + statusColor + '">' +
+                        statusText + '</button>' +
+                        '</div>' +
+                        '<div class="text-[10px] font-bold uppercase text-slate-600">' +
+                        '<span class="block">👤 Members: ' + server.members + '</span>' +
+                        '<span class="block text-indigo-400 mt-1">🤖 Gateway: ' + server.botName + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="flex gap-2 mt-6 opacity-30 group-hover:opacity-100 transition">' +
+                        '<button onclick="generateSecureInvite(\'' + server.id + '\', \'' + server.botId + '\')" class="flex-1 bg-blue-900/30 border border-blue-900/50 py-1.5 rounded text-[9px] font-bold uppercase text-blue-400 hover:bg-blue-600 hover:text-white transition">Invite</button>' +
+                        '<button onclick="notifyGuildOwner(\'' + server.id + '\', \'' + server.botId + '\')" class="flex-1 bg-amber-900/30 border border-amber-900/50 py-1.5 rounded text-[9px] font-bold uppercase text-amber-400 hover:bg-amber-600 hover:text-white transition">Notify</button>' +
+                        '<button onclick="ejectFleetBot(\'' + server.id + '\', \'' + server.botId + '\')" class="flex-1 bg-red-900/30 border border-red-900/50 py-1.5 rounded text-[9px] font-bold uppercase text-red-400 hover:bg-red-600 hover:text-white transition">Eject</button>' +
+                        '</div>';
+                    
+                    fleetGrid.appendChild(card);
+                }
+            }
+        }
+
+        /**
+         * CORE ADMINISTRATIVE ACTIONS (VERBOSE)
+         */
+
+        async function commitConfigChanges()
+        {
+            var payload = {
+                status: document.getElementById("cfg-online-toggle").checked,
+                note: document.getElementById("cfg-offline-note").value,
+                openTime: document.getElementById("cfg-open-time").value,
+                closeTime: document.getElementById("cfg-close-time").value
+            };
             
-            document.getElementById('server-list').innerHTML = servers.map(function(s) {
-                const botStatus = configDataForFleet.botFleetStatus.find(b => b.botId === s.botId);
-                const isActive = botStatus ? botStatus.tradingActive : true;
-                
-                return `
-                    <div class="p-4 bg-slate-950 border border-slate-800 rounded flex flex-col justify-between group">
-                        <div>
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="font-bold text-sm truncate uppercase text-white">${s.name}</div>
-                                <button onclick="toggleBotTrading('${s.botId}', ${!isActive})" 
-                                        class="text-[9px] font-black px-2 py-1 rounded border transition ${isActive ? 'border-green-900 text-green-500 hover:bg-green-900/20' : 'border-red-900 text-red-500 hover:bg-red-900/20'}">
-                                    ${isActive ? 'TRADING: ON' : 'TRADING: OFF'}
-                                </button>
-                            </div>
-                            <div class="text-[10px] text-slate-500 font-bold uppercase">
-                                <span>👥 ${s.members} Members</span>
-                                <span class="text-indigo-400 block mt-1">🤖 Client: ${s.botName}</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-1 mt-4 opacity-50 group-hover:opacity-100 transition">
-                            <button onclick="mkInv('${s.id}','${s.botId}')" class="flex-1 bg-blue-900/50 py-1 text-[9px] font-bold border border-blue-900 uppercase">Invite</button>
-                            <button onclick="dmOwn('${s.id}','${s.botId}')" class="flex-1 bg-amber-900/50 py-1 text-[9px] font-bold border border-amber-900 uppercase">Notify</button>
-                            <button onclick="leaveS('${s.id}','${s.botId}')" class="flex-1 bg-red-900/50 py-1 text-[9px] font-bold border border-red-900 uppercase">Eject</button>
-                        </div>
-                    </div>`;
-            }).join('');
+            var result = await apiRequest("/api/admin/config/toggle", "POST", payload);
+            if (result.success === true) { alert("Global Logic Persisted."); refreshAllData(); }
         }
 
-        // --- CORE ACTIONS ---
-
-        async function saveConfig() {
-            await req('/api/admin/config/toggle', 'POST', {
-                status: document.getElementById('cfg-online').checked,
-                note: document.getElementById('cfg-note').value,
-                openTime: document.getElementById('cfg-open').value,
-                closeTime: document.getElementById('cfg-close').value
-            });
-            alert("Settings Persistence Confirmed.");
-            load();
+        async function toggleBotTradingModule(botId, newStatus)
+        {
+            var payload = { botId: botId, status: newStatus };
+            var result = await apiRequest("/api/admin/fleet/toggle-trading", "POST", payload);
+            if (result.success === true) { refreshAllData(); }
         }
 
-        async function addS() {
-            const username = document.getElementById('su').value;
-            const discordId = document.getElementById('sd').value;
-            const isAdminFlag = document.getElementById('sa').checked;
+        async function executeStaffCreation()
+        {
+            var u = document.getElementById("staff-username").value;
+            var d = document.getElementById("staff-discord-id").value;
+            var a = document.getElementById("staff-admin-toggle").checked;
+
+            if (u === "" || d === "") { return alert("Credentials required."); }
+
+            var payload = { username: u, discordId: d, adminStatus: a };
+            var result = await apiRequest("/api/admin/staff/add", "POST", payload);
             
-            if(!username || !discordId) {
-                return alert("Identification fields required.");
-            }
-            
-            const response = await req('/api/admin/staff/add', 'POST', {
-                username: username,
-                discordId: discordId,
-                adminStatus: isAdminFlag
-            });
-            
-            if (response.success) {
-                alert("Account provisioned and key dispatched.");
-                document.getElementById('su').value = '';
-                document.getElementById('sd').value = '';
-                load();
+            if (result.success === true)
+            {
+                alert("Technician provisioned. Identity key dispatched.");
+                document.getElementById("staff-username").value = "";
+                document.getElementById("staff-discord-id").value = "";
+                refreshAllData();
             }
         }
 
-        async function toggleBotTrading(botId, newStatus) {
-            await req('/api/admin/fleet/toggle-trading', 'POST', { botId: botId, status: newStatus });
-            load();
-        }
-
-        async function delS(id) {
-            if(confirm("Confirm account purge? Action irreversible.")) {
-                await req('/api/admin/staff/delete', 'POST', { staffId: id });
-                load();
+        async function purgeStaffAccount(id)
+        {
+            var confirmed = confirm("PURGE IDENTITY: Permanently remove this technician?");
+            if (confirmed === true)
+            {
+                var result = await apiRequest("/api/admin/staff/delete", "POST", { staffId: id });
+                if (result.success === true) { refreshAllData(); }
             }
         }
 
-        async function resetPass(id) {
-            if(confirm("Generate new secure key for this technician?")) {
-                await req('/api/admin/staff/reset', 'POST', { staffId: id });
-                alert("New key successfully DM'd.");
+        async function rekeyStaffAccount(id)
+        {
+            var confirmed = confirm("FORCE RE-KEY: Issue new credentials via DM?");
+            if (confirmed === true)
+            {
+                var result = await apiRequest("/api/admin/staff/reset", "POST", { staffId: id });
+                if (result.success === true) { alert("Authorization token re-issued."); }
             }
         }
 
-        async function lic() {
-            await req('/api/admin/license/activate', 'POST', {
-                license_key: document.getElementById('lk').value,
-                discord_id: document.getElementById('ld').value,
-                instance_name: document.getElementById('li').value,
-                server_name: document.getElementById('sn').value,
-                server_id: document.getElementById('sid').value,
-                type: document.getElementById('type').value,
-                duration: document.getElementById('dur').value,
-                channel_id: '000'
-            });
-            alert("Service activation complete.");
-            load();
-        }
+        async function executeManualDispatch()
+        {
+            var id = document.getElementById("manual-discord-id").value;
+            var msg = document.getElementById("manual-message-body").value;
 
-        async function addMacro() {
-            await req('/api/admin/macros/add', 'POST', {
-                title: document.getElementById('mt').value,
-                content: document.getElementById('mc').value
-            });
-            document.getElementById('mt').value = '';
-            document.getElementById('mc').value = '';
-            load();
-        }
+            if (id === "" || msg === "") { return alert("ID and Message required."); }
 
-        async function delMacro(id) {
-            if(confirm("Delete response macro?")) {
-                await req('/api/admin/macros/delete', 'POST', { id: id });
-                load();
+            var result = await apiRequest("/api/admin/manual-dm", "POST", { discordId: id, content: msg });
+            if (result.success === true)
+            {
+                alert("Handshake complete. Thread initialized.");
+                document.getElementById("manual-discord-id").value = "";
+                document.getElementById("manual-message-body").value = "";
             }
         }
 
-        async function addFaq() {
-            await req('/api/admin/faq/add', 'POST', {
-                question: document.getElementById('fq').value,
-                answer: document.getElementById('fa').value
-            });
-            alert("FAQ Database Updated.");
-            document.getElementById('fq').value = '';
-            document.getElementById('fa').value = '';
+        async function generateSecureInvite(sid, bid)
+        {
+            var result = await apiRequest("/api/admin/create-invite", "POST", { serverId: sid, botId: bid });
+            if (result.url !== undefined) { prompt("Secure Guild Access Link:", result.url); }
         }
 
-        async function openTicket() {
-            const id = document.getElementById('md-id').value;
-            const msg = document.getElementById('md-msg').value;
-            if(!id || !msg) return alert("Target ID and Message required.");
-            const res = await req('/api/admin/manual-dm', 'POST', { discordId: id, content: msg });
-            if(res.success) {
-                alert("Thread successfully initialized.");
-                document.getElementById('md-id').value = '';
-                document.getElementById('md-msg').value = '';
+        async function notifyGuildOwner(sid, bid)
+        {
+            var message = prompt("Enter administrative notice for Guild Owner:");
+            if (message !== null && message !== "")
+            {
+                var result = await apiRequest("/api/admin/dm-owner", "POST", { serverId: sid, botId: bid, message: message });
+                if (result.success === true) { alert("Notice delivered."); }
             }
         }
 
-        async function mkInv(s, b) {
-            const res = await req('/api/admin/create-invite', 'POST', { serverId: s, botId: b });
-            if(res.url) prompt("Secure Invitation URL:", res.url);
-        }
-
-        async function dmOwn(s, b) {
-            const m = prompt("Enter notice for Server Owner:");
-            if(m) await req('/api/admin/dm-owner', 'POST', { serverId: s, botId: b, message: m });
-        }
-
-        async function leaveS(s, b) {
-            if(confirm("FORCE bot to leave this server?")) {
-                await req('/api/admin/leave-server', 'POST', { serverId: s, botId: b });
-                load();
+        async function ejectFleetBot(sid, bid)
+        {
+            var confirmed = confirm("FORCE EJECT: Remove bot from this community host?");
+            if (confirmed === true)
+            {
+                var result = await apiRequest("/api/admin/leave-server", "POST", { serverId: sid, botId: bid });
+                if (result.success === true) { refreshAllData(); }
             }
         }
 
-        async function broadcast() {
-            const msg = document.getElementById('bm').value;
-            if(!msg) return alert("Message body empty.");
-            if(confirm("⚠️ CONFIRM GLOBAL BROADCAST TO ALL SERVERS?")) {
-                const res = await req('/api/admin/bulk-message', 'POST', { message: msg });
-                alert("Sequence complete. Sent to " + res.sentTo + " owners.");
-                document.getElementById('bm').value = '';
+        async function executeGlobalBroadcast()
+        {
+            var text = document.getElementById("broadcast-message-field").value;
+            if (text === "") { return alert("Transmission body is empty."); }
+
+            var confirmed = confirm("⚠️ CONFIRM GLOBAL DISPATCH: Reach every community owner?");
+            if (confirmed === true)
+            {
+                var result = await apiRequest("/api/admin/bulk-message", "POST", { message: text });
+                alert("Dispatch sequence complete. Target reach: " + result.sentTo + " owners.");
+                document.getElementById("broadcast-message-field").value = "";
             }
         }
 
-        // Initialize heartbeat on entry
-        load();
+        async function executeMacroCreation()
+        {
+            var t = document.getElementById("macro-title-input").value;
+            var c = document.getElementById("macro-content-input").value;
+            if (t === "" || c === "") { return alert("Fields required."); }
+
+            var result = await apiRequest("/api/admin/macros/add", "POST", { title: t, content: c });
+            if (result.success === true)
+            {
+                document.getElementById("macro-title-input").value = "";
+                document.getElementById("macro-content-input").value = "";
+                refreshAllData();
+            }
+        }
+
+        async function purgeMacroEntry(id)
+        {
+            var result = await apiRequest("/api/admin/macros/delete", "POST", { id: id });
+            if (result.success === true) { refreshAllData(); }
+        }
+
+        async function executeFaqCreation()
+        {
+            var q = document.getElementById("faq-question-input").value;
+            var a = document.getElementById("faq-answer-input").value;
+            if (q === "" || a === "") { return alert("Knowledge fields required."); }
+
+            var result = await apiRequest("/api/admin/faq/add", "POST", { question: q, answer: a });
+            if (result.success === true)
+            {
+                alert("FAQ Database Updated.");
+                document.getElementById("faq-question-input").value = "";
+                document.getElementById("faq-answer-input").value = "";
+            }
+        }
+
+        async function executeLicenseActivation()
+        {
+            var payload = {
+                license_key: document.getElementById("lic-key").value,
+                discord_id: document.getElementById("lic-discord-id").value,
+                instance_name: document.getElementById("lic-instance").value,
+                server_name: document.getElementById("lic-server-name").value,
+                server_id: document.getElementById("lic-server-id").value,
+                type: document.getElementById("lic-type").value,
+                duration: document.getElementById("lic-duration").value
+            };
+
+            if (payload.license_key === "" || payload.discord_id === "") { return alert("Identity data required."); }
+
+            var result = await apiRequest("/api/admin/license/activate", "POST", payload);
+            if (result.success === true)
+            {
+                alert("Provision successful. Client DM'd.");
+                document.getElementById("lic-key").value = "";
+                document.getElementById("lic-discord-id").value = "";
+            }
+            else 
+            {
+                alert("Activation Error: API Rejection.");
+            }
+        }
+
+        // Initialize aggregated refresh on load
+        refreshAllData();
     </script>
 </body>
 </html>
