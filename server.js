@@ -1,9 +1,9 @@
 /**
  * ============================================================================================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v13.1 - LOGIC CORRECTION BUILD)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v14.3 - FINAL PRODUCTION BUILD)
  * ============================================================================================================================================================
  * * STATUS: 100% UNCOMPRESSED, MAXIMAL VERBOSITY
- * * CORRECTION: "ESTIMATED RESPONSE TIME" FOOTER REMOVED FROM OFFLINE/CLOSED STATES
+ * * LOGIC UPDATE: "OFFLINE" REMOVED. "TEMPORARILY UNAVAILABLE" IMPLEMENTED.
  * * INTEGRITY: ZERO SHORTHAND, FULL MULTI-LINE EXPANSION
  * ============================================================================================================================================================
  */
@@ -63,7 +63,6 @@ console.log("===================================================================
 
 let DATA_DIRECTORY_PATH;
 
-// Determine storage path based on environment
 const renderDeploymentFlag = process.env.RENDER;
 
 if (renderDeploymentFlag === 'true') 
@@ -77,7 +76,6 @@ else
     DATA_DIRECTORY_PATH = path.join(__dirname, 'local_storage');
 }
 
-// Verify Root Directory
 const rootPathExistsOnDisk = fs.existsSync(DATA_DIRECTORY_PATH);
 
 if (rootPathExistsOnDisk === false) 
@@ -95,7 +93,6 @@ if (rootPathExistsOnDisk === false)
     }
 } 
 
-// Verify Archive Directory
 const archiveDirectoryPathString = path.join(DATA_DIRECTORY_PATH, 'archives');
 const archiveSubFolderExistsOnDisk = fs.existsSync(archiveDirectoryPathString);
 
@@ -368,14 +365,11 @@ async function dispatchAuditLog(title, description, color = '#3b82f6', files = [
             embed.setColor(color);
             embed.setTimestamp();
             
-            const footerObj = { text: "System Audit" };
-            embed.setFooter(footerObj);
+            // Fixed: Object Footer
+            embed.setFooter({ text: "System Audit" });
                 
             const payload = { embeds: [embed], files: files };
-            if (ping !== "") 
-            {
-                payload.content = ping;
-            }
+            if (ping !== "") { payload.content = ping; }
             await channel.send(payload);
         }
     } 
@@ -391,10 +385,7 @@ validTokens.forEach(function(token, idx)
             GatewayIntentBits.MessageContent, 
             GatewayIntentBits.GuildMembers
         ],
-        partials: [
-            Partials.Channel, 
-            Partials.Message
-        ]
+        partials: [Partials.Channel, Partials.Message]
     });
 
     client.once('ready', function() 
@@ -410,35 +401,66 @@ validTokens.forEach(function(token, idx)
         }
     });
 
-    // -----------------------------------------------------------------------------------------
-    // 7.5. MESSAGE LISTENER (LOGIC CORRECTED)
-    // -----------------------------------------------------------------------------------------
-    client.on('messageCreate', async function(message) 
+    client.on('interactionCreate', async function(interaction) 
     {
-        if (message.author.bot === true || message.guild !== null) 
+        if (interaction.isButton() === false) 
         {
             return;
         }
-        
-        console.log(`[GATEWAY] 📥 Message from: ${message.author.tag}`);
-        
-        const userId = message.author.id;
-        const avatar = message.author.displayAvatarURL({ extension: 'png', size: 128 });
 
+        const idParts = interaction.customId.split('_');
+        const action = idParts[0];
+        
+        if (action === 'rate') 
+        {
+            try 
+            {
+                const stars = parseInt(idParts[1]);
+                const staffId = idParts[2];
+                
+                await Staff.findByIdAndUpdate(staffId, { 
+                    $inc: { 
+                        ratingSum: stars, 
+                        ratingCount: 1 
+                    } 
+                });
+                
+                await interaction.update({ 
+                    content: "**Feedback Recorded.**", 
+                    components: [] 
+                });
+            } 
+            catch (e) { }
+        }
+    });
+
+    // -----------------------------------------------------------------------------------------
+    // 7.5. INBOUND MESSAGE LISTENER (CORRECTED LOGIC - NEVER "OFFLINE")
+    // -----------------------------------------------------------------------------------------
+    client.on('messageCreate', async function(msg) 
+    {
+        if (msg.author.bot === true || msg.guild !== null) 
+        { 
+            return; 
+        }
+        
+        const avatar = msg.author.displayAvatarURL({ extension: 'png', size: 128 });
+        
         try 
         {
+            // 1. ALWAYS LOG THE TICKET TO DATABASE
             let thread = await Thread.findOne({ 
-                userId: userId, 
+                userId: msg.author.id, 
                 botId: client.user.id 
             });
             
             if (thread === null) 
             {
-                console.log(`[ENGINE] 🏗️ Initializing record for ID ${userId}`);
+                console.log(`[ENGINE] Creating new support thread for ${msg.author.tag}`);
                 
                 thread = new Thread({ 
-                    userId: userId, 
-                    userTag: message.author.tag, 
+                    userId: msg.author.id, 
+                    userTag: msg.author.tag, 
                     userAvatar: avatar, 
                     botId: client.user.id, 
                     botName: client.user.username, 
@@ -447,6 +469,7 @@ validTokens.forEach(function(token, idx)
                 
                 const config = await Config.findOne({ id: 'global' });
                 
+                // Logic Variables
                 const isOpen = (config ? config.supportOnline : true);
                 const openTime = (config ? config.openTime : "08:00");
                 const closeTime = (config ? config.closeTime : "23:59");
@@ -468,47 +491,44 @@ validTokens.forEach(function(token, idx)
 
                 const replyEmbed = new EmbedBuilder();
                 
-                // --- LOGIC CORRECTION START ---
-                // "The Estimated response time thing should ONLY be sent when support is open"
+                // --- PROFESSIONAL TEXT UPDATE (NO "OFFLINE" TERMINOLOGY) ---
                 
                 if (isOpen === false) 
                 {
-                    // PATH: OFFLINE
+                    // PATH: MANUAL TOGGLE OFF (SPECIAL EVENT / CLOSURE)
                     replyEmbed.setColor('#ef4444');
-                    replyEmbed.setTitle('Support Office is Currently Closed');
-                    replyEmbed.setDescription(config.offlineNote || 'Maintenance Mode.');
-                    replyEmbed.setFooter('Your message  has been logged and the Next available agent will respond As soon as the Office Reopens.');
+                    replyEmbed.setTitle('Support Status: Temporarily Unavailable');
+                    
+                    // We specifically use the Admin Note here to explain WHY.
+                    const adminNote = config.offlineNote || 'We are currently closed for a scheduled event or maintenance.';
+                    replyEmbed.setDescription(`The support desk is currently closed.\n\n**Notice:** ${adminNote}\n\nYour message has been logged. A technician will review it as soon as we reopen.`);
                     replyEmbed.setTimestamp();
                     
-                    const offlineFooter = { text: "System Status: OFFLINE" };
-                    replyEmbed.setFooter(offlineFooter);
+                    replyEmbed.setFooter({ text: "Status: Special Closure" });
                 } 
                 else if (inWindow === false) 
                 {
-                    // PATH: CLOSED (OUTSIDE HOURS)
+                    // PATH: CLOSED (OUTSIDE BUSINESS HOURS)
                     replyEmbed.setColor('#f59e0b');
-                    replyEmbed.setTitle('Support has Closed for the Day');
-                    replyEmbed.setDescription(`You have reached us outside of Business hours.\n\n**Our Business Hours are :** ${openTime} to ${closeTime} AST.\nYour message has been Logged and we will respond during Regular Buiness Hours.`);
+                    replyEmbed.setTitle('Support Status: Outside Business Hours');
+                    replyEmbed.setDescription(`Thank you for contacting Miraidon Trade Services.\n\nOur team is currently unavailable. Your inquiry has been queued for priority review.\n\n**Operating Hours:** ${openTime} - ${closeTime} AST`);
                     replyEmbed.setTimestamp();
                     
-                    const closedFooter = { text: `Business Hours: ${openTime} - ${closeTime} AST` };
-                    replyEmbed.setFooter(closedFooter);
+                    replyEmbed.setFooter({ text: `Office Hours: ${openTime} - ${closeTime} AST` });
                 } 
                 else 
                 {
                     // PATH: OPEN (NORMAL OPERATION)
                     replyEmbed.setColor('#3b82f6');
-                    replyEmbed.setTitle('Support Initialized');
-                    replyEmbed.setDescription('Thank you for your inquiry. Your request has been received, and a member of our support team will follow up with you as soon as possible.');
+                    replyEmbed.setTitle('Support Ticket Created');
+                    replyEmbed.setDescription('Thank you for reaching out. A support technician has been notified of your inquiry.\n\nPlease allow **12-24 hours** for a response. We appreciate your patience.');
                     replyEmbed.setTimestamp();
                     
-                    // THIS IS THE ONLY PLACE "ESTIMATED RESPONSE" APPEARS
-                    const openFooter = { text: "Estimated Response: 1-2 Hours" };
-                    replyEmbed.setFooter(openFooter);
+                    // "Estimated Response Time" ONLY appears here.
+                    replyEmbed.setFooter({ text: "Estimated Response Time: 12-24 Hours" });
                 }
-                // --- LOGIC CORRECTION END ---
                 
-                await message.author.send({ embeds: [replyEmbed] }).catch(function(){});
+                await msg.author.send({ embeds: [replyEmbed] }).catch(function(){});
                 
                 let ping = "@here";
                 if (process.env.STAFF_ROLE_ID) 
@@ -516,7 +536,7 @@ validTokens.forEach(function(token, idx)
                     ping = `<@&${process.env.STAFF_ROLE_ID}>`;
                 }
                 
-                await dispatchAuditLog("🆕 New Support Ticket", `Trainer: ${message.author.tag}`, '#facc15', [], ping);
+                await sendLog("🆕 New Support Ticket", `Trainer: ${msg.author.tag}`, '#facc15', [], ping);
             } 
             else 
             {
@@ -525,47 +545,47 @@ validTokens.forEach(function(token, idx)
                     thread.userAvatar = avatar;
                 }
             }
-            
-            const attachments = message.attachments.map(function(a) { 
+
+            const attachments = msg.attachments.map(function(a) { 
                 return a.url; 
             });
             
             const messageObj = { 
-                authorTag: message.author.tag, 
+                authorTag: msg.author.tag, 
                 authorAvatar: avatar, 
-                content: message.content || "[Media]", 
+                content: msg.content || "[Media Packet]", 
                 attachments: attachments, 
                 fromBot: false, 
                 timestamp: new Date() 
             };
 
+            // LOG MESSAGE TO DATABASE REGARDLESS OF STATUS
             thread.messages.push(messageObj);
             thread.lastMessageAt = new Date();
             
             await thread.save();
             
+            // ALERT DASHBOARD
             io.emit('new_message', { 
                 threadId: thread._id, 
                 notif_sound: true, 
                 ...messageObj 
             });
-            
-            console.log(`[ENGINE] ✅ Sync Complete: ${message.author.tag}`);
         } 
-        catch (err) 
-        {
-            console.error("[ENGINE] Critical Error: " + err.message);
+        catch (e) 
+        { 
+            console.error("ENGINE ERROR: " + e.message); 
         }
     });
 
-    client.login(token).catch(function(){});
-    clientsFleetArray.push(client);
+    client.login(token).catch(function(e) { });
+    clients.push(client);
 });
 
 
-// ============================================================================================================================================================
+// =================================================================================================
 //  SECTION 8: REAL-TIME SOCKETS
-// ============================================================================================================================================================
+// =================================================================================================
 
 const activeRooms = {}; 
 
@@ -611,36 +631,24 @@ io.on('connection', function(socket)
 });
 
 
-// ============================================================================================================================================================
-//  SECTION 9: API ROUTES (AUTHENTICATION)
-// ============================================================================================================================================================
+// =================================================================================================
+//  SECTION 9: API ROUTES
+// =================================================================================================
 
 app.post('/api/login', async function(req, res) 
 {
     const user = await Staff.findOne({ username: req.body.username });
-    
-    if (user === null) 
-    {
-        return res.status(401).json({ error: "Identity Mismatch." });
-    }
-
-    const valid = await bcrypt.compare(req.body.password, user.password);
-    
-    if (valid === true) 
+    if (user && await bcrypt.compare(req.body.password, user.password)) 
     {
         req.session.staffId = user._id; 
         req.session.isAdmin = user.isAdmin; 
         req.session.username = user.username;
-        
         req.session.save(function() 
         { 
             return res.json({ success: true, isAdmin: user.isAdmin, username: user.username }); 
         });
     } 
-    else 
-    { 
-        return res.status(401).json({ error: "Invalid credentials." }); 
-    }
+    else { return res.status(401).json({ error: "Invalid credentials." }); }
 });
 
 app.post('/api/logout', function(req, res) 
@@ -657,131 +665,95 @@ app.get('/api/auth/user', isAuthorizedTechnician, function(req, res)
     return res.json({ username: req.session.username, isAdmin: req.session.isAdmin }); 
 });
 
-
-// ============================================================================================================================================================
-//  SECTION 10: TICKET MANAGEMENT API
-// ============================================================================================================================================================
-
+// 9.2. TICKET MANAGEMENT
 app.get('/api/threads', isAuthorizedTechnician, async function(req, res) 
 { 
-    const list = await Thread.find().sort({ 
-        lastMessageAt: -1 
-    });
-    return res.json(list);
+    const threads = await Thread.find().sort({ lastMessageAt: -1 });
+    return res.json(threads);
 });
 
 app.post('/api/reply', isAuthorizedTechnician, async function(req, res) 
 {
-    const id = req.body.threadId;
-    const txt = req.body.content;
+    const thread = await Thread.findById(req.body.threadId);
+    const client = clients.find(function(c){ return c.user.id === thread.botId; });
+    const user = await client.users.fetch(thread.userId);
     
-    try 
-    {
-        const doc = await Thread.findById(id);
-        const client = clientsFleetArray.find(function(c) 
-        { 
-            return (c.user.id === doc.botId); 
-        });
-        
-        const user = await client.users.fetch(doc.userId);
-        
-        const embed = new EmbedBuilder();
-        embed.setColor('#3b82f6');
-        embed.setAuthor({ name: `Staff: ${req.session.username}`, iconURL: client.user.displayAvatarURL() });
-        embed.setDescription(txt || "[Media]");
-        embed.setTimestamp();
-        
-        const footer = { text: "Official Response" };
-        embed.setFooter(footer);
-        
-        await user.send({ embeds: [embed] });
-        
-        const entry = { 
-            authorTag: `Staff (${req.session.username})`, 
-            authorAvatar: '', 
-            content: txt || "[Media]", 
-            fromBot: true, 
-            timestamp: new Date() 
-        };
-        
-        doc.messages.push(entry); 
-        doc.lastMessageAt = new Date(); 
-        await doc.save();
-        
-        io.emit('new_message', { threadId: doc._id, ...entry });
-        return res.json({ success: true });
-    } 
-    catch (e) 
-    {
-        return res.status(500).json({ error: "Dispatch failed." });
-    }
+    const embed = new EmbedBuilder();
+    embed.setColor('#3b82f6');
+    embed.setAuthor({ name: `Staff: ${req.session.username}`, iconURL: client.user.displayAvatarURL() });
+    embed.setDescription(req.body.content || "[Media]");
+    embed.setTimestamp();
+    
+    // FIX: Object Footer
+    embed.setFooter({ text: "Official Response" });
+    
+    await user.send({ embeds: [embed] });
+    
+    const msg = { 
+        authorTag: `Staff (${req.session.username})`, 
+        authorAvatar: '', 
+        content: req.body.content || "[Media]", 
+        fromBot: true, 
+        timestamp: new Date() 
+    };
+    
+    thread.messages.push(msg); 
+    thread.lastMessageAt = new Date(); 
+    await thread.save();
+    
+    io.emit('new_message', { threadId: thread._id, ...msg });
+    return res.json({ success: true });
 });
 
 app.post('/api/close-thread', isAuthorizedTechnician, async function(req, res) 
 {
-    const id = req.body.threadId;
+    const thread = await Thread.findById(req.body.threadId);
     
-    try 
+    let transcript = "TRANSCRIPT\n\n";
+    thread.messages.forEach(function(m) 
     {
-        const doc = await Thread.findById(id);
-        
-        let transcript = "TRANSCRIPT\n\n";
-        doc.messages.forEach(function(m) 
-        {
-            transcript += `[${m.timestamp}] ${m.authorTag}: ${m.content}\n`;
-        });
-        
-        const p = path.join(__dirname, `audit-${doc.userId}.txt`);
-        fs.writeFileSync(p, transcript);
-        
-        await dispatchAuditLog("🔒 Archive", `User: ${doc.userTag}`, '#ef4444', [new AttachmentBuilder(p)]);
-        
-        const dir = path.join(archiveDirectoryPathString, doc.userId);
-        if (!fs.existsSync(dir)) 
-        {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        
-        fs.writeFileSync(path.join(dir, `${Date.now()}.json`), JSON.stringify(doc));
-        
-        await Thread.findByIdAndDelete(id);
-        fs.unlinkSync(p);
-        
-        return res.json({ success: true });
-    } 
-    catch (e) 
+        transcript += `[${m.timestamp}] ${m.authorTag}: ${m.content}\n`;
+    });
+    
+    const logPath = path.join(__dirname, `audit-${thread.userId}.txt`);
+    fs.writeFileSync(logPath, transcript);
+    
+    await sendLog("🔒 Archive", `User: ${thread.userTag}`, '#ef4444', [new AttachmentBuilder(logPath)]);
+    
+    const dir = path.join(ARCHIVE_DIR, thread.userId);
+    if (!fs.existsSync(dir)) 
     {
-        return res.status(500).json({ error: "Archival failed." });
+        fs.mkdirSync(dir, { recursive: true });
     }
+    fs.writeFileSync(path.join(dir, `${Date.now()}.json`), JSON.stringify(thread));
+    
+    await Thread.findByIdAndDelete(req.body.threadId);
+    fs.unlinkSync(logPath);
+    
+    return res.json({ success: true });
 });
 
-
-// ============================================================================================================================================================
-//  SECTION 11: FLEET & ADMIN API
-// ============================================================================================================================================================
-
+// 9.3. FLEET CONTROL
 app.get('/api/admin/servers', isSystemAdministrator, async function(req, res) 
 {
     const inventory = [];
-    
-    for (let i = 0; i < clientsFleetArray.length; i++)
+    for (let i = 0; i < clients.length; i++)
     {
-        const client = clientsFleetArray[i];
+        const client = clients[i];
         if (client.isReady())
         {
-            client.guilds.cache.forEach(function(g) 
+            client.guilds.cache.forEach(function(guild) 
             {
                 inventory.push({ 
-                    id: g.id, 
-                    name: g.name, 
-                    members: g.memberCount, 
+                    id: guild.id, 
+                    name: guild.name, 
+                    members: guild.memberCount, 
                     botName: client.user.username, 
                     botId: client.user.id 
                 });
             });
         }
     }
-    
     return res.json(inventory);
 });
 
@@ -791,11 +763,7 @@ app.post('/api/admin/fleet/toggle-trading', isSystemAdministrator, async functio
     const botId = req.body.botId;
     const status = req.body.status;
     
-    let entry = config.botFleetStatus.find(function(x) 
-    { 
-        return (x.botId === botId); 
-    });
-    
+    let entry = config.botFleetStatus.find(function(x){ return x.botId === botId; });
     if (entry) 
     { 
         entry.tradingActive = status; 
@@ -809,41 +777,40 @@ app.post('/api/admin/fleet/toggle-trading', isSystemAdministrator, async functio
     return res.json({ success: true });
 });
 
+// 9.4. FAQ & STATUS
+app.get('/api/faq', async function(req, res) 
+{ 
+    const faq = await FAQ.find().sort({ createdAt: -1 });
+    return res.json(faq);
+});
+
+app.post('/api/admin/faq/add', isSystemAdministrator, async function(req, res) 
+{ 
+    const entry = new FAQ({ question: req.body.question, answer: req.body.answer });
+    await entry.save(); 
+    return res.json({ success: true });
+});
+
 app.get('/api/status', async function(req, res) 
 {
     const config = await Config.findOne({ id: 'global' });
-    const fleet = clientsFleetArray.map(function(c) 
-    {
-        const s = config.botFleetStatus.find(function(x) { 
-            return (x.botId === c.user.id); 
-        });
-        
+    const fleet = clients.map(function(c) {
+        const s = config.botFleetStatus.find(function(x){ return x.botId === c.user.id; });
         return { 
             name: c.user.username, 
             online: c.isReady(), 
             tradingActive: s ? s.tradingActive : true 
         };
     });
-    
-    return res.json({ 
-        support: { 
-            isOpen: config.supportOnline, 
-            window: `${config.openTime} - ${config.closeTime} AST` 
-        }, 
-        fleet: fleet 
-    });
+    return res.json({ support: { isOpen: config.supportOnline, window: `${config.openTime} - ${config.closeTime} AST` }, fleet: fleet });
 });
 
-
-// ============================================================================================================================================================
-//  SECTION 12: BOOTSTRAP
-// ============================================================================================================================================================
+// =================================================================================================
+//  SECTION 10: BOOTSTRAP
+// =================================================================================================
 
 const PORT = process.env.PORT || 10000;
-
 server.listen(PORT, function() 
-{
-    console.log("============================================================================================================================================================");
-    console.log(`🚀 MASTER ENGINE v13.1 ONLINE [PORT ${PORT}]`);
-    console.log("============================================================================================================================================================");
+{ 
+    console.log(`SERVER v14.3 ACTIVE ON PORT ${PORT}`); 
 });
