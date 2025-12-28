@@ -4,32 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Dashboard - Miraidon Trade Services</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
+    
     <style>
+        /**
+         * GLOBAL UI ARCHITECTURE
+         * Configured with high-contrast colors for long-duration staff shifts.
+         */
         body { 
-            background: #020617; 
-            color: white; 
-            font-family: monospace; 
+            background-color: #020617; 
+            color: #ffffff; 
+            font-family: 'Courier New', Courier, monospace; 
+            margin: 0;
+            padding: 0;
         }
-        .glass { 
-            background: rgba(15, 23, 42, 0.95); 
+
+        .glass-panel { 
+            background-color: rgba(15, 23, 42, 0.95); 
             border: 1px solid #1e293b; 
         }
+
+        /* CUSTOM SCROLLBAR ENGINE */
         ::-webkit-scrollbar { 
-            width: 5px; 
+            width: 6px; 
         }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
         ::-webkit-scrollbar-thumb { 
-            background: #3b82f6; 
-            border-radius: 5px; 
+            background-color: #3b82f6; 
+            border-radius: 10px; 
         }
-        /* Avatar Styling */
-        .avatar { 
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #60a5fa;
+        }
+
+        /* AVATAR SYSTEM STYLING */
+        .pfp-icon { 
             width: 32px; 
             height: 32px; 
             border-radius: 50%; 
             object-fit: cover; 
             border: 1px solid #334155;
+            flex-shrink: 0;
+        }
+
+        /* INPUT OVERRIDES */
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #eab308;
+        }
+
+        /* MOBILE APP CTA LINK STYLING */
+        .mobile-cta {
+            background: linear-gradient(to right, #1e293b, #0f172a);
+            border: 1px solid #3b82f6;
+            color: #60a5fa;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-cta:hover {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
         }
     </style>
 </head>
@@ -37,363 +87,791 @@
     
     <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
 
-    <header class="h-14 glass flex items-center justify-between px-4 shrink-0">
-        <div class="flex items-center gap-4">
-            <span class="font-bold text-blue-500 text-lg">MIRAIDON TRADE SERVICES / DASHBOARD</span>
-            <a href="/staff/admin.html" class="text-xs font-bold text-amber-500 hover:text-white hidden" id="admin-link">ADMIN PANEL</a>
+    <header class="h-16 glass-panel flex items-center justify-between px-6 shrink-0 z-30">
+        <div class="flex items-center gap-6">
+            <div class="flex flex-col">
+                <span class="font-black text-blue-500 text-lg tracking-tighter uppercase">Miraidon Console</span>
+                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Support Response Terminal</span>
+            </div>
+            
+            <a href="/staff/admin.html" 
+               class="text-[10px] font-black text-amber-500 hover:text-white border border-amber-900 px-3 py-1 rounded transition hidden" 
+               id="admin-link">
+                ADMINISTRATION PANEL
+            </a>
+
+            <a href="/staff/mobile.html" 
+               class="mobile-cta text-[9px] px-3 py-1 rounded-full flex items-center gap-2 transition shadow-sm">
+                <span>📱</span>
+                <span>Launch Mobile Portal</span>
+            </a>
         </div>
         
-        <div class="flex gap-2">
-            <button onclick="document.getElementById('pw-modal').classList.remove('hidden')" class="text-xs text-slate-400 border border-slate-700 px-3 py-1 rounded hover:text-white transition">CHANGE PASS</button>
+        <div class="flex gap-4 items-center">
+            <button onclick="document.getElementById('pw-modal').classList.remove('hidden')" 
+                    class="text-[10px] font-bold text-slate-400 border border-slate-700 px-4 py-1.5 rounded hover:text-white transition">
+                CHANGE SECURE KEY
+            </button>
             
-            <button onclick="fetch('/api/logout', {method:'POST'}).then(function() { window.location.href='/login.html'; })" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/20 transition">LOGOUT</button>
+            <button onclick="initiateLogoutSequence()" 
+                    class="text-[10px] font-bold text-red-500 border border-red-900 px-4 py-1.5 rounded hover:bg-red-900/20 transition">
+                TERMINATE SESSION
+            </button>
         </div>
     </header>
 
     <div class="flex-1 flex overflow-hidden">
         
-        <aside class="w-72 glass border-r border-slate-800 flex flex-col z-20">
-            <div class="p-3 border-b border-slate-800 text-xs font-bold text-slate-500">INBOX</div>
+        <aside class="w-80 glass-panel border-r border-slate-800 flex flex-col z-20">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Inquiries</span>
+                <span id="ticket-count" class="bg-blue-900/30 text-blue-400 text-[9px] px-2 py-0.5 rounded-full font-bold">0</span>
+            </div>
+            
             <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <div class="py-10 text-center text-slate-700 italic text-xs uppercase tracking-tighter">
+                    Scanning for gateway packets...
                 </div>
+            </div>
         </aside>
 
         <main class="flex-1 flex flex-col bg-slate-950 relative z-10">
-            <div class="h-12 glass border-b border-slate-800 flex items-center justify-between px-4">
-                <div>
-                    <div id="active-tag" class="text-sm font-bold">Select Ticket</div>
-                    <div id="typing" class="text-[10px] text-blue-400 hidden">User is typing...</div>
+            
+            <div class="h-14 glass-panel border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/20">
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col">
+                        <div id="active-tag" class="text-sm font-black text-white uppercase tracking-tight">Handshake Required</div>
+                        <div id="typing-indicator" class="text-[9px] font-bold text-blue-400 hidden animate-pulse uppercase">Client is composing a response...</div>
+                    </div>
                 </div>
-                <div class="flex gap-2 items-center">
-                    <div id="viewers" class="text-[10px] text-slate-400 border border-slate-700 px-2 py-1 rounded hidden"></div>
-                    <button onclick="closeTicket()" class="text-[10px] bg-red-900/30 text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/50">ARCHIVE</button>
+                
+                <div class="flex gap-4 items-center">
+                    <div id="viewer-presence" class="text-[9px] font-bold text-amber-500 border border-amber-900/50 bg-amber-900/10 px-3 py-1 rounded-full hidden"></div>
+                    
+                    <button onclick="initializeClosureSequence()" 
+                            class="text-[10px] font-black bg-red-900/20 text-red-500 border border-red-900/50 px-4 py-1.5 rounded hover:bg-red-600 hover:text-white transition uppercase">
+                        Archive & Close
+                    </button>
                 </div>
             </div>
             
-            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+                <div class="h-full flex items-center justify-center">
+                    <div class="text-center space-y-2 opacity-20">
+                        <div class="text-4xl">📡</div>
+                        <div class="text-[10px] font-black uppercase tracking-widest">Select a frequency to monitor</div>
+                    </div>
+                </div>
+            </div>
             
-            <div class="p-3 glass border-t border-slate-800 flex gap-2">
-                <input type="file" id="file-in" class="hidden" onchange="fileSel()">
-                <button onclick="document.getElementById('file-in').click()" class="bg-slate-800 p-3 rounded text-blue-500 transition hover:bg-slate-700" title="Upload File">+</button>
-                
-                <div class="relative">
-                    <button onclick="toggleMacros()" class="bg-slate-800 p-3 rounded text-amber-500 transition hover:bg-slate-700" title="Quick Replies">⚡</button>
-                    <div id="macro-menu" class="hidden absolute bottom-12 left-0 w-48 bg-slate-900 border border-slate-700 rounded shadow-xl max-h-48 overflow-y-auto"></div>
+            <div class="p-4 glass-panel border-t border-slate-800 z-30">
+                <div class="flex gap-3">
+                    
+                    <input type="file" id="file-uploader" class="hidden" onchange="handleFileSelection(event)">
+                    <button onclick="triggerFilePicker()" 
+                            class="bg-slate-800 border border-slate-700 w-12 h-12 rounded-xl text-blue-500 hover:bg-blue-600 hover:text-white transition shadow-lg flex items-center justify-center font-black text-xl" 
+                            title="Upload Media">+</button>
+                    
+                    <div class="relative group">
+                        <button onclick="toggleMacroLibrary()" 
+                                class="bg-slate-800 border border-slate-700 w-12 h-12 rounded-xl text-amber-500 hover:bg-amber-600 hover:text-white transition shadow-lg flex items-center justify-center font-black text-xl" 
+                                title="Quick Responses">⚡</button>
+                        
+                        <div id="macro-library-menu" 
+                             class="hidden absolute bottom-16 left-0 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                            <div class="p-2 border-b border-slate-800 bg-slate-950 text-[9px] font-black text-slate-500 uppercase">Library Macros</div>
+                            <div id="macro-list-items" class="max-h-60 overflow-y-auto">
+                                </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 relative">
+                        <input id="message-input-field" 
+                               class="w-full h-12 bg-slate-900 border border-slate-800 rounded-xl px-4 text-sm text-white placeholder-slate-600 transition" 
+                               placeholder="Type your response to the trainer..." 
+                               onkeydown="handleKeydown(event)"
+                               oninput="emitTypingState()">
+                    </div>
+
+                    <button onclick="dispatchResponse()" 
+                            class="bg-blue-600 px-8 h-12 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition shadow-lg shadow-blue-900/20">
+                        Dispatch
+                    </button>
                 </div>
                 
-                <input id="msg-in" class="flex-1 bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 outline-none" placeholder="Message..." oninput="isTyping()">
-                <button onclick="sendMsg()" class="bg-blue-600 px-6 rounded font-bold text-xs hover:bg-blue-500 transition">SEND</button>
+                <div id="upload-preview" class="mt-2 hidden">
+                    <div class="flex items-center gap-2 bg-blue-900/20 border border-blue-800 p-2 rounded-lg inline-flex">
+                        <span class="text-[10px] text-blue-400 font-bold" id="preview-filename">file.png</span>
+                        <button onclick="clearSelectedFile()" class="text-red-500 font-black ml-2">✕</button>
+                    </div>
+                </div>
             </div>
         </main>
 
-        <aside class="w-80 glass border-l border-slate-800 flex flex-col p-4 z-20">
-            <div class="text-xs font-bold text-slate-500 mb-2">USER NOTES</div>
-            <textarea id="crm-note" onblur="saveNote()" class="w-full h-32 bg-yellow-900/10 border border-yellow-700/50 p-2 text-xs rounded mb-4 text-yellow-100 outline-none focus:border-yellow-600" placeholder="Internal notes..."></textarea>
+        <aside class="w-80 glass-panel border-l border-slate-800 flex flex-col p-5 z-20">
             
-            <div class="text-xs font-bold text-slate-500 mb-2">HISTORY</div>
-            <div id="crm-hist" class="flex-1 overflow-y-auto space-y-2"></div>
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Intelligence Notes</span>
+                <span class="text-[8px] text-slate-600 font-bold uppercase">Sticky</span>
+            </div>
+            
+            <textarea id="user-intelligence-note" 
+                      onblur="commitIntelligenceNote()" 
+                      class="w-full h-40 bg-yellow-900/5 border border-yellow-900/30 p-3 text-xs rounded-xl mb-6 text-yellow-100 placeholder-yellow-900/40 leading-relaxed" 
+                      placeholder="Add persistent notes about this trainer's behavior, previous issues, or tier status..."></textarea>
+            
+            <div class="flex items-center justify-between mb-3 border-t border-slate-800 pt-6">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Historic Logs</span>
+                <span class="text-[8px] text-slate-600 font-bold uppercase">Archive</span>
+            </div>
+            
+            <div id="historic-log-container" class="flex-1 overflow-y-auto space-y-2">
+                <div class="text-center text-slate-800 text-[10px] font-bold uppercase py-10">No historic data found.</div>
+            </div>
         </aside>
     </div>
 
-    <div id="modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-        <div class="bg-slate-900 w-full max-w-2xl h-[80vh] rounded border border-slate-700 flex flex-col">
-            <div class="p-3 border-b border-slate-700 flex justify-between">
-                <span class="font-bold text-slate-300">TRANSCRIPT</span>
-                <button onclick="document.getElementById('modal').classList.add('hidden')" class="text-red-500 font-bold">CLOSE</button>
+    <div id="transcript-viewer-modal" class="hidden fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-slate-900 w-full max-w-3xl h-[85vh] rounded-2xl border border-slate-700 flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 rounded-t-2xl">
+                <div class="flex flex-col">
+                    <span class="font-black text-slate-300 uppercase tracking-tighter">Archived Transcript</span>
+                    <span id="modal-subtitle" class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Inquiry Recovery</span>
+                </div>
+                <button onclick="closeTranscriptModal()" class="bg-red-900/20 text-red-500 border border-red-900 px-4 py-1.5 rounded-lg text-xs font-black hover:bg-red-500 hover:text-white transition">CLOSE TERMINAL</button>
             </div>
-            <div id="modal-content" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+            <div id="transcript-content-render" class="flex-1 overflow-y-auto p-6 space-y-3 font-mono text-xs text-slate-400">
+                </div>
         </div>
     </div>
 
-    <div id="pw-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-        <div class="bg-slate-900 w-96 rounded border border-slate-700 p-6 shadow-2xl">
-            <h2 class="text-blue-500 font-bold mb-4 text-lg">CHANGE PASSWORD</h2>
+    <div id="pw-modal" class="hidden fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-slate-900 w-full max-w-md rounded-2xl border border-slate-700 p-8 shadow-2xl">
+            <h2 class="text-blue-500 font-black text-xl mb-2 uppercase tracking-tighter">Rotate Secure Key</h2>
+            <p class="text-[10px] text-slate-500 uppercase font-bold mb-6 tracking-widest">Account Security Protocol</p>
             
-            <label class="text-[10px] text-slate-400 uppercase font-bold">Current Password</label>
-            <input type="password" id="pw-old" class="w-full bg-slate-950 border border-slate-800 p-2 rounded mb-4 text-white focus:border-blue-500 outline-none">
-            
-            <label class="text-[10px] text-slate-400 uppercase font-bold">New Password</label>
-            <input type="password" id="pw-new" class="w-full bg-slate-950 border border-slate-800 p-2 rounded mb-2 text-white focus:border-blue-500 outline-none">
-            
-            <div class="text-[10px] text-slate-500 mb-6 bg-slate-950 p-2 rounded border border-slate-800">
-                <strong>Policy:</strong> Minimum 8 characters. Must contain 1 Capital Letter, 1 Number, and 1 Symbol.
-            </div>
-            
-            <div class="flex gap-2">
-                <button onclick="changePW()" class="flex-1 bg-blue-600 hover:bg-blue-500 rounded p-2 text-xs font-bold transition">UPDATE</button>
-                <button onclick="document.getElementById('pw-modal').classList.add('hidden')" class="flex-1 bg-slate-800 hover:bg-slate-700 rounded p-2 text-xs transition">CANCEL</button>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase font-black block mb-1">Current Password</label>
+                    <input type="password" id="old-pass-field" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white">
+                </div>
+                
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase font-black block mb-1">New Secure Key</label>
+                    <input type="password" id="new-pass-field" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white">
+                </div>
+                
+                <div class="p-3 bg-blue-900/10 border border-blue-900/30 rounded-xl">
+                    <span class="text-[9px] text-blue-400 font-bold uppercase tracking-tighter leading-tight block">
+                        Identity Policy: Minimum 8 characters. Must contain 1 Uppercase, 1 Numeric digit, and 1 Special symbol.
+                    </span>
+                </div>
+                
+                <div class="flex gap-3 pt-4">
+                    <button onclick="executeKeyRotation()" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-3 text-xs font-black uppercase transition tracking-widest shadow-lg shadow-blue-900/30">
+                        Update Identity
+                    </button>
+                    <button onclick="document.getElementById('pw-modal').classList.add('hidden')" 
+                            class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl py-3 text-xs font-bold transition">
+                        CANCEL
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        /**
+         * GLOBAL STATE ENGINE
+         */
         const socket = io();
-        let activeId = null;
-        let activeUser = null;
-        let currentUser = null;
-        let threadStore = {};
-        let selectedFile = null;
-        let typingTimeout = null;
+        let activeThreadId = null;
+        let activeDiscordUserId = null;
+        let currentStaffUsername = null;
+        let localThreadCache = {};
+        let selectedFilePayload = null;
+        let typingTimeoutRef = null;
+        let dashboardOriginalTitle = document.title;
+        let titleFlashInterval = null;
 
         /**
          * Function: req
-         * Expanded API helper.
+         * Verbose API wrapper to handle session state and errors.
          */
         async function req(url, method, body) {
-            if (method === undefined) { method = 'GET'; }
-            const fetchOptions = { 
+            if (method === undefined) { 
+                method = 'GET'; 
+            }
+            
+            const options = { 
                 method: method, 
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 
+                    'Content-Type': 'application/json' 
+                } 
             };
+            
             if (body !== undefined && body !== null) { 
-                fetchOptions.body = JSON.stringify(body); 
+                options.body = JSON.stringify(body); 
             }
             
             try {
-                const response = await fetch(url, fetchOptions);
+                const response = await fetch(url, options);
+                
                 if (response.status === 401) { 
                     window.location.href = '/login.html'; 
+                    return null;
                 }
-                return await response.json();
-            } catch (err) {
-                console.error("API Error: " + err.message);
+                
+                const json = await response.json();
+                return json;
+            } catch (networkError) {
+                console.error("[NETWORK] API Request Failed: " + networkError.message);
                 return { error: true };
             }
         }
 
-        // Initialize Session
-        (async function() {
-            const userProfile = await req('/api/auth/user');
-            currentUser = userProfile.username;
-            if (userProfile.isAdmin === true) { 
-                document.getElementById('admin-link').classList.remove('hidden'); 
+        /**
+         * Function: initializeDashboard
+         * Triggered on page load to set up user context.
+         */
+        (async function initializeDashboard() {
+            console.log("[SYSTEM] Handshaking with identity provider...");
+            
+            const profile = await req('/api/auth/user');
+            if (profile) {
+                currentStaffUsername = profile.username;
+                
+                if (profile.isAdmin === true) { 
+                    const adminLink = document.getElementById('admin-link');
+                    adminLink.classList.remove('hidden'); 
+                }
+                
+                // Initialize Inbox
+                refreshThreadInbox();
             }
-            loadThreads();
         })();
 
-        // Function: loadThreads
-        async function loadThreads() {
+        /**
+         * Function: refreshThreadInbox
+         * Fetches and renders the sidebar ticket list.
+         */
+        async function refreshThreadInbox() {
             const list = await req('/api/threads');
-            const threadContainer = document.getElementById('thread-list');
-            threadContainer.innerHTML = '';
+            const threadListContainer = document.getElementById('thread-list');
+            const counterElement = document.getElementById('ticket-count');
             
-            list.forEach(function(thread) {
-                threadStore[thread._id] = thread;
-                const threadElement = document.createElement('div');
-                threadElement.className = "p-3 border-b border-slate-800 hover:bg-slate-800 cursor-pointer " + (activeId === thread._id ? 'bg-blue-900/20' : '');
+            threadListContainer.innerHTML = '';
+            
+            if (list) {
+                counterElement.innerText = list.length;
                 
-                threadElement.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <img src="${thread.userAvatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="avatar">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between">
-                                <span class="font-bold text-xs text-white truncate">${thread.userTag}</span>
+                list.forEach(function(thread) {
+                    // Update global cache
+                    localThreadCache[thread._id] = thread;
+                    
+                    const threadElement = document.createElement('div');
+                    
+                    // Determine conditional styling for active thread
+                    const isActive = (activeThreadId === thread._id);
+                    const activeClass = isActive ? 'bg-blue-900/30 border-blue-900/50' : 'border-slate-800 hover:bg-slate-900/50';
+                    
+                    threadElement.className = "p-4 border rounded-xl cursor-pointer transition mb-1 " + activeClass;
+                    
+                    threadElement.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <img src="${thread.userAvatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="pfp-icon">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-black text-xs text-white truncate uppercase tracking-tighter">${thread.userTag}</span>
+                                </div>
+                                <div class="flex justify-between items-center mt-1">
+                                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">${thread.botName}</span>
+                                    <span class="text-[8px] text-slate-600">${new Date(thread.lastMessageAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
                             </div>
-                            <span class="text-[9px] text-slate-500 truncate block">${thread.botName}</span>
-                        </div>
-                    </div>`;
-                
-                threadElement.onclick = function() { openThread(thread._id, thread.userId, thread.userTag); };
-                threadContainer.appendChild(threadElement);
-            });
+                        </div>`;
+                    
+                    threadElement.onclick = function() { 
+                        switchToThread(thread._id, thread.userId, thread.userTag); 
+                    };
+                    
+                    threadListContainer.appendChild(threadElement);
+                });
+            }
         }
 
-        // Function: openThread
-        function openThread(id, uid, tag) {
-            if (activeId !== null) { 
+        /**
+         * Function: switchToThread
+         * Logic for changing focus between customer inquiries.
+         */
+        function switchToThread(id, discordId, tag) {
+            // Leave previous socket room if applicable
+            if (activeThreadId !== null) { 
                 socket.emit('leave_ticket_room'); 
             }
-            activeId = id; 
-            activeUser = uid;
-            socket.emit('join_ticket_room', { threadId: id, username: currentUser });
+            
+            activeThreadId = id; 
+            activeDiscordUserId = discordId;
+            
+            // Clear visual notification states
+            stopTabTitleFlashing();
+            
+            // Join new socket room (Collision Detection)
+            socket.emit('join_ticket_room', { 
+                threadId: id, 
+                username: currentStaffUsername 
+            });
+            
+            // UI Updates
             document.getElementById('active-tag').innerText = tag;
-            renderChat();
-            loadCRM(uid);
-            loadThreads();
+            document.getElementById('message-input-field').focus();
+            
+            // Data aggregations
+            renderChatMessageHistory();
+            fetchUserIntelligenceProfile(discordId);
+            refreshThreadInbox();
         }
 
-        // Function: renderChat
-        function renderChat() {
-            const box = document.getElementById('chat-box');
-            box.innerHTML = '';
-            const threadData = threadStore[activeId];
-            if (threadData === undefined || threadData.messages === undefined) { return; }
+        /**
+         * Function: renderChatMessageHistory
+         * Maps the cached message array to the visual plane.
+         */
+        function renderChatMessageHistory() {
+            const renderPlane = document.getElementById('chat-box');
+            renderPlane.innerHTML = '';
             
-            threadData.messages.forEach(function(msg) {
-                const messageWrapper = document.createElement('div');
-                messageWrapper.className = "flex gap-3 max-w-[85%] " + (msg.fromBot === true ? 'self-end flex-row-reverse' : 'self-start flex-row');
+            const activeData = localThreadCache[activeThreadId];
+            if (activeData === undefined || activeData.messages === undefined) { 
+                return; 
+            }
+            
+            activeData.messages.forEach(function(message) {
+                const messageContainer = document.createElement('div');
                 
-                const avatarMarkup = `<img src="${msg.authorAvatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="avatar mt-1 shrink-0">`;
+                // Directional logic: Staff on right, User on left
+                const isFromStaff = (message.fromBot === true);
+                const flexDir = isFromStaff ? 'self-end flex-row-reverse' : 'self-start flex-row';
                 
-                let contentMarkup = `<div class="px-3 py-2 rounded text-xs border ${msg.fromBot === true ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}">${msg.content}</div>`;
+                messageContainer.className = "flex gap-3 max-w-[85%] " + flexDir;
                 
-                if(msg.attachments && msg.attachments.length > 0) {
-                    msg.attachments.forEach(function(url) {
-                        const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i) !== null;
-                        if(isImage === true) {
-                            contentMarkup += `<img src="${url}" class="mt-2 max-w-[200px] rounded border border-slate-700 cursor-pointer hover:opacity-80" onclick="window.open('${url}')">`;
+                // Visual Components
+                const avatarIcon = `<img src="${message.authorAvatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="pfp-icon mt-1">`;
+                
+                const bubbleColor = isFromStaff ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-200';
+                
+                let innerContent = `<div class="px-4 py-2.5 rounded-2xl text-xs border shadow-sm ${bubbleColor} leading-relaxed">${message.content}</div>`;
+                
+                // Attachment Rendering System (v9.7)
+                if (message.attachments && message.attachments.length > 0) {
+                    const messageAttachmentsList = message.attachments;
+                    
+                    messageAttachmentsList.forEach(function(url) {
+                        const fileExtension = url.split('.').pop().toLowerCase();
+                        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
+                        
+                        if (isImage === true) {
+                            innerContent += `
+                                <img src="${url}" 
+                                     class="mt-2 max-w-[250px] rounded-xl border border-slate-700 cursor-pointer hover:scale-[1.02] transition shadow-lg" 
+                                     onclick="window.open('${url}')">`;
                         } else {
-                            contentMarkup += `
+                            innerContent += `
                                 <div class="mt-2">
-                                    <a href="${url}" target="_blank" class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-blue-400 hover:text-white transition">
-                                        <span>📎</span>
-                                        <span>Download File</span>
+                                    <a href="${url}" 
+                                       target="_blank" 
+                                       class="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-[10px] text-blue-400 hover:text-white hover:border-blue-600 transition group shadow-md">
+                                        <span class="text-lg">💾</span>
+                                        <div class="flex flex-col">
+                                            <span class="font-black uppercase tracking-tighter">Download Data Object</span>
+                                            <span class="text-[8px] text-slate-600 font-bold">LEGITIMACY VERIFIED</span>
+                                        </div>
                                     </a>
                                 </div>`;
                         }
                     });
                 }
 
-                messageWrapper.innerHTML = avatarMarkup + `<div class="flex flex-col ${msg.fromBot === true ? 'items-end' : 'items-start'}">${contentMarkup}<span class="text-[9px] text-slate-600 mt-1">${new Date(msg.timestamp).toLocaleTimeString()}</span></div>`;
-                box.appendChild(messageWrapper);
-            });
-            box.scrollTop = box.scrollHeight;
-        }
-
-        // Function: sendMsg
-        async function sendMsg() {
-            const inputField = document.getElementById('msg-in');
-            if(activeId === null || (inputField.value === '' && selectedFile === null)) { return; }
-            
-            await req('/api/reply', 'POST', { 
-                threadId: activeId, 
-                content: inputField.value, 
-                fileBase64: selectedFile ? selectedFile.base64 : null, 
-                fileName: selectedFile ? selectedFile.name : null 
+                // Final Assembly
+                const alignmentClass = isFromStaff ? 'items-end' : 'items-start';
+                
+                messageContainer.innerHTML = `
+                    ${avatarIcon}
+                    <div class="flex flex-col ${alignmentClass}">
+                        ${innerContent}
+                        <span class="text-[8px] text-slate-600 font-bold mt-1 uppercase tracking-widest">
+                            ${new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                    </div>`;
+                
+                renderPlane.appendChild(messageContainer);
             });
             
-            inputField.value = ''; 
-            selectedFile = null;
+            // Auto-scroll to gravity
+            renderPlane.scrollTop = renderPlane.scrollHeight;
         }
 
-        // Function: closeTicket
-        async function closeTicket() {
-            if(activeId !== null && confirm("Archive Ticket? This will save the transcript and close the thread.")) {
-                await req('/api/close-thread', 'POST', { threadId: activeId });
-                activeId = null; 
-                document.getElementById('chat-box').innerHTML = '';
-                loadThreads();
+        /**
+         * NOTIFICATION ENGINE: TAB PULSING (v11.0)
+         * Alerts staff when messages arrive in background tabs.
+         */
+        function startTabTitleFlashing() {
+            const hasFocus = document.hasFocus();
+            if (titleFlashInterval !== null || hasFocus === true) { 
+                return; 
             }
+            
+            titleFlashInterval = setInterval(function() {
+                const current = document.title;
+                if (current === dashboardOriginalTitle) {
+                    document.title = "🔴 NEW MESSAGE!";
+                } else {
+                    document.title = dashboardOriginalTitle;
+                }
+            }, 1000);
         }
 
-        // Function: fileSel
-        function fileSel() {
-            const fileObj = document.getElementById('file-in').files[0];
-            const readerInstance = new FileReader();
-            readerInstance.onload = function(e) { 
-                selectedFile = { base64: e.target.result, name: fileObj.name }; 
-            };
-            readerInstance.readAsDataURL(fileObj);
+        function stopTabTitleFlashing() {
+            if (titleFlashInterval !== null) {
+                clearInterval(titleFlashInterval);
+                titleFlashInterval = null;
+            }
+            document.title = dashboardOriginalTitle;
         }
 
-        // Function: toggleMacros
-        async function toggleMacros() {
-            const menuElement = document.getElementById('macro-menu');
-            if(menuElement.classList.contains('hidden')) {
-                menuElement.classList.remove('hidden');
-                const macroList = await req('/api/macros');
-                menuElement.innerHTML = macroList.map(function(macro) {
-                    return `<div onclick="insMac('${macro.content.replace(/'/g,"\\'")}')" class="p-2 hover:bg-slate-800 cursor-pointer text-xs border-b border-slate-800 text-slate-300">${macro.title}</div>`;
-                }).join('');
+        // Global focus listener to stop alert
+        window.addEventListener('focus', function() {
+            stopTabTitleFlashing();
+        });
+
+        /**
+         * SOCKET EVENT HANDLING
+         */
+        socket.on('new_message', function(payload) {
+            console.log("[SOCKET] Packet received for thread: " + payload.threadId);
+            
+            // Audio/Visual Notification Logic
+            const isFromUser = (payload.fromBot === false);
+            if (payload.notif_sound === true && isFromUser === true) {
+                const soundNode = document.getElementById('notif-sound');
+                soundNode.play().catch(function(e) { 
+                    console.warn("Audio playback blocked by browser."); 
+                });
+                
+                // Pulse tab if it's a message from user
+                startTabTitleFlashing();
+            }
+            
+            // Update local memory
+            if (localThreadCache[payload.threadId]) {
+                localThreadCache[payload.threadId].messages.push(payload);
+                localThreadCache[payload.threadId].lastMessageAt = payload.timestamp;
+                
+                if (activeThreadId === payload.threadId) { 
+                    renderChatMessageHistory(); 
+                }
+                
+                refreshThreadInbox();
             } else {
-                menuElement.classList.add('hidden');
+                // Unknown thread ID - fetch new list
+                refreshThreadInbox();
             }
-        }
+        });
 
-        // Function: insMac
-        function insMac(textValue) {
-            const inputField = document.getElementById('msg-in');
-            inputField.value += textValue.replace(/{user}/gi, currentUser);
-            document.getElementById('macro-menu').classList.add('hidden');
+        socket.on('user_typing', function(payload) {
+            if (activeDiscordUserId === payload.userId) {
+                const indicator = document.getElementById('typing-indicator');
+                indicator.classList.remove('hidden');
+                
+                // Auto-hide after timeout
+                if (typingTimeoutRef) { 
+                    clearTimeout(typingTimeoutRef); 
+                }
+                
+                typingTimeoutRef = setTimeout(function() { 
+                    indicator.classList.add('hidden'); 
+                }, 4000);
+            }
+        });
+
+        socket.on('viewers_updated', function(members) {
+            const presenceElement = document.getElementById('viewer-presence');
+            
+            // Filter out current user
+            const others = members.filter(function(m) { 
+                return (m !== currentStaffUsername); 
+            });
+            
+            if (others.length > 0) {
+                presenceElement.innerText = "👀 MONITORING: " + others.join(', ');
+                presenceElement.classList.remove('hidden');
+            } else {
+                presenceElement.classList.add('hidden');
+            }
+        });
+
+        /**
+         * OUTBOUND DISPATCH ENGINE
+         */
+        async function dispatchResponse() {
+            const inputField = document.getElementById('message-input-field');
+            const messageBody = inputField.value;
+            
+            const hasText = (messageBody.trim() !== "");
+            const hasFile = (selectedFilePayload !== null);
+            
+            if (activeThreadId === null || (hasText === false && hasFile === false)) { 
+                return; 
+            }
+            
+            const payload = { 
+                threadId: activeThreadId, 
+                content: messageBody, 
+                fileBase64: selectedFilePayload ? selectedFilePayload.blob : null, 
+                fileName: selectedFilePayload ? selectedFilePayload.name : null 
+            };
+            
+            // Block UI
+            inputField.disabled = true;
+            inputField.placeholder = "Dispatching packet...";
+
+            const response = await req('/api/reply', 'POST', payload);
+            
+            if (response.success === true) {
+                inputField.value = ''; 
+                clearSelectedFile();
+            } else {
+                alert("OUTBOUND ERROR: DM failed. User may have blocked the bot.");
+            }
+            
+            inputField.disabled = false;
+            inputField.placeholder = "Type your response to the trainer...";
             inputField.focus();
         }
 
-        // Function: loadCRM
-        async function loadCRM(uid) {
-            const crmData = await req('/api/crm/user/' + uid);
-            document.getElementById('crm-note').value = crmData.note;
-            document.getElementById('crm-hist').innerHTML = crmData.history.map(function(historyItem) {
-                return `<div onclick="viewTrans('${uid}','${historyItem.filename}')" class="p-2 bg-slate-900 border border-slate-800 rounded text-xs cursor-pointer hover:bg-slate-800 mb-1 text-slate-400">${new Date(historyItem.closedAt).toLocaleDateString()}</div>`;
-            }).join('');
+        /**
+         * FILE HANDLING SYSTEM
+         */
+        function triggerFilePicker() {
+            document.getElementById('file-uploader').click();
         }
 
-        // Function: saveNote
-        async function saveNote() {
-            if(activeUser !== null) {
-                await req('/api/crm/note', 'POST', { userId: activeUser, note: document.getElementById('crm-note').value });
+        function handleFileSelection(event) {
+            const fileObject = event.target.files[0];
+            if (fileObject === undefined) { return; }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) { 
+                selectedFilePayload = { 
+                    blob: e.target.result, 
+                    name: fileObject.name 
+                };
+                
+                // Show preview
+                document.getElementById('preview-filename').innerText = fileObject.name;
+                document.getElementById('upload-preview').classList.remove('hidden');
+            };
+            
+            reader.readAsDataURL(fileObject);
+        }
+
+        function clearSelectedFile() {
+            selectedFilePayload = null;
+            document.getElementById('file-uploader').value = "";
+            document.getElementById('upload-preview').classList.add('hidden');
+        }
+
+        /**
+         * MACRO ENGINE (v10.9)
+         */
+        async function toggleMacroLibrary() {
+            const menu = document.getElementById('macro-library-menu');
+            
+            if (menu.classList.contains('hidden') === true) {
+                menu.classList.remove('hidden');
+                
+                const list = await req('/api/macros');
+                const listContainer = document.getElementById('macro-list-items');
+                listContainer.innerHTML = '';
+                
+                if (list) {
+                    list.forEach(function(macro) {
+                        const macroRow = document.createElement('div');
+                        macroRow.className = "p-3 hover:bg-blue-900/20 cursor-pointer text-[11px] border-b border-slate-800 text-slate-300 font-bold transition flex justify-between";
+                        
+                        macroRow.innerHTML = `
+                            <span>${macro.title}</span>
+                            <span class="text-slate-700 text-[8px]">SELECT</span>`;
+                        
+                        macroRow.onclick = function() { 
+                            injectMacroToComposer(macro.content); 
+                        };
+                        
+                        listContainer.appendChild(macroRow);
+                    });
+                }
+            } else {
+                menu.classList.add('hidden');
             }
         }
 
-        // Function: viewTrans
-        async function viewTrans(uid, fileName) {
-            const transcriptData = await req('/api/crm/transcript/' + uid + '/' + fileName);
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('modal-content').innerHTML = transcriptData.history.map(function(m) {
-                return `<div class="p-2 border-b border-slate-800 text-xs text-slate-300"><b>${m.authorTag}</b>: ${m.content}</div>`;
-            }).join('');
+        function injectMacroToComposer(rawContent) {
+            const field = document.getElementById('message-input-field');
+            
+            // Placeholder Replacement logic
+            const processed = rawContent.replace(/{user}/gi, currentStaffUsername);
+            
+            field.value += processed;
+            document.getElementById('macro-library-menu').classList.add('hidden');
+            field.focus();
         }
 
-        // Function: changePW
-        async function changePW() {
-            const oldP = document.getElementById('pw-old').value;
-            const newP = document.getElementById('pw-new').value;
+        /**
+         * CRM AND INTELLIGENCE LOGIC
+         */
+        async function fetchUserIntelligenceProfile(discordId) {
+            const data = await req('/api/crm/user/' + discordId);
             
-            if(oldP === '' || newP === '') { 
-                return alert("Please fill in both fields."); 
+            // Set Notes
+            if (data && data.note !== undefined) {
+                document.getElementById('user-intelligence-note').value = data.note;
+            }
+            
+            // Render Historic Logs
+            const historyList = document.getElementById('historic-log-container');
+            historyList.innerHTML = '';
+            
+            if (data && data.history && data.history.length > 0) {
+                data.history.forEach(function(log) {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = "p-3 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer hover:border-blue-500 transition group";
+                    
+                    logEntry.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-black text-slate-400 group-hover:text-blue-400">${new Date(log.closedAt).toLocaleDateString()}</span>
+                            <span class="text-[8px] text-slate-700 font-black">OPEN LOG</span>
+                        </div>`;
+                    
+                    logEntry.onclick = function() { 
+                        displayTranscriptArchive(discordId, log.filename); 
+                    };
+                    
+                    historyList.appendChild(logEntry);
+                });
+            } else {
+                historyList.innerHTML = '<div class="text-center text-slate-800 text-[10px] font-bold uppercase py-10">No archives found.</div>';
+            }
+        }
+
+        async function commitIntelligenceNote() {
+            if (activeDiscordUserId !== null) {
+                const noteValue = document.getElementById('user-intelligence-note').value;
+                await req('/api/crm/note', 'POST', { 
+                    userId: activeDiscordUserId, 
+                    note: noteValue 
+                });
+            }
+        }
+
+        async function displayTranscriptArchive(uid, filename) {
+            const response = await req('/api/crm/transcript/' + uid + '/' + filename);
+            
+            if (response) {
+                document.getElementById('modal-subtitle').innerText = "OBJECT ID: " + filename;
+                document.getElementById('transcript-viewer-modal').classList.remove('hidden');
+                
+                const renderPlane = document.getElementById('transcript-content-render');
+                renderPlane.innerHTML = '';
+                
+                if (response.history) {
+                    response.history.forEach(function(msg) {
+                        const entry = document.createElement('div');
+                        entry.className = "p-2 border-b border-slate-800/50";
+                        
+                        const time = new Date(msg.timestamp).toLocaleString();
+                        entry.innerHTML = `<span class="text-slate-600">[${time}]</span> <b class="text-slate-300 uppercase">${msg.authorTag}</b>: ${msg.content}`;
+                        
+                        renderPlane.appendChild(entry);
+                    });
+                }
+            }
+        }
+
+        function closeTranscriptModal() {
+            document.getElementById('transcript-viewer-modal').classList.add('hidden');
+        }
+
+        /**
+         * ACCOUNT SECURITY LOGIC
+         */
+        async function executeKeyRotation() {
+            const oldPass = document.getElementById('old-pass-field').value;
+            const newPass = document.getElementById('new-pass-field').value;
+            
+            if (oldPass === "" || newPass === "") { 
+                return alert("Identity Verification Error: Both key fields must be populated."); 
             }
 
             const response = await fetch('/api/staff/change-password', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ currentPassword: oldP, newPassword: newP }) 
+                body: JSON.stringify({ 
+                    currentPassword: oldPass, 
+                    newPassword: newPass 
+                }) 
             });
             
-            const resultData = await response.json();
+            const data = await response.json();
             
-            if(response.ok) {
-                alert("Password Updated Successfully! Please login again.");
+            if (response.ok === true) {
+                alert("IDENTITY ROTATED: New secure key accepted. Please authenticate again.");
                 window.location.href = '/login.html';
             } else {
-                alert("Update Failed: " + resultData.error);
+                alert("POLICY REJECTION: " + data.error);
             }
         }
 
-        // Function: isTyping
-        function isTyping() { 
-            if(activeId !== null) { 
-                socket.emit('staff_typing', { threadId: activeId }); 
+        /**
+         * SYSTEM UI HELPERS
+         */
+        function handleKeydown(event) {
+            if (event.key === 'Enter') { 
+                dispatchResponse(); 
+            }
+        }
+
+        function emitTypingState() { 
+            if (activeThreadId !== null) { 
+                socket.emit('staff_typing', { 
+                    threadId: activeThreadId 
+                }); 
             } 
         }
-        
-        // Socket Bindings
-        socket.on('new_message', function(payload) {
-            if(payload.notif_sound === true) { document.getElementById('notif-sound').play(); }
-            if(threadStore[payload.threadId]) {
-                threadStore[payload.threadId].messages.push(payload);
-                if(activeId === payload.threadId) { renderChat(); }
-                loadThreads();
-            } else { loadThreads(); }
-        });
 
-        socket.on('user_typing', function(payload) {
-            if(activeUser === payload.userId) {
-                const typingStatus = document.getElementById('typing');
-                typingStatus.classList.remove('hidden');
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(function() { typingStatus.classList.add('hidden'); }, 3000);
+        async function initializeClosureSequence() {
+            if (activeThreadId !== null) {
+                const confirmation = confirm("DECOMMISSION INQUIRY: Are you sure you want to archive this thread? This action is immutable.");
+                
+                if (confirmation === true) {
+                    await req('/api/close-thread', 'POST', { 
+                        threadId: activeThreadId 
+                    });
+                    
+                    activeThreadId = null; 
+                    document.getElementById('chat-box').innerHTML = '';
+                    document.getElementById('active-tag').innerText = 'Handshake Required';
+                    
+                    refreshThreadInbox();
+                }
             }
-        });
+        }
 
-        socket.on('viewers_updated', function(viewerList) {
-            const viewerDisplay = document.getElementById('viewers');
-            const otherStaff = viewerList.filter(function(name) { return name !== currentUser; });
-            if(otherStaff.length > 0) {
-                viewerDisplay.innerText = "👀 " + otherStaff.join(', ');
-                viewerDisplay.classList.remove('hidden');
-            } else {
-                viewerDisplay.classList.add('hidden');
-            }
-        });
+        async function initiateLogoutSequence() {
+            await fetch('/api/logout', { 
+                method: 'POST' 
+            });
+            window.location.href = '/login.html';
+        }
     </script>
 </body>
 </html>
