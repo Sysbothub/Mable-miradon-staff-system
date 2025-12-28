@@ -6,9 +6,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #020617; color: white; font-family: monospace; padding: 40px; margin: 0; }
-        .card { background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 30px; }
-        input, textarea, select { background-color: #020617; border: 1px solid #334155; padding: 12px; width: 100%; border-radius: 8px; color: white; outline: none; }
+        .card { background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 30px; margin-bottom: 24px; }
+        input, textarea, select { background-color: #020617; border: 1px solid #334155; padding: 12px; width: 100%; border-radius: 8px; color: white; outline: none; margin-bottom: 10px; }
         input:focus { border-color: #3b82f6; }
+        button { cursor: pointer; transition: all 0.2s; }
+        .fleet-btn { font-size: 9px; font-weight: 900; text-transform: uppercase; padding: 6px; border-radius: 4px; width: 100%; margin-top: 4px; border: 1px solid #334155; color: #94a3b8; }
+        .fleet-btn:hover { background: #1e293b; color: white; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -20,11 +23,20 @@
         </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto space-y-12 pr-4">
+    <div class="flex-1 overflow-y-auto space-y-8 pr-4">
         
         <div class="card">
             <h2 class="text-blue-400 font-black uppercase text-sm mb-6 border-b border-slate-800 pb-2">Active Fleet Nodes</h2>
             <div id="fleet-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div class="card">
+            <h2 class="text-blue-200 font-black uppercase text-sm mb-6">Direct Message Dispatch</h2>
+            <div class="flex gap-4">
+                <input id="dm-id" placeholder="Discord User ID" class="w-1/3">
+                <input id="dm-content" placeholder="Message Payload" class="flex-1">
+                <button onclick="manualDm()" class="bg-blue-800 px-6 rounded font-black uppercase text-xs">Send</button>
+            </div>
         </div>
 
         <div class="card">
@@ -67,7 +79,7 @@
             <h2 class="text-indigo-500 font-black uppercase text-sm mb-6">License Management</h2>
             <div class="space-y-4">
                 <div class="flex gap-4">
-                    <input id="lic-query" placeholder="License Key or Discord ID" class="flex-1">
+                    <input id="lic-query" placeholder="Enter License Key to Edit" class="flex-1">
                     <button onclick="checkLicense()" class="bg-indigo-600 px-6 rounded font-black uppercase text-xs">Search</button>
                 </div>
                 
@@ -142,8 +154,21 @@
                 }
                 var d = document.createElement("div");
                 d.className = "p-5 bg-slate-950 border border-slate-800 rounded-xl";
-                d.innerHTML = '<div class="mb-4"><div class="font-bold text-sm">'+s.name+'</div><div class="text-xs text-slate-500">'+s.botName+'</div></div>' +
-                    '<button onclick="toggleTrade(\''+s.botId+'\', '+!act+')" class="w-full text-[10px] font-bold py-2 rounded border uppercase '+(act?"border-green-500 text-green-500":"border-red-500 text-red-500")+'">'+(act?"Online":"Maintenance")+'</button>';
+                
+                // HEADER
+                var h = '<div class="mb-4"><div class="font-bold text-sm text-white truncate">'+s.name+'</div><div class="text-[10px] text-slate-500 uppercase font-bold">'+s.botName+'</div></div>';
+                
+                // TRADING TOGGLE
+                var tBtn = '<button onclick="toggleTrade(\''+s.botId+'\', '+!act+')" class="w-full text-[10px] font-black py-2 rounded border uppercase transition '+(act?"border-green-500 text-green-500 hover:bg-green-900/20":"border-red-500 text-red-500 hover:bg-red-900/20")+'">'+(act?"Synthesis: Active":"Synthesis: Maintenance")+'</button>';
+                
+                // NEW ACTIONS ROW
+                var actRow = '<div class="grid grid-cols-3 gap-2 mt-3">';
+                actRow += '<button class="fleet-btn hover:text-blue-400 hover:border-blue-400" onclick="genInvite(\''+s.botId+'\', \''+s.id+'\')">Invite</button>';
+                actRow += '<button class="fleet-btn hover:text-red-400 hover:border-red-400" onclick="leaveGuild(\''+s.botId+'\', \''+s.id+'\')">Leave</button>';
+                actRow += '<button class="fleet-btn hover:text-amber-400 hover:border-amber-400" onclick="dmOwner(\''+s.ownerId+'\')">DM Owner</button>';
+                actRow += '</div>';
+
+                d.innerHTML = h + tBtn + actRow;
                 grid.appendChild(d);
             }
 
@@ -162,7 +187,37 @@
             }
         }
 
+        // FLEET ACTIONS
         async function toggleTrade(id, st) { await fetch("/api/admin/fleet/toggle-trading", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ botId: id, status: st }) }); syncData(); }
+        
+        async function genInvite(botId, guildId) {
+            const res = await fetch("/api/admin/guild/invite", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ botId: botId, guildId: guildId }) });
+            const d = await res.json();
+            if(d.url) { prompt("Invite Link Created:", d.url); } else { alert("Failed to create invite."); }
+        }
+
+        async function leaveGuild(botId, guildId) {
+            if(!confirm("Force bot to leave this server?")) return;
+            await fetch("/api/admin/guild/leave", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ botId: botId, guildId: guildId }) });
+            alert("Left guild."); syncData();
+        }
+
+        function dmOwner(id) {
+            document.getElementById("dm-id").value = id;
+            document.getElementById("dm-content").focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function manualDm() {
+            const id = document.getElementById("dm-id").value;
+            const content = document.getElementById("dm-content").value;
+            if(!id || !content) return alert("Missing ID or Content");
+            await fetch("/api/admin/dm", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ userId: id, content: content }) });
+            alert("Message Dispatched.");
+            document.getElementById("dm-content").value = "";
+        }
+
+        // OTHER ACTIONS
         async function setConfig(s) { await fetch("/api/admin/config/toggle", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ status: s, note: document.getElementById("note").value }) }); syncData(); }
         async function saveHours() { await fetch("/api/admin/config/toggle", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ openTime: document.getElementById("openTime").value, closeTime: document.getElementById("closeTime").value }) }); syncData(); }
         async function addMacro() { await fetch("/api/admin/macro/add", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ title: document.getElementById("macro-title").value, content: document.getElementById("macro-content").value }) }); alert("Macro Added."); }
@@ -192,7 +247,7 @@
                 discordId: document.getElementById("edit-did").value
             };
             await fetch("/api/admin/license/update", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
-            alert("License Updated.");
+            alert("License Details Updated.");
         }
 
         async function addFaq() { await fetch("/api/admin/faq/add", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ question: document.getElementById("q").value, answer: document.getElementById("a").value }) }); alert("FAQ Added."); }
