@@ -507,7 +507,7 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
                     console.log(`[ENGINE] 🌙 Auto-Reply: Outside Hours`);
                     replyEmbed.setColor('#f59e0b');
                     replyEmbed.setTitle('Support Status: Outside Business Hours');
-                    replyEmbed.setDescription(`We are currently closed.\nHours: ${openTimeStr} - ${closeTimeStr} AST`);
+                    replyEmbed.setDescription(`Thank you for reaching out. While our standard daily hours are ${openTimeStr} – ${closeTimeStr} AST,\nWe often have team members available to assist outside of these times. \nIf your request isn't addressed this evening, we will ensure it is prioritized first thing in the morning.`);
                     replyEmbed.setFooter({ text: "Office Closed" });
                 }
                 else 
@@ -515,8 +515,8 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
                     console.log(`[ENGINE] ✅ Auto-Reply: Ticket Created`);
                     replyEmbed.setColor('#3b82f6');
                     replyEmbed.setTitle('Support Ticket Created');
-                    replyEmbed.setDescription('A technician will respond within 12-24 hours.');
-                    replyEmbed.setFooter({ text: "Estimated Response: 12-24 Hours" });
+                    replyEmbed.setDescription('Thank you for your inquiry. Your request has been received, and a member of our support team will follow up with you as soon as possible.');
+                    replyEmbed.setFooter({ text: "Estimated Response: 1-2 Hours" });
                 }
                 
                 await inboundMessage.author.send({ embeds: [replyEmbed] }).catch(function(){});
