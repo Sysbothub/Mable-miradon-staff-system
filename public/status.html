@@ -2,114 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Status - Miraidon Trade Services</title>
+    <title>Status - Miraidon</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #020617; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(148, 163, 184, 0.1); backdrop-filter: blur(8px); }
-        .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-        .online { background: #10b981; box-shadow: 0 0 10px #10b981; }
-        .offline { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
-    </style>
+    <style>body{background:#020617;color:white;font-family:monospace;padding:60px 20px;}.card{background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:30px;}</style>
 </head>
-<body class="min-h-screen flex flex-col">
-
-    <nav class="p-6 flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto w-full z-10 gap-4">
-        <a href="/" class="text-2xl font-bold text-indigo-400 tracking-wider">MIRAIDON TRADE SERVICES</a>
-        <div class="space-x-6 text-sm font-bold text-slate-400">
-            <a href="/" class="hover:text-white transition">HOME</a>
-            <a href="/features.html" class="hover:text-white transition">FEATURES</a>
-            <a href="/policies.html" class="hover:text-white transition">POLICIES</a>
-            <a href="/faq.html" class="hover:text-white transition">FAQ</a>
-            <a href="https://discord.gg/pkm-universe" class="hover:text-white transition">DISCORD</a>
-            <a href="/login.html" class="text-indigo-400 hover:text-indigo-300 transition">STAFF LOGIN</a>
+<body>
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-black text-center mb-12 uppercase text-blue-500">System Pulse</h1>
+        <div class="card mb-8">
+            <div class="text-xs text-slate-500 uppercase mb-2">Support Desk</div>
+            <div id="state" class="text-2xl font-black uppercase">Scanning...</div>
+            <div id="win" class="text-[10px] text-slate-500 font-bold mt-2 uppercase"></div>
         </div>
-    </nav>
-
-    <main class="flex-1 max-w-4xl mx-auto w-full p-6 space-y-12 pb-24">
-        
-        <header class="text-center py-10">
-            <h1 class="text-4xl font-black text-white mb-2">SYSTEM STATUS</h1>
-            <p class="text-slate-400 text-sm uppercase tracking-widest">Real-time health check of all operations</p>
-        </header>
-
-        <section class="glass p-12 rounded-3xl text-center">
-            <h2 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Support Desk Response Window</h2>
-            <div id="support-status-text" class="text-6xl font-black mb-4 tracking-tighter">LOADING...</div>
-            <div id="support-hours" class="text-slate-500 font-bold mb-6">--</div>
-            <div id="offline-note" class="p-4 bg-red-900/20 border border-red-900/30 rounded-xl text-red-400 text-xs font-bold hidden uppercase tracking-widest"></div>
-        </section>
-
-        <section class="glass p-8 rounded-3xl">
-            <h2 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6 border-b border-slate-800 pb-4">Active Client Fleet</h2>
-            <div id="fleet-container" class="space-y-4">
-                <div class="text-center text-slate-600 italic py-10">Pinging gateways...</div>
-            </div>
-        </section>
-
-    </main>
-
-    <footer class="bg-slate-950 border-t border-slate-900 p-8 text-center mt-auto">
-        <p class="text-xs text-slate-600">
-            &copy; 2025 Miraidon Trade Services. Not affiliated with Nintendo, Game Freak, or The Pokémon Company.
-        </p>
-    </footer>
-
+        <div class="card">
+            <div class="text-xs text-slate-500 uppercase mb-4">Nodes</div>
+            <div id="grid" class="space-y-4"></div>
+        </div>
+    </div>
     <script>
-        /**
-         * Function: updateStatus
-         * Aggregates API response to update visual indicators.
-         */
-        async function updateStatus() {
+        async function load() {
             try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
-
-                // 1. Update Support Header
-                const textElement = document.getElementById('support-status-text');
-                const hoursElement = document.getElementById('support-hours');
-                const noteElement = document.getElementById('offline-note');
-
-                textElement.innerText = data.support.isOpen ? "OPEN" : "CLOSED";
-                textElement.className = `text-6xl font-black mb-4 tracking-tighter ${data.support.isOpen ? 'text-green-400' : 'text-red-500'}`;
-                hoursElement.innerText = "Current Support Window: " + data.support.window;
-
-                if (data.support.note) {
-                    noteElement.innerText = "Notice: " + data.support.note;
-                    noteElement.classList.remove('hidden');
-                } else {
-                    noteElement.classList.add('hidden');
+                var res = await fetch("/api/status"); var data = await res.json();
+                var s = document.getElementById("state");
+                if (data.support.isOpen) { s.innerText = "OPERATIONAL"; s.className = "text-2xl font-black uppercase text-green-500"; }
+                else { s.innerText = "TEMPORARILY UNAVAILABLE"; s.className = "text-2xl font-black uppercase text-red-500"; }
+                document.getElementById("win").innerText = "Schedule: " + data.support.window;
+                var g = document.getElementById("grid"); g.innerHTML = "";
+                for (var i=0; i<data.fleet.length; i++) {
+                    var n = data.fleet[i]; var d = document.createElement("div"); d.className = "flex justify-between p-4 bg-slate-950 rounded border border-slate-800";
+                    d.innerHTML = '<span class="font-bold uppercase text-sm">'+n.name+'</span><span class="text-[10px] text-green-500">ONLINE</span>';
+                    g.appendChild(d);
                 }
-
-                // 2. Update Fleet List
-                const fleetBox = document.getElementById('fleet-container');
-                fleetBox.innerHTML = data.fleet.map(function(bot) {
-                    return `
-                        <div class="flex items-center justify-between p-5 bg-slate-950/50 rounded-2xl border border-slate-800">
-                            <div class="flex items-center gap-4">
-                                <span class="status-dot ${bot.isOnline ? 'online' : 'offline'}"></span>
-                                <span class="font-black text-xl tracking-tight">${bot.name}</span>
-                            </div>
-                            <div class="flex gap-4 items-center">
-                                <div class="flex flex-col items-end">
-                                    <span class="text-[9px] uppercase font-black text-slate-600 mb-1">Trading Module</span>
-                                    <span class="px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest ${bot.isTrading ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}">
-                                        ${bot.isTrading ? 'OPERATIONAL' : 'MAINTENANCE'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>`;
-                }).join('');
-
-            } catch(err) {
-                console.error("Health check failure.");
-            }
+            } catch(e){}
         }
-
-        // Initial check and 30-second heartbeats
-        updateStatus();
-        setInterval(updateStatus, 30000);
+        load();
     </script>
 </body>
 </html>
