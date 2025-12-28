@@ -2,805 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Dashboard - Miraidon Trade Services</title>
-    
+    <title>Miraidon Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
-    
     <style>
-        /**
-         * GLOBAL UI ARCHITECTURE
-         * Standardized for the 3-column fixed desktop view.
-         */
-        body 
-        { 
-            background-color: #020617; 
-            color: #ffffff; 
-            font-family: 'Courier New', Courier, monospace; 
-            margin: 0px;
-            padding: 0px;
-        }
-
-        .glass-panel 
-        { 
-            background-color: rgba(15, 23, 42, 0.95); 
-            border: 1px solid #1e293b; 
-        }
-
-        /* CUSTOM SCROLLBAR ENGINE */
-        ::-webkit-scrollbar 
-        { 
-            width: 5px; 
-        }
-
-        ::-webkit-scrollbar-thumb 
-        { 
-            background-color: #3b82f6; 
-            border-radius: 5px; 
-        }
-
-        /* AVATAR SYSTEM */
-        .avatar-frame 
-        { 
-            width: 32px; 
-            height: 32px; 
-            border-radius: 50%; 
-            object-fit: cover; 
-            border: 1px solid #334155;
-            flex-shrink: 0;
-        }
+        body { background: #020617; color: white; font-family: monospace; }
+        .glass { background: rgba(15, 23, 42, 0.95); border: 1px solid #1e293b; }
+        .av { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #334155; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
-    
-    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
-
-    <header class="h-14 glass-panel flex items-center justify-between px-4 shrink-0">
-        <div class="flex items-center gap-4">
-            <span class="font-bold text-blue-500 text-lg uppercase tracking-tighter">
-                Miraidon Trade Services / Staff Dashboard
-            </span>
-            <a href="/staff/admin.html" 
-               class="text-[10px] font-bold text-amber-500 hover:text-white border border-amber-900 px-3 py-1 rounded hidden" 
-               id="admin-link">
-                ADMIN CONSOLE
-            </a>
-        </div>
-        <div class="flex gap-2">
-            <button onclick="openPasswordModal()" 
-                    class="text-xs text-slate-400 border border-slate-700 px-3 py-1 rounded hover:text-white transition">
-                CHANGE KEY
-            </button>
-            <button onclick="executeLogoutSequence()" 
-                    class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/20 transition">
-                LOGOUT
-            </button>
+    <header class="h-14 glass flex items-center justify-between px-6 shrink-0 z-30">
+        <span class="font-black text-blue-500 uppercase tracking-tighter">Miraidon Terminal</span>
+        <div class="flex gap-4">
+            <a href="/staff/admin.html" class="text-xs text-amber-500 border border-amber-900 px-3 py-1 rounded">ADMIN</a>
+            <button onclick="logoutSequence()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded">LOGOUT</button>
         </div>
     </header>
 
     <div class="flex-1 flex overflow-hidden">
-        
-        <aside class="w-80 glass-panel border-r border-slate-800 flex flex-col z-20">
-            <div class="p-3 border-b border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-950/30">
-                Inbound Frequencies
-            </div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-1">
-                </div>
+        <aside class="w-80 glass border-r border-slate-800 flex flex-col z-20">
+            <div class="p-3 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase">Inbox</div>
+            <div id="list" class="flex-1 overflow-y-auto p-2"></div>
         </aside>
 
         <main class="flex-1 flex flex-col bg-slate-950 relative z-10">
-            
-            <div class="h-12 glass-panel border-b border-slate-800 flex items-center justify-between px-4 bg-slate-900/50">
-                <div class="flex flex-col">
-                    <div id="active-tag" class="text-sm font-bold uppercase tracking-tight text-slate-200">
-                        Frequency Standby
-                    </div>
-                    <div id="typing-indicator" class="text-[9px] text-blue-400 hidden animate-pulse font-bold">
-                        CLIENT IS TRANSMITTING...
-                    </div>
-                </div>
-                
-                <div class="flex gap-2 items-center">
-                    <div id="viewer-presence" class="text-[10px] text-amber-400 border border-amber-900 bg-amber-900/10 px-3 py-1 rounded hidden font-bold">
-                    </div>
-                    
-                    <button onclick="triggerTicketArchival()" 
-                            class="text-[10px] font-bold bg-red-900/30 text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-600 hover:text-white transition">
-                        ARCHIVE
-                    </button>
-                </div>
+            <div class="h-12 glass border-b border-slate-800 flex items-center justify-between px-4">
+                <div id="tag" class="text-sm font-bold uppercase">Ready</div>
+                <button onclick="archive()" class="text-[10px] bg-red-900/20 text-red-500 border border-red-900 px-3 py-1 rounded">ARCHIVE</button>
             </div>
-            
-            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4">
-                </div>
-            
-            <div class="p-3 glass-panel border-t border-slate-800 flex gap-2">
-                <input type="file" id="file-uploader" class="hidden" onchange="handleFileChange(event)">
-                
-                <button onclick="clickFileUploader()" 
-                        class="bg-slate-800 border border-slate-700 p-3 rounded-lg text-blue-500 hover:bg-blue-600 hover:text-white transition font-bold">
-                    +
-                </button>
-                
-                <div class="relative">
-                    <button onclick="toggleMacroMenu()" 
-                            class="bg-slate-800 border border-slate-700 p-3 rounded-lg text-amber-500 hover:bg-amber-600 hover:text-white transition">
-                        ⚡
-                    </button>
-                    <div id="macro-menu-dropdown" 
-                         class="hidden absolute bottom-12 left-0 w-64 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto z-50">
-                    </div>
-                </div>
-                
-                <input id="message-input" 
-                       class="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-white focus:border-blue-500 transition" 
-                       placeholder="Enter transmission data..." 
-                       oninput="transmitTypingSignal()">
-                       
-                <button onclick="dispatchResponse()" 
-                        class="bg-blue-600 px-6 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-blue-500 transition">
-                    Dispatch
-                </button>
+            <div id="chat" class="flex-1 overflow-y-auto p-4 space-y-6"></div>
+            <div class="p-4 glass border-t border-slate-800 flex gap-3">
+                <input id="msg" class="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-2 text-sm" placeholder="Message...">
+                <button onclick="send()" class="bg-blue-600 px-6 rounded-lg font-black text-xs uppercase">Dispatch</button>
             </div>
         </main>
 
-        <aside class="w-80 glass-panel border-l border-slate-800 flex flex-col p-4 z-20">
-            <div class="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
-                Trainer Intelligence
-            </div>
-            <textarea id="crm-intelligence-note" 
-                      onblur="persistIntelligenceNote()" 
-                      class="w-full h-40 bg-yellow-900/10 border border-yellow-900/30 p-3 text-xs rounded-lg mb-6 text-yellow-100 placeholder-yellow-900/50 outline-none" 
-                      placeholder="Enter sticky notes for this ID..."></textarea>
-            
-            <div class="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
-                Archive Logbook
-            </div>
-            <div id="crm-history-list" class="flex-1 overflow-y-auto space-y-2">
-                </div>
+        <aside class="w-80 glass border-l border-slate-800 flex flex-col p-5 z-20">
+            <div class="text-[10px] font-bold text-slate-500 uppercase mb-4">Intel</div>
+            <textarea id="note" class="w-full h-40 bg-slate-900 border border-slate-800 p-3 text-xs rounded-xl"></textarea>
         </aside>
     </div>
 
-    <div id="transcript-modal" class="hidden fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-slate-900 w-full max-w-2xl h-[85vh] rounded-xl border border-slate-700 flex flex-col shadow-2xl">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950 rounded-t-xl">
-                <span class="font-bold text-slate-400 uppercase text-xs tracking-widest">Transcript Recovery</span>
-                <button onclick="closeTranscriptModal()" 
-                        class="text-red-500 font-bold text-xs border border-red-900 px-3 py-1 rounded hover:bg-red-900/20">
-                    CLOSE TERMINAL
-                </button>
-            </div>
-            <div id="transcript-render-area" class="flex-1 overflow-y-auto p-4 space-y-2 text-[11px] font-mono text-slate-300 leading-relaxed">
-            </div>
-        </div>
-    </div>
-
-    <div id="pw-modal" class="hidden fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
-        <div class="bg-slate-900 w-full max-w-sm rounded-xl border border-slate-700 p-6 shadow-2xl">
-            <h2 class="text-blue-500 font-bold mb-4 uppercase tracking-tighter">Rotate Identity Key</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] text-slate-500 uppercase font-bold block mb-1">Current Key</label>
-                    <input type="password" id="key-current" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-lg text-white">
-                </div>
-                <div>
-                    <label class="text-[10px] text-slate-500 uppercase font-bold block mb-1">New Key</label>
-                    <input type="password" id="key-new" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-lg text-white">
-                </div>
-                <button onclick="executeKeyRotation()" 
-                        class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-3 text-xs font-bold uppercase transition">
-                    Commit Rotation
-                </button>
-                <button onclick="document.getElementById('pw-modal').classList.add('hidden')" 
-                        class="w-full text-slate-500 text-[10px] uppercase font-bold">
-                    Cancel Sequence
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        /**
-         * INITIALIZE GLOBAL STATE
-         */
-        var socketInstance = io();
-        var currentActiveThreadId = null;
-        var currentActiveUserId = null;
-        var authenticatedStaffName = null;
-        var globalThreadMemory = {};
-        var pendingFileObject = null;
-        var originalPageTitle = document.title;
-        var titlePulseInterval = null;
+        var socket = io();
+        var activeId = null;
+        var threads = {};
 
-        /**
-         * Function: apiRequest
-         * Full verbose fetch wrapper.
-         */
-        async function apiRequest(urlPath, methodType, bodyData) 
+        async function init() 
         {
-            var fetchMethod = "GET";
-            if (methodType !== undefined)
+            var res = await fetch("/api/threads");
+            var data = await res.json();
+            var el = document.getElementById("list");
+            el.innerHTML = "";
+            for (var i = 0; i < data.length; i++)
             {
-                fetchMethod = methodType;
-            }
-
-            var configuration = {
-                method: fetchMethod,
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            };
-
-            if (bodyData !== undefined)
-            {
-                configuration.body = JSON.stringify(bodyData);
-            }
-
-            try 
-            {
-                var response = await fetch(urlPath, configuration);
-                
-                if (response.status === 401)
-                {
-                    window.location.href = "/login.html";
-                    return null;
-                }
-                
-                var jsonData = await response.json();
-                return jsonData;
-            }
-            catch (error)
-            {
-                console.error("[ENGINE] Critical Request Failure: " + error.message);
-                return { error: true };
+                var t = data[i];
+                threads[t._id] = t;
+                var d = document.createElement("div");
+                d.className = "p-3 border-b border-slate-800 cursor-pointer hover:bg-slate-900";
+                d.innerHTML = '<div class="flex gap-3 items-center"><img src="'+t.userAvatar+'" class="av"><div><div class="text-xs font-bold">'+t.userTag+'</div><div class="text-[9px] text-slate-500">'+t.botName+'</div></div></div>';
+                d.onclick = (function(id, tag){ return function(){ select(id, tag); }; })(t._id, t.userTag);
+                el.appendChild(d);
             }
         }
 
-        /**
-         * Function: initializeSession
-         */
-        async function initializeSession()
+        function select(id, tag) 
         {
-            var userProfile = await apiRequest("/api/auth/user");
-            
-            if (userProfile !== null)
-            {
-                authenticatedStaffName = userProfile.username;
-                
-                if (userProfile.isAdmin === true)
-                {
-                    var adminLink = document.getElementById("admin-link");
-                    adminLink.classList.remove("hidden");
-                }
-                
-                refreshInboundInbox();
-            }
+            activeId = id;
+            document.getElementById("tag").innerText = tag;
+            socket.emit("join_ticket_room", { threadId: id });
+            render();
         }
 
-        // Trigger initialization
-        initializeSession();
-
-        /**
-         * Function: refreshInboundInbox
-         */
-        async function refreshInboundInbox()
+        function render() 
         {
-            var threads = await apiRequest("/api/threads");
-            var inboxContainer = document.getElementById("thread-list");
-            
-            inboxContainer.innerHTML = "";
-            
-            if (threads !== null)
+            var el = document.getElementById("chat");
+            el.innerHTML = "";
+            var t = threads[activeId];
+            if (!t) return;
+            for (var i = 0; i < t.messages.length; i++)
             {
-                threads.forEach(function(thread) {
-                    // Update Cache
-                    globalThreadMemory[thread._id] = thread;
-                    
-                    var threadDiv = document.createElement("div");
-                    
-                    var isActive = (currentActiveThreadId === thread._id);
-                    var styleClass = "p-3 border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition ";
-                    
-                    if (isActive === true)
-                    {
-                        styleClass = styleClass + "bg-blue-900/20";
-                    }
-
-                    threadDiv.className = styleClass;
-                    
-                    var avatarUrl = thread.userAvatar;
-                    if (avatarUrl === undefined)
-                    {
-                        avatarUrl = "https://cdn.discordapp.com/embed/avatars/0.png";
-                    }
-
-                    var timeObj = new Date(thread.lastMessageAt);
-                    var timeStr = timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                    threadDiv.innerHTML = '<div class="flex items-center gap-3">' +
-                        '<img src="' + avatarUrl + '" class="avatar-frame">' +
-                        '<div class="flex-1 min-w-0">' +
-                        '<div class="flex justify-between items-center">' +
-                        '<span class="font-bold text-xs text-white truncate uppercase">' + thread.userTag + '</span>' +
-                        '<span class="text-[8px] text-slate-600">' + timeStr + '</span>' +
-                        '</div>' +
-                        '<span class="text-[9px] text-slate-500 block uppercase font-bold">' + thread.botName + '</span>' +
-                        '</div>' +
-                        '</div>';
-                    
-                    threadDiv.onclick = function() {
-                        selectTargetThread(thread._id, thread.userId, thread.userTag);
-                    };
-                    
-                    inboxContainer.appendChild(threadDiv);
-                });
+                var m = t.messages[i];
+                var d = document.createElement("div");
+                d.className = "flex " + (m.fromBot ? "justify-end" : "justify-start");
+                d.innerHTML = '<div class="px-4 py-2 rounded-2xl text-xs ' + (m.fromBot ? "bg-blue-600" : "bg-slate-800") + '">' + m.content + '</div>';
+                el.appendChild(d);
             }
+            el.scrollTop = el.scrollHeight;
         }
 
-        /**
-         * Function: selectTargetThread
-         */
-        function selectTargetThread(id, discordId, tag)
+        async function send() 
         {
-            if (currentActiveThreadId !== null)
-            {
-                socketInstance.emit("leave_ticket_room");
-            }
-            
-            currentActiveThreadId = id;
-            currentActiveUserId = discordId;
-            
-            // Notification Cleanup
-            stopPageTitleFlash();
-            
-            socketInstance.emit("join_ticket_room", {
-                threadId: id,
-                username: authenticatedStaffName
-            });
-            
-            document.getElementById("active-tag").innerText = tag;
-            
-            renderChatPlanes();
-            fetchUserIntelligence(discordId);
-            refreshInboundInbox();
+            var v = document.getElementById("msg").value;
+            if (!activeId || !v) return;
+            await fetch("/api/reply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ threadId: activeId, content: v }) });
+            document.getElementById("msg").value = "";
         }
 
-        /**
-         * Function: renderChatPlanes
-         */
-        function renderChatPlanes()
-        {
-            var chatBox = document.getElementById("chat-box");
-            chatBox.innerHTML = "";
-            
-            var activeData = globalThreadMemory[currentActiveThreadId];
-            
-            if (activeData === undefined)
-            {
-                return;
-            }
-
-            activeData.messages.forEach(function(msg) {
-                var messageRow = document.createElement("div");
-                
-                var isStaff = (msg.fromBot === true);
-                var alignment = "self-start flex-row";
-                if (isStaff === true)
-                {
-                    alignment = "self-end flex-row-reverse";
-                }
-                
-                messageRow.className = "flex gap-3 max-w-[85%] " + alignment;
-                
-                var authorAvatar = msg.authorAvatar;
-                if (authorAvatar === undefined)
-                {
-                    authorAvatar = "https://cdn.discordapp.com/embed/avatars/0.png";
-                }
-
-                var bubbleStyle = "bg-slate-800 border-slate-700 text-slate-300";
-                if (isStaff === true)
-                {
-                    bubbleStyle = "bg-blue-600 border-blue-500 text-white";
-                }
-
-                var messageBody = '<div class="px-3 py-2 rounded-xl text-xs border ' + bubbleStyle + '">' + msg.content + '</div>';
-                
-                if (msg.attachments !== undefined && msg.attachments.length > 0)
-                {
-                    msg.attachments.forEach(function(url) {
-                        var ext = url.split('.').pop().toLowerCase();
-                        var isImg = (ext === "jpg" || ext === "jpeg" || ext === "png" || ext === "gif" || ext === "webp");
-                        
-                        if (isImg === true)
-                        {
-                            messageBody += '<img src="' + url + '" class="mt-2 max-w-[200px] rounded border border-slate-700 shadow-lg" onclick="window.open(\'' + url + '\')">';
-                        }
-                        else 
-                        {
-                            messageBody += '<a href="' + url + '" target="_blank" class="block mt-2 text-[10px] text-blue-400 font-bold uppercase underline">📎 Download Transmission</a>';
-                        }
-                    });
-                }
-
-                var sideClass = "items-start";
-                if (isStaff === true)
-                {
-                    sideClass = "items-end";
-                }
-
-                var timeStr = new Date(msg.timestamp).toLocaleTimeString();
-
-                messageRow.innerHTML = '<img src="' + authorAvatar + '" class="avatar-frame mt-1">' +
-                    '<div class="flex flex-col ' + sideClass + '">' +
-                    messageBody +
-                    '<span class="text-[8px] text-slate-600 mt-1 font-bold">' + timeStr + '</span>' +
-                    '</div>';
-                
-                chatBox.appendChild(messageRow);
-            });
-            
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        /**
-         * NOTIFICATION ENGINE: TAB PULSING
-         */
-        function startPageTitleFlash()
-        {
-            var isFocused = document.hasFocus();
-            if (isFocused === true)
-            {
-                return;
-            }
-
-            if (titlePulseInterval !== null)
-            {
-                return;
-            }
-
-            titlePulseInterval = setInterval(function() {
-                var current = document.title;
-                if (current === originalPageTitle)
-                {
-                    document.title = "🔴 NEW MESSAGE!";
-                }
-                else 
-                {
-                    document.title = originalPageTitle;
-                }
-            }, 1000);
-        }
-
-        function stopPageTitleFlash()
-        {
-            if (titlePulseInterval !== null)
-            {
-                clearInterval(titlePulseInterval);
-                titlePulseInterval = null;
-            }
-            document.title = originalPageTitle;
-        }
-
-        window.onfocus = function() 
-        {
-            stopPageTitleFlash();
-        };
-
-        /**
-         * SOCKET SUBSCRIPTIONS
-         */
-        socketInstance.on("new_message", function(packet) {
-            
-            var fromUser = (packet.fromBot === false);
-            if (packet.notif_sound === true && fromUser === true)
-            {
-                var audio = document.getElementById("notif-sound");
-                audio.play().catch(function(e) { 
-                    console.log("Audio prevented by policy."); 
-                });
-                
-                startPageTitleFlash();
-            }
-
-            if (globalThreadMemory[packet.threadId] !== undefined)
-            {
-                globalThreadMemory[packet.threadId].messages.push(packet);
-                globalThreadMemory[packet.threadId].lastMessageAt = packet.timestamp;
-                
-                if (currentActiveThreadId === packet.threadId)
-                {
-                    renderChatPlanes();
-                }
-                
-                refreshInboundInbox();
-            }
-            else 
-            {
-                refreshInboundInbox();
-            }
+        socket.on("new_message", function(p) {
+            if (threads[p.threadId]) { threads[p.threadId].messages.push(p); if (activeId === p.threadId) render(); }
+            else { init(); }
         });
 
-        socketInstance.on("user_typing", function(packet) {
-            if (currentActiveUserId === packet.userId)
-            {
-                var indicator = document.getElementById("typing-indicator");
-                indicator.classList.remove("hidden");
-                
-                setTimeout(function() {
-                    indicator.classList.add("hidden");
-                }, 5000);
-            }
-        });
-
-        socketInstance.on("viewers_updated", function(list) {
-            var el = document.getElementById("viewer-presence");
-            
-            var others = list.filter(function(name) {
-                return (name !== authenticatedStaffName);
-            });
-
-            if (others.length > 0)
-            {
-                el.innerText = "👀 MONITORING: " + others.join(", ");
-                el.classList.remove("hidden");
-            }
-            else 
-            {
-                el.classList.add("hidden");
-            }
-        });
-
-        /**
-         * TRANSMISSION ENGINE
-         */
-        async function dispatchResponse()
-        {
-            var field = document.getElementById("message-input");
-            var val = field.value;
-            
-            var isThreadActive = (currentActiveThreadId !== null);
-            var hasText = (val.length > 0);
-            var hasFile = (pendingFileObject !== null);
-
-            if (isThreadActive === false)
-            {
-                return;
-            }
-
-            if (hasText === false && hasFile === false)
-            {
-                return;
-            }
-
-            var requestBody = {
-                threadId: currentActiveThreadId,
-                content: val,
-                fileBase64: null,
-                fileName: null
-            };
-
-            if (hasFile === true)
-            {
-                requestBody.fileBase64 = pendingFileObject.data;
-                requestBody.fileName = pendingFileObject.name;
-            }
-
-            var result = await apiRequest("/api/reply", "POST", requestBody);
-            
-            if (result.success === true)
-            {
-                field.value = "";
-                pendingFileObject = null;
-            }
-            else 
-            {
-                alert("TRANSMISSION ERROR: Customer Gateway rejected packet.");
-            }
-        }
-
-        /**
-         * UTILITY FUNCTIONS
-         */
-        function clickFileUploader() 
-        { 
-            document.getElementById("file-uploader").click(); 
-        }
-
-        function handleFileChange(event)
-        {
-            var file = event.target.files[0];
-            if (file === undefined) { return; }
-            
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                pendingFileObject = {
-                    data: e.target.result,
-                    name: file.name
-                };
-                alert("Packet Attached: " + file.name);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function transmitTypingSignal()
-        {
-            if (currentActiveThreadId !== null)
-            {
-                socketInstance.emit("staff_typing", {
-                    threadId: currentActiveThreadId
-                });
-            }
-        }
-
-        async function triggerTicketArchival()
-        {
-            if (currentActiveThreadId === null) { return; }
-            
-            var confirmed = confirm("DECOMMISSION TRANSMISSION: Archive this inquiry frequency?");
-            
-            if (confirmed === true)
-            {
-                await apiRequest("/api/close-thread", "POST", {
-                    threadId: currentActiveThreadId
-                });
-                
-                currentActiveThreadId = null;
-                document.getElementById("chat-box").innerHTML = "";
-                document.getElementById("active-tag").innerText = "Frequency Standby";
-                
-                refreshInboundInbox();
-            }
-        }
-
-        /**
-         * MACRO ENGINE
-         */
-        async function toggleMacroMenu()
-        {
-            var menu = document.getElementById("macro-menu-dropdown");
-            var isHidden = menu.classList.contains("hidden");
-
-            if (isHidden === true)
-            {
-                menu.classList.remove("hidden");
-                
-                var macros = await apiRequest("/api/macros");
-                var listHtml = "";
-                
-                if (macros !== null)
-                {
-                    macros.forEach(function(m) {
-                        var safeContent = m.content.replace(/'/g, "\\'");
-                        listHtml += '<div onclick="injectMacroContent(\'' + safeContent + '\')" class="p-3 hover:bg-blue-900/20 cursor-pointer text-xs border-b border-slate-800 text-slate-300 font-bold uppercase tracking-tighter transition">' + m.title + '</div>';
-                    });
-                    menu.innerHTML = listHtml;
-                }
-            }
-            else 
-            {
-                menu.classList.add("hidden");
-            }
-        }
-
-        function injectMacroContent(content)
-        {
-            var input = document.getElementById("message-input");
-            var final = content.replace(/{user}/gi, authenticatedStaffName);
-            
-            input.value = input.value + final;
-            document.getElementById("macro-menu-dropdown").classList.add("hidden");
-            input.focus();
-        }
-
-        /**
-         * CRM AND LOG ENGINE
-         */
-        async function fetchUserIntelligence(discordId)
-        {
-            var data = await apiRequest("/api/crm/user/" + discordId);
-            
-            if (data !== null)
-            {
-                document.getElementById("crm-intelligence-note").value = data.note;
-                
-                var histContainer = document.getElementById("crm-history-list");
-                histContainer.innerHTML = "";
-                
-                if (data.history.length > 0)
-                {
-                    data.history.forEach(function(h) {
-                        var logDiv = document.createElement("div");
-                        logDiv.className = "p-2 bg-slate-900 border border-slate-800 rounded text-[10px] cursor-pointer hover:bg-slate-800 transition uppercase font-bold text-slate-500";
-                        
-                        var date = new Date(h.closedAt);
-                        logDiv.innerText = "ENTRY: " + date.toLocaleDateString();
-                        
-                        logDiv.onclick = function() {
-                            viewHistoricTranscript(discordId, h.filename);
-                        };
-                        
-                        histContainer.appendChild(logDiv);
-                    });
-                }
-            }
-        }
-
-        async function persistIntelligenceNote()
-        {
-            if (currentActiveUserId !== null)
-            {
-                var val = document.getElementById("crm-intelligence-note").value;
-                await apiRequest("/api/crm/note", "POST", {
-                    userId: currentActiveUserId,
-                    note: val
-                });
-            }
-        }
-
-        async function viewHistoricTranscript(uid, file)
-        {
-            var transcript = await apiRequest("/api/crm/transcript/" + uid + "/" + file);
-            
-            if (transcript !== null)
-            {
-                document.getElementById("transcript-modal").classList.remove("hidden");
-                var renderArea = document.getElementById("transcript-render-area");
-                renderArea.innerHTML = "";
-                
-                transcript.history.forEach(function(m) {
-                    var line = document.createElement("div");
-                    line.className = "p-2 border-b border-slate-800";
-                    line.innerHTML = '<b>' + m.authorTag + '</b>: ' + m.content;
-                    renderArea.appendChild(line);
-                });
-            }
-        }
-
-        function closeTranscriptModal()
-        {
-            document.getElementById("transcript-modal").classList.add("hidden");
-        }
-
-        /**
-         * AUTHENTICATION HELPERS
-         */
-        async function executeLogoutSequence()
+        async function logoutSequence()
         {
             await fetch("/api/logout", { method: "POST" });
             window.location.href = "/login.html";
         }
 
-        function openPasswordModal()
-        {
-            document.getElementById("pw-modal").classList.remove("hidden");
-        }
-
-        async function executeKeyRotation()
-        {
-            var oldK = document.getElementById("key-current").value;
-            var newK = document.getElementById("key-new").value;
-            
-            if (oldK === "" || newK === "") { return alert("Input required."); }
-
-            var res = await fetch("/api/staff/change-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ currentPassword: oldK, newPassword: newK })
-            });
-
-            if (res.ok === true)
-            {
-                alert("IDENTITY ROTATED. LOGGING OUT.");
-                window.location.href = "/login.html";
-            }
-            else 
-            {
-                var data = await res.json();
-                alert("REJECTION: " + data.error);
-            }
-        }
+        init();
     </script>
 </body>
 </html>
