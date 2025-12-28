@@ -9,8 +9,7 @@
     
     <style>
         /**
-         * GLOBAL ADMINISTRATIVE UI ARCHITECTURE
-         * Designed for maximal clarity and durability.
+         * GLOBAL ADMINISTRATIVE UI STYLING
          */
         body 
         { 
@@ -21,18 +20,17 @@
             margin: 0px;
         }
         
-        /* FORM ELEMENT DECORATION */
+        /* INPUT DECORATION */
         input, select, textarea 
         { 
             background-color: #0f172a; 
             border: 1px solid #334155; 
-            padding: 10px; 
+            padding: 12px; 
             width: 100%; 
             color: #ffffff; 
             outline: none; 
-            border-radius: 6px;
-            font-size: 12px;
-            transition: border-color 0.2s ease;
+            border-radius: 8px;
+            font-size: 13px;
         }
         
         input:focus, select:focus, textarea:focus 
@@ -41,7 +39,7 @@
             background-color: #1e293b;
         }
 
-        /* CUSTOM SCROLLBAR LOGIC */
+        /* SCROLLBAR ENGINE */
         ::-webkit-scrollbar 
         { 
             width: 8px; 
@@ -55,40 +53,34 @@
             background: #334155; 
             border-radius: 4px; 
         }
-        ::-webkit-scrollbar-thumb:hover 
-        { 
-            background: #475569; 
-        }
 
-        /* SECTIONAL COMPONENTS */
         .section-header 
         { 
-            font-weight: bold; 
-            margin-bottom: 16px; 
-            padding-bottom: 8px; 
-            border-bottom: 1px solid; 
+            font-weight: 900; 
+            margin-bottom: 20px; 
+            padding-bottom: 10px; 
+            border-bottom: 2px solid #1e293b; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.1em;
+            color: #94a3b8;
         }
 
-        .stat-value 
-        { 
-            font-size: 14px; 
-            color: #f8fafc; 
-            font-weight: bold; 
-        }
-
-        .action-button-small 
+        .server-card 
         {
-            font-size: 9px;
-            font-weight: 900;
-            padding: 4px 10px;
-            border-radius: 4px;
-            text-transform: uppercase;
-            transition: all 0.2s ease;
+            background-color: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .server-card:hover 
+        {
+            border-color: #3b82f6;
+            background-color: #0f172a;
         }
     </style>
 </head>
@@ -96,246 +88,177 @@
     
     <nav class="mb-8 flex justify-between items-center shrink-0">
         <div class="flex flex-col">
-            <span class="font-black text-amber-500 text-2xl tracking-tighter uppercase">Miraidon Master Console</span>
-            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Administrative Control Layer / v11.10</span>
+            <span class="font-black text-amber-500 text-3xl tracking-tighter uppercase">Miraidon Admin</span>
+            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Fleet Command Center / v11.11</span>
         </div>
         
         <div class="flex gap-4">
-            <button onclick="refreshAllData()" 
-                    class="text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700 px-4 py-2 rounded-lg hover:bg-slate-700 transition">
-                FORCE REFRESH
+            <button onclick="refreshUnifiedData()" 
+                    class="text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700 px-6 py-3 rounded-lg hover:bg-slate-700 transition">
+                REFRESH FLEET
             </button>
             <a href="/staff/dashboard.html" 
-               class="text-[10px] font-black bg-blue-900/20 text-blue-400 border border-blue-900/50 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition">
-                ← TERMINAL DASHBOARD
+               class="text-[10px] font-black bg-blue-900/30 text-blue-400 border border-blue-900/50 px-6 py-3 rounded-lg hover:bg-blue-600 hover:text-white transition">
+                RETURN TO TERMINAL
             </a>
         </div>
     </nav>
     
-    <div class="flex-1 overflow-y-auto space-y-10 pr-4 pb-20">
+    <div class="flex-1 overflow-y-auto space-y-12 pr-4 pb-24">
 
-        <div class="p-6 border border-slate-800 rounded-xl bg-slate-900/30 shadow-2xl">
-            <h2 class="section-header text-slate-300 border-slate-700">
-                Personnel Performance Metrics
+        <div class="p-8 border border-slate-800 rounded-2xl bg-slate-900/30 shadow-2xl">
+            <h2 class="section-header">
+                <span class="text-blue-400">Active Fleet Inventory & Trading Toggles</span>
+                <span id="fleet-count" class="text-[10px] bg-blue-900/40 px-3 py-1 rounded text-blue-300">0 GATEWAYS</span>
             </h2>
             
-            <div class="grid grid-cols-5 gap-4 px-6 py-3 bg-slate-950 border border-slate-800 rounded-t-xl text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                <div>Support Member</div>
-                <div class="text-center">Tickets Finalized</div>
-                <div class="text-center">Outbound Replies</div>
-                <div class="text-center">Quality Rating</div>
-                <div class="text-right">Identity Actions</div>
-            </div>
-            
-            <div id="performance-table-body" class="bg-slate-900/50 border-x border-b border-slate-800 rounded-b-xl divide-y divide-slate-800">
+            <div id="fleet-inventory-render-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="col-span-full py-24 text-center">
+                    <div class="text-slate-600 text-sm font-black uppercase tracking-widest animate-pulse">
+                        Scanning Gateway Handshakes...
+                    </div>
                 </div>
+            </div>
         </div>
 
-        <div class="p-6 border border-slate-700 rounded-xl bg-slate-900/50 shadow-2xl">
-            <h2 class="section-header text-slate-300 border-slate-700">
-                Active Fleet Control & Server Inventory
-            </h2>
-            <div id="fleet-inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[500px] overflow-y-auto p-2">
-                <div class="col-span-full py-20 text-center text-slate-700 italic uppercase font-bold tracking-widest">
-                    Initializing fleet handshake...
-                </div>
+        <div class="p-8 border border-slate-800 rounded-2xl bg-slate-900/30">
+            <h2 class="section-header text-slate-300">Personnel Analytics</h2>
+            
+            <div class="grid grid-cols-5 gap-4 px-6 py-4 bg-slate-950 border border-slate-800 rounded-t-xl text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <div>Technician</div>
+                <div class="text-center">Tickets</div>
+                <div class="text-center">Replies</div>
+                <div class="text-center">Rating</div>
+                <div class="text-right">Actions</div>
             </div>
+            
+            <div id="performance-table-render" class="bg-slate-900/50 border-x border-b border-slate-800 rounded-b-xl divide-y divide-slate-800">
+                </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
             
-            <div class="p-6 border border-teal-900 rounded-xl bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-teal-400 border-teal-900">System Global Logic</h2>
-                
+            <div class="p-8 border border-teal-900/40 rounded-2xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-teal-400 border-teal-900/30">Global Support Settings</h2>
                 <div class="space-y-6">
-                    <div class="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-black text-slate-200 uppercase tracking-tighter">Support Terminal Status</span>
-                            <span class="text-[9px] text-slate-600 font-bold uppercase">Master override for inquiry generation</span>
-                        </div>
-                        <input type="checkbox" id="cfg-online-toggle" class="w-6 h-6 accent-teal-500 cursor-pointer">
+                    <div class="flex items-center justify-between p-5 bg-slate-950 rounded-xl border border-slate-800">
+                        <label class="text-sm font-black text-slate-200 uppercase tracking-tighter">Terminal Visibility</label>
+                        <input type="checkbox" id="support-master-toggle" class="w-7 h-7 accent-teal-500 cursor-pointer">
                     </div>
-
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Window Start (AST)</label>
-                            <input type="time" id="cfg-open-time">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Window End (AST)</label>
-                            <input type="time" id="cfg-close-time">
-                        </div>
+                        <input type="time" id="time-open-field">
+                        <input type="time" id="time-close-field">
                     </div>
-
-                    <div>
-                        <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Maintenance Notice Text</label>
-                        <textarea id="cfg-offline-note" class="h-24" placeholder="Enter notice for trainees when terminal is offline..."></textarea>
-                    </div>
-                    
-                    <button onclick="commitConfigChanges()" 
-                            class="w-full bg-teal-600 hover:bg-teal-500 text-white p-4 rounded-xl font-black text-xs uppercase transition shadow-lg shadow-teal-900/20">
-                        Commit Logic Changes
-                    </button>
+                    <textarea id="offline-note-field" class="h-28" placeholder="Maintenance Message..."></textarea>
+                    <button onclick="saveGlobalConfig()" class="w-full bg-teal-600 hover:bg-teal-500 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest transition">Persist Logic</button>
                 </div>
             </div>
 
-            <div class="p-6 border border-indigo-900 rounded-xl bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-indigo-400 border-indigo-900">License Provisioning Engine</h2>
-                
+            <div class="p-8 border border-indigo-900/40 rounded-2xl bg-slate-900/50 shadow-lg">
+                <h2 class="section-header text-indigo-400 border-indigo-900/30">License Activation Engine</h2>
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
-                        <input id="lic-key" placeholder="Sell.App License Key">
-                        <input id="lic-discord-id" placeholder="Client Discord ID">
+                        <input id="lic-key-field" placeholder="License Key">
+                        <input id="lic-uid-field" placeholder="Trainer ID">
                     </div>
-                    
-                    <input id="lic-instance" placeholder="Target Instance ID / HWID">
-                    
+                    <input id="lic-hwid-field" placeholder="Instance HWID">
                     <div class="grid grid-cols-2 gap-4">
-                        <input id="lic-server-name" placeholder="Community Name">
-                        <input id="lic-server-id" placeholder="Community ID">
+                        <input id="lic-name-field" placeholder="Server Name">
+                        <input id="lic-sid-field" placeholder="Server ID">
                     </div>
-                    
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Horizon</label>
-                            <select id="lic-duration">
-                                <option value="30 Days">30 Calendar Days</option>
-                                <option value="90 Days">90 Calendar Days</option>
-                                <option value="365 Days">365 Calendar Days</option>
-                                <option value="Lifetime">Indefinite (Lifetime)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-500 font-black block mb-2 uppercase">Product Tier</label>
-                            <select id="lic-type">
-                                <option value="Premium Bundle">Premium Bundle (Miraidon)</option>
-                                <option value="Mable Rental">Mable Rental (Professor)</option>
-                            </select>
-                        </div>
+                        <select id="lic-dur-field">
+                            <option value="30 Days">30 Days</option>
+                            <option value="90 Days">90 Days</option>
+                            <option value="Lifetime">Lifetime</option>
+                        </select>
+                        <select id="lic-tier-field">
+                            <option value="Premium Bundle">Premium Bundle</option>
+                            <option value="Mable Rental">Mable Rental</option>
+                        </select>
                     </div>
-                    
-                    <button onclick="executeLicenseActivation()" 
-                            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-xl font-black text-xs uppercase transition shadow-lg shadow-indigo-900/20 pt-10 mt-4">
-                        Activate Identity & Link Community
-                    </button>
+                    <button onclick="activateLicense()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-5 rounded-xl font-black text-xs uppercase transition tracking-widest mt-2">Authorize & DM User</button>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-            
-            <div class="p-6 border border-amber-900 rounded-xl bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-amber-400 border-amber-900">Provision Support Personnel</h2>
-                
+            <div class="p-8 border border-amber-900/40 rounded-2xl bg-slate-900/50">
+                <h2 class="section-header text-amber-500 border-amber-900/30">Personnel Management</h2>
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <input id="staff-username" placeholder="Technician Handle">
-                        <input id="staff-discord-id" placeholder="Technician Discord ID">
-                    </div>
-                    
+                    <input id="new-staff-user" placeholder="Technician Handle">
+                    <input id="new-staff-id" placeholder="Technician Discord ID">
                     <div class="flex items-center gap-4 p-4 bg-slate-950 rounded-xl border border-slate-800">
-                        <input type="checkbox" id="staff-admin-toggle" style="width:auto;" class="w-5 h-5 cursor-pointer">
-                        <label for="staff-admin-toggle" class="text-xs font-black text-slate-300 uppercase">Grant Level 2 Administrative Clearance</label>
+                        <input type="checkbox" id="new-staff-admin" style="width:auto" class="w-5 h-5">
+                        <label class="text-xs font-black text-slate-400 uppercase">Administrative Permissions</label>
                     </div>
-                    
-                    <button onclick="executeStaffCreation()" 
-                            class="w-full bg-amber-600 hover:bg-amber-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">
-                        Authorize Personnel
-                    </button>
+                    <button onclick="createStaffAccount()" class="w-full bg-amber-600 hover:bg-amber-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">Register Technician</button>
                 </div>
             </div>
 
-            <div class="p-6 border border-blue-900 rounded-xl bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-blue-400 border-blue-900">Manual Outbound Handshake</h2>
-                
+            <div class="p-8 border border-blue-900/40 rounded-2xl bg-slate-900/50">
+                <h2 class="section-header text-blue-400 border-blue-900/30">Manual Transmission</h2>
                 <div class="space-y-4">
-                    <input id="manual-discord-id" placeholder="Target Trainer Discord ID">
-                    <textarea id="manual-message-body" class="h-20" placeholder="Enter initialization message..."></textarea>
-                    
-                    <button onclick="executeManualDispatch()" 
-                            class="w-full bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">
-                        Initialize Outbound Thread
-                    </button>
+                    <input id="manual-id-field" placeholder="Trainer Discord ID">
+                    <textarea id="manual-text-field" class="h-28" placeholder="Enter transmission message..."></textarea>
+                    <button onclick="sendManualDm()" class="w-full bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">Dispatch Handshake</button>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-            
-            <div class="p-6 border border-purple-900 rounded-xl bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-purple-400 border-purple-900">Canned Response Database</h2>
-                
-                <div id="macro-management-list" class="h-40 overflow-y-auto mb-6 bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-1">
-                    </div>
-                
+            <div class="p-8 border border-purple-900/40 rounded-2xl bg-slate-900/50">
+                <h2 class="section-header text-purple-400 border-purple-900/30">Canned Responses</h2>
+                <div id="macro-render-list" class="h-48 overflow-y-auto mb-6 bg-slate-950 border border-slate-800 rounded-xl p-2"></div>
                 <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                    <input id="macro-title-input" placeholder="Macro Title">
-                    <textarea id="macro-content-input" placeholder="Macro Content..."></textarea>
-                    <button onclick="executeMacroCreation()" 
-                            class="w-full bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-lg font-black text-xs uppercase transition">
-                        Update Database
-                    </button>
+                    <input id="macro-title" placeholder="Title">
+                    <textarea id="macro-body" placeholder="Content..."></textarea>
+                    <button onclick="saveMacro()" class="w-full bg-purple-600 text-white p-3 rounded-lg font-black text-xs uppercase">Save Library Entry</button>
                 </div>
             </div>
 
-            <div class="p-6 border border-pink-900 rounded-xl bg-slate-900/50 shadow-lg">
-                <h2 class="section-header text-pink-400 border-pink-900">Public Knowledge Base</h2>
-                
+            <div class="p-8 border border-pink-900/40 rounded-2xl bg-slate-900/50">
+                <h2 class="section-header text-pink-400 border-pink-900/30">FAQ Database</h2>
                 <div class="space-y-4">
-                    <input id="faq-question-input" placeholder="The Inquiry (Question)">
-                    <textarea id="faq-answer-input" class="h-40" placeholder="The Resolution (Answer)"></textarea>
-                    <button onclick="executeFaqCreation()" 
-                            class="w-full bg-pink-600 hover:bg-pink-500 text-white p-4 rounded-xl font-black text-xs uppercase transition">
-                        Append to FAQ Collection
-                    </button>
+                    <input id="faq-q" placeholder="The Question">
+                    <textarea id="faq-a" class="h-48" placeholder="The Detailed Answer"></textarea>
+                    <button onclick="saveFaq()" class="w-full bg-pink-600 text-white p-4 rounded-xl font-black text-xs uppercase">Save Knowledge Entry</button>
                 </div>
             </div>
         </div>
 
-        <div class="p-8 border border-red-900 rounded-xl bg-slate-900/50 shadow-2xl max-w-3xl mx-auto">
-            <h2 class="section-header text-red-400 border-red-900">Global Emergency Broadcast</h2>
-            <div class="bg-red-950/40 border border-red-900/50 p-4 rounded-xl mb-6">
-                <span class="text-[10px] text-red-500 font-black uppercase tracking-widest block mb-2">⚠️ WARNING: MASS DISPATCH DETECTED</span>
-                <span class="text-[9px] text-red-200/60 font-bold leading-tight block">
-                    Execution of this function will DM every community owner currently hosting a Miraidon instance. Use only for critical security patches or emergency downtime.
-                </span>
+        <div class="max-w-3xl mx-auto">
+            <div class="p-10 border border-red-900 rounded-3xl bg-slate-900/50 shadow-2xl">
+                <h2 class="section-header text-red-500 border-red-900/30">Emergency Mass Broadcast</h2>
+                <textarea id="broadcast-field" class="h-32 mb-6" placeholder="Broadcast transmission content..."></textarea>
+                <button onclick="sendGlobalBroadcast()" class="w-full bg-red-600 hover:bg-red-500 text-white p-6 rounded-2xl font-black text-sm uppercase tracking-widest transition shadow-lg shadow-red-900/40">Execute Global Dispatch</button>
             </div>
-            
-            <textarea id="broadcast-message-field" class="h-32 mb-6" placeholder="Enter emergency notice content..."></textarea>
-            
-            <button onclick="executeGlobalBroadcast()" 
-                    class="w-full bg-red-600 hover:bg-red-500 text-white p-5 rounded-xl font-black text-sm uppercase transition tracking-widest shadow-lg shadow-red-900/40">
-                Execute Mass Dispatch Sequence
-            </button>
         </div>
 
     </div>
 
     <script>
         /**
-         * Function: apiRequest
-         * Explicit, verbose network handler.
+         * Function: apiCall
+         * Traditional, verbose network handler.
          */
-        async function apiRequest(urlPath, methodType, payloadBody)
+        async function apiCall(endpoint, method, body)
         {
-            var method = "GET";
-            if (methodType !== undefined) { method = methodType; }
-
-            var fetchSettings = {
-                method: method,
+            var options = {
+                method: method || "GET",
                 headers: {
                     "Content-Type": "application/json"
                 }
             };
 
-            if (payloadBody !== undefined && payloadBody !== null)
+            if (body !== undefined && body !== null)
             {
-                fetchSettings.body = JSON.stringify(payloadBody);
+                options.body = JSON.stringify(body);
             }
 
             try 
             {
-                var response = await fetch(urlPath, fetchSettings);
+                var response = await fetch(endpoint, options);
                 
                 if (response.status === 401)
                 {
@@ -348,341 +271,212 @@
             }
             catch (error)
             {
-                console.error("[ADMIN_ENGINE] Network failure: " + error.message);
+                console.error("[NETWORK ERROR] " + error.message);
                 return { error: true };
             }
         }
 
         /**
-         * Function: refreshAllData
-         * Centralized data aggregation for the administrative console.
+         * Function: refreshUnifiedData
+         * Deep-level data aggregator with explicit fleet rendering repair.
          */
-        async function refreshAllData()
+        async function refreshUnifiedData()
         {
-            console.log("[ADMIN_ENGINE] Initializing unified data refresh...");
+            console.log("[ADMIN] Initializing total data synchronization...");
 
-            // 1. REFRESH GLOBAL CONFIGURATION
-            var configData = await apiRequest("/api/admin/config");
-            if (configData !== null)
+            // 1. Fetch Configuration Store
+            var config = await apiCall("/api/admin/config", "GET");
+            if (config !== null)
             {
-                document.getElementById("cfg-online-toggle").checked = configData.supportOnline;
-                document.getElementById("cfg-offline-note").value = configData.offlineNote;
-                document.getElementById("cfg-open-time").value = configData.openTime;
-                document.getElementById("cfg-close-time").value = configData.closeTime;
+                document.getElementById("support-master-toggle").checked = config.supportOnline;
+                document.getElementById("offline-note-field").value = config.offlineNote;
+                document.getElementById("time-open-field").value = config.openTime;
+                document.getElementById("time-close-field").value = config.closeTime;
             }
 
-            // 2. REFRESH PERFORMANCE ANALYTICS
-            var staffStats = await apiRequest("/api/admin/stats");
-            var performanceContainer = document.getElementById("performance-table-body");
-            performanceContainer.innerHTML = "";
+            // 2. Fetch Fleet Inventory (REPAIRED logic)
+            var servers = await apiCall("/api/admin/servers", "GET");
+            var fleetGrid = document.getElementById("fleet-inventory-render-grid");
+            var fleetCounter = document.getElementById("fleet-count");
+            
+            fleetGrid.innerHTML = ""; // Reset grid
 
-            if (staffStats !== null)
+            if (servers !== null && config !== null)
             {
-                for (var i = 0; i < staffStats.length; i++)
+                fleetCounter.innerText = servers.length + " GATEWAYS ACTIVE";
+                
+                // EXPLICIT FOR-LOOP (No Shorthand)
+                for (var i = 0; i < servers.length; i++)
                 {
-                    var technician = staffStats[i];
-                    
-                    var ratingSum = technician.ratingSum || 0;
-                    var ratingCount = technician.ratingCount || 0;
-                    var averageRating = "N/A";
-                    
-                    if (ratingCount > 0)
+                    var currentServer = servers[i];
+                    var currentBotId = currentServer.botId;
+
+                    // CROSS-REFERENCE TRADING STATUS
+                    var tradingIsActive = true; 
+                    if (config.botFleetStatus !== undefined)
                     {
-                        var rawAverage = (ratingSum / ratingCount);
-                        averageRating = rawAverage.toFixed(2);
-                    }
-
-                    var row = document.createElement("div");
-                    row.className = "grid grid-cols-5 gap-4 px-6 py-4 items-center hover:bg-slate-800/30 transition";
-                    
-                    var adminLabel = "";
-                    if (technician.isAdmin === true) { adminLabel = " [ADMIN]"; }
-
-                    row.innerHTML = '<div class="flex items-center gap-3">' +
-                        '<img src="' + technician.avatar + '" class="w-8 h-8 rounded-full border border-slate-700">' +
-                        '<div class="flex flex-col">' +
-                        '<span class="font-bold text-white text-xs uppercase">' + technician.username + '</span>' +
-                        '<span class="text-[8px] text-slate-600 font-bold uppercase">' + adminLabel + '</span>' +
-                        '</div>' +
-                        '</div>' +
-                        '<div class="text-center stat-value">' + technician.ticketsClosed + '</div>' +
-                        '<div class="text-center stat-value">' + technician.repliesSent + '</div>' +
-                        '<div class="text-center">' +
-                        '<span class="stat-value text-amber-400">' + averageRating + '</span>' +
-                        '<span class="text-[8px] text-slate-600 block font-bold uppercase">Reviews: ' + ratingCount + '</span>' +
-                        '</div>' +
-                        '<div class="flex justify-end gap-2">' +
-                        '<button onclick="rekeyStaffAccount(\'' + technician._id + '\')" class="action-button-small bg-blue-900/40 text-blue-400 border border-blue-900/50 hover:bg-blue-600 hover:text-white transition">RE-KEY</button>' +
-                        '<button onclick="purgeStaffAccount(\'' + technician._id + '\')" class="action-button-small bg-red-900/40 text-red-400 border border-red-900/50 hover:bg-red-600 hover:text-white transition">PURGE</button>' +
-                        '</div>';
-                    
-                    performanceContainer.appendChild(row);
-                }
-            }
-
-            // 3. REFRESH MACRO DATABASE
-            var macros = await apiRequest("/api/macros");
-            var macroBox = document.getElementById("macro-management-list");
-            macroBox.innerHTML = "";
-
-            if (macros !== null)
-            {
-                for (var j = 0; j < macros.length; j++)
-                {
-                    var macro = macros[j];
-                    var item = document.createElement("div");
-                    item.className = "flex justify-between items-center p-3 hover:bg-slate-900 transition border-b border-slate-900";
-                    item.innerHTML = '<span class="text-[11px] font-bold text-slate-300 uppercase">' + macro.title + '</span>' +
-                        '<button onclick="purgeMacroEntry(\'' + macro._id + '\')" class="text-red-500 font-black px-2 hover:scale-125 transition">✕</button>';
-                    macroBox.appendChild(item);
-                }
-            }
-
-            // 4. REFRESH FLEET INVENTORY (EXPANDED FIX)
-            var servers = await apiRequest("/api/admin/servers");
-            var fleetGrid = document.getElementById("fleet-inventory-grid");
-            fleetGrid.innerHTML = "";
-
-            if (servers !== null && configData !== null)
-            {
-                for (var k = 0; k < servers.length; k++)
-                {
-                    var server = servers[k];
-                    
-                    // Cross-reference trading status from global config
-                    var tradingStatus = true;
-                    if (configData.botFleetStatus !== undefined)
-                    {
-                        for (var x = 0; x < configData.botFleetStatus.length; x++)
+                        for (var j = 0; j < config.botFleetStatus.length; j++)
                         {
-                            var statusEntry = configData.botFleetStatus[x];
-                            if (statusEntry.botId === server.botId)
+                            var statusObject = config.botFleetStatus[j];
+                            if (statusObject.botId === currentBotId)
                             {
-                                tradingStatus = statusEntry.tradingActive;
+                                tradingIsActive = statusObject.tradingActive;
                                 break;
                             }
                         }
                     }
 
-                    var card = document.createElement("div");
-                    card.className = "p-5 bg-slate-950 border border-slate-800 rounded-xl shadow-lg flex flex-col justify-between group";
-                    
-                    var statusColor = "text-green-500 border-green-900";
-                    var statusText = "TRADING: ONLINE";
-                    if (tradingStatus === false)
+                    // Construct Card HTML line-by-line
+                    var statusStyle = "text-green-400 border-green-900";
+                    var statusLabel = "TRADING: ONLINE";
+                    if (tradingIsActive === false)
                     {
-                        statusColor = "text-red-500 border-red-900";
-                        statusText = "TRADING: OFFLINE";
+                        statusStyle = "text-red-400 border-red-900";
+                        statusLabel = "TRADING: OFFLINE";
                     }
 
-                    card.innerHTML = '<div class="space-y-3">' +
-                        '<div class="flex justify-between items-start">' +
-                        '<div class="font-black text-sm uppercase text-slate-200 truncate pr-2">' + server.name + '</div>' +
-                        '<button onclick="toggleBotTradingModule(\'' + server.botId + '\', ' + !tradingStatus + ')" ' +
-                        'class="text-[8px] font-black px-2 py-1 rounded border transition uppercase ' + statusColor + '">' +
-                        statusText + '</button>' +
-                        '</div>' +
-                        '<div class="text-[10px] font-bold uppercase text-slate-600">' +
-                        '<span class="block">👤 Members: ' + server.members + '</span>' +
-                        '<span class="block text-indigo-400 mt-1">🤖 Gateway: ' + server.botName + '</span>' +
-                        '</div>' +
-                        '</div>' +
-                        '<div class="flex gap-2 mt-6 opacity-30 group-hover:opacity-100 transition">' +
-                        '<button onclick="generateSecureInvite(\'' + server.id + '\', \'' + server.botId + '\')" class="flex-1 bg-blue-900/30 border border-blue-900/50 py-1.5 rounded text-[9px] font-bold uppercase text-blue-400 hover:bg-blue-600 hover:text-white transition">Invite</button>' +
-                        '<button onclick="notifyGuildOwner(\'' + server.id + '\', \'' + server.botId + '\')" class="flex-1 bg-amber-900/30 border border-amber-900/50 py-1.5 rounded text-[9px] font-bold uppercase text-amber-400 hover:bg-amber-600 hover:text-white transition">Notify</button>' +
-                        '<button onclick="ejectFleetBot(\'' + server.id + '\', \'' + server.botId + '\')" class="flex-1 bg-red-900/30 border border-red-900/50 py-1.5 rounded text-[9px] font-bold uppercase text-red-400 hover:bg-red-600 hover:text-white transition">Eject</button>' +
-                        '</div>';
+                    var serverCardHtml = '<div class="server-card flex flex-col justify-between group">';
                     
-                    fleetGrid.appendChild(card);
+                    serverCardHtml += '<div class="mb-4">';
+                    serverCardHtml += '<div class="flex justify-between items-start mb-2">';
+                    serverCardHtml += '<span class="text-sm font-black text-white uppercase truncate">' + currentServer.name + '</span>';
+                    serverCardHtml += '<button onclick="toggleBotTrading(\'' + currentBotId + '\', ' + !tradingIsActive + ')" class="text-[8px] font-black px-2 py-1 rounded border uppercase transition ' + statusStyle + '">' + statusLabel + '</button>';
+                    serverCardHtml += '</div>';
+                    
+                    serverCardHtml += '<div class="text-[10px] font-bold text-slate-500 uppercase space-y-1">';
+                    serverCardHtml += '<span>👥 Members: ' + currentServer.members + '</span>';
+                    serverCardHtml += '<span class="block text-blue-400">🤖 Client: ' + currentServer.botName + '</span>';
+                    serverCardHtml += '</div>';
+                    serverCardHtml += '</div>';
+
+                    serverCardHtml += '<div class="flex gap-2 mt-4 opacity-40 group-hover:opacity-100 transition">';
+                    serverCardHtml += '<button onclick="getInvite(\'' + currentServer.id + '\', \'' + currentBotId + '\')" class="flex-1 bg-blue-900/30 border border-blue-900/50 py-2 rounded text-[9px] font-black uppercase text-blue-300 hover:bg-blue-600 hover:text-white transition">Invite</button>';
+                    serverCardHtml += '<button onclick="msgOwner(\'' + currentServer.id + '\', \'' + currentBotId + '\')" class="flex-1 bg-amber-900/30 border border-amber-900/50 py-2 rounded text-[9px] font-black uppercase text-amber-300 hover:bg-amber-600 hover:text-white transition">Notify</button>';
+                    serverCardHtml += '<button onclick="ejectBot(\'' + currentServer.id + '\', \'' + currentBotId + '\')" class="flex-1 bg-red-900/30 border border-red-900/50 py-2 rounded text-[9px] font-black uppercase text-red-300 hover:bg-red-600 hover:text-white transition">Eject</button>';
+                    serverCardHtml += '</div>';
+                    
+                    serverCardHtml += '</div>';
+
+                    var wrapperDiv = document.createElement("div");
+                    wrapperDiv.innerHTML = serverCardHtml;
+                    fleetGrid.appendChild(wrapperDiv.firstChild);
+                }
+            }
+
+            // 3. Refresh Staff Analytics
+            var stats = await apiCall("/api/admin/stats", "GET");
+            var statsContainer = document.getElementById("performance-table-render");
+            statsContainer.innerHTML = "";
+            
+            if (stats !== null)
+            {
+                for (var s = 0; s < stats.length; s++)
+                {
+                    var technician = stats[s];
+                    var avg = "N/A";
+                    if (technician.ratingCount > 0) { avg = (technician.ratingSum / technician.ratingCount).toFixed(2); }
+                    
+                    var rowHtml = '<div class="grid grid-cols-5 gap-4 px-6 py-5 items-center hover:bg-slate-800/30 transition">';
+                    rowHtml += '<div class="flex items-center gap-3"><img src="' + technician.avatar + '" class="w-8 h-8 rounded-full border border-slate-700"><div><span class="text-xs font-bold text-white block">' + technician.username + '</span><span class="text-[8px] text-slate-500 font-bold uppercase">' + (technician.isAdmin ? "ADMIN" : "STAFF") + '</span></div></div>';
+                    rowHtml += '<div class="text-center font-bold text-sm text-slate-200">' + technician.ticketsClosed + '</div>';
+                    rowHtml += '<div class="text-center font-bold text-sm text-slate-200">' + technician.repliesSent + '</div>';
+                    rowHtml += '<div class="text-center"><span class="text-amber-400 font-black text-sm">' + avg + '</span><span class="text-[8px] text-slate-600 block uppercase font-bold">Reviews: ' + technician.ratingCount + '</span></div>';
+                    rowHtml += '<div class="flex justify-end gap-2"><button onclick="reKey(\'' + technician._id + '\')" class="text-[9px] font-black bg-blue-900/40 text-blue-400 border border-blue-900/50 px-2 py-1 rounded">RE-KEY</button><button onclick="purge(\'' + technician._id + '\')" class="text-[9px] font-black bg-red-900/40 text-red-400 border border-red-900/50 px-2 py-1 rounded">PURGE</button></div>';
+                    rowHtml += '</div>';
+                    
+                    var divRow = document.createElement("div");
+                    divRow.innerHTML = rowHtml;
+                    statsContainer.appendChild(divRow.firstChild);
+                }
+            }
+
+            // 4. Refresh Macro List
+            var macros = await apiCall("/api/macros", "GET");
+            var macroBox = document.getElementById("macro-render-list");
+            macroBox.innerHTML = "";
+            if (macros !== null)
+            {
+                for (var m = 0; m < macros.length; m++)
+                {
+                    var mac = macros[m];
+                    var macEl = document.createElement("div");
+                    macEl.className = "flex justify-between p-3 border-b border-slate-900 hover:bg-slate-900 transition";
+                    macEl.innerHTML = '<span class="text-xs font-bold text-slate-400 uppercase">' + mac.title + '</span><button onclick="delMacro(\'' + mac._id + '\')" class="text-red-500 font-black">✕</button>';
+                    macroBox.appendChild(macEl);
                 }
             }
         }
 
         /**
-         * CORE ADMINISTRATIVE ACTIONS (VERBOSE)
+         * ADMINISTRATIVE ACTION ENGINE
          */
 
-        async function commitConfigChanges()
+        async function saveGlobalConfig()
         {
             var payload = {
-                status: document.getElementById("cfg-online-toggle").checked,
-                note: document.getElementById("cfg-offline-note").value,
-                openTime: document.getElementById("cfg-open-time").value,
-                closeTime: document.getElementById("cfg-close-time").value
+                status: document.getElementById("support-master-toggle").checked,
+                note: document.getElementById("offline-note-field").value,
+                openTime: document.getElementById("time-open-field").value,
+                closeTime: document.getElementById("time-close-field").value
             };
-            
-            var result = await apiRequest("/api/admin/config/toggle", "POST", payload);
-            if (result.success === true) { alert("Global Logic Persisted."); refreshAllData(); }
+            var res = await apiCall("/api/admin/config/toggle", "POST", payload);
+            if (res.success) { alert("Logic Cluster Updated."); refreshUnifiedData(); }
         }
 
-        async function toggleBotTradingModule(botId, newStatus)
+        async function toggleBotTrading(id, status)
         {
-            var payload = { botId: botId, status: newStatus };
-            var result = await apiRequest("/api/admin/fleet/toggle-trading", "POST", payload);
-            if (result.success === true) { refreshAllData(); }
+            var payload = { botId: id, status: status };
+            var res = await apiCall("/api/admin/fleet/toggle-trading", "POST", payload);
+            if (res.success) { refreshUnifiedData(); }
         }
 
-        async function executeStaffCreation()
+        async function activateLicense()
         {
-            var u = document.getElementById("staff-username").value;
-            var d = document.getElementById("staff-discord-id").value;
-            var a = document.getElementById("staff-admin-toggle").checked;
+            var p = {
+                license_key: document.getElementById("lic-key-field").value,
+                discord_id: document.getElementById("lic-uid-field").value,
+                instance_name: document.getElementById("lic-hwid-field").value,
+                server_name: document.getElementById("lic-name-field").value,
+                server_id: document.getElementById("lic-sid-field").value,
+                duration: document.getElementById("lic-dur-field").value,
+                type: document.getElementById("lic-tier-field").value
+            };
+            if (p.license_key === "" || p.discord_id === "") { return alert("Incomplete Data."); }
+            var res = await apiCall("/api/admin/license/activate", "POST", p);
+            if (res.success) { alert("Community Activated."); } else { alert("API REJECTION."); }
+        }
 
+        async function createStaffAccount()
+        {
+            var u = document.getElementById("new-staff-user").value;
+            var d = document.getElementById("new-staff-id").value;
+            var a = document.getElementById("new-staff-admin").checked;
             if (u === "" || d === "") { return alert("Credentials required."); }
-
-            var payload = { username: u, discordId: d, adminStatus: a };
-            var result = await apiRequest("/api/admin/staff/add", "POST", payload);
-            
-            if (result.success === true)
-            {
-                alert("Technician provisioned. Identity key dispatched.");
-                document.getElementById("staff-username").value = "";
-                document.getElementById("staff-discord-id").value = "";
-                refreshAllData();
-            }
+            var res = await apiCall("/api/admin/staff/add", "POST", { username: u, discordId: d, adminStatus: a });
+            if (res.success) { alert("User Registered."); refreshUnifiedData(); }
         }
 
-        async function purgeStaffAccount(id)
+        async function reKey(id) { if(confirm("Force Re-key?")) { await apiCall("/api/admin/staff/reset", "POST", { staffId: id }); alert("New key dispatched."); } }
+        async function purge(id) { if(confirm("Purge Identity?")) { await apiCall("/api/admin/staff/delete", "POST", { staffId: id }); refreshUnifiedData(); } }
+        async function saveMacro() { await apiCall("/api/admin/macros/add", "POST", { title: document.getElementById("macro-title").value, content: document.getElementById("macro-body").value }); refreshUnifiedData(); }
+        async function delMacro(id) { await apiCall("/api/admin/macros/delete", "POST", { id: id }); refreshUnifiedData(); }
+        async function saveFaq() { await apiCall("/api/admin/faq/add", "POST", { question: document.getElementById("faq-q").value, answer: document.getElementById("faq-a").value }); alert("FAQ Updated."); }
+        
+        async function sendManualDm()
         {
-            var confirmed = confirm("PURGE IDENTITY: Permanently remove this technician?");
-            if (confirmed === true)
-            {
-                var result = await apiRequest("/api/admin/staff/delete", "POST", { staffId: id });
-                if (result.success === true) { refreshAllData(); }
-            }
+            var id = document.getElementById("manual-id-field").value;
+            var msg = document.getElementById("manual-text-field").value;
+            var res = await apiCall("/api/admin/manual-dm", "POST", { discordId: id, content: msg });
+            if (res.success) { alert("Transmission Delivered."); }
         }
 
-        async function rekeyStaffAccount(id)
-        {
-            var confirmed = confirm("FORCE RE-KEY: Issue new credentials via DM?");
-            if (confirmed === true)
-            {
-                var result = await apiRequest("/api/admin/staff/reset", "POST", { staffId: id });
-                if (result.success === true) { alert("Authorization token re-issued."); }
-            }
-        }
+        async function getInvite(sid, bid) { var res = await apiCall("/api/admin/create-invite", "POST", { serverId: sid, botId: bid }); if(res.url) prompt("Link:", res.url); }
+        async function msgOwner(sid, bid) { var m = prompt("Message:"); if(m) await apiCall("/api/admin/dm-owner", "POST", { serverId: sid, botId: bid, message: m }); }
+        async function ejectBot(sid, bid) { if(confirm("Eject?")) { await apiCall("/api/admin/leave-server", "POST", { serverId: sid, botId: bid }); refreshUnifiedData(); } }
+        async function sendGlobalBroadcast() { var m = document.getElementById("broadcast-field").value; if(confirm("Global DM?")) { var res = await apiCall("/api/admin/bulk-message", "POST", { message: m }); alert("Sent to " + res.sentTo + " owners."); } }
 
-        async function executeManualDispatch()
-        {
-            var id = document.getElementById("manual-discord-id").value;
-            var msg = document.getElementById("manual-message-body").value;
-
-            if (id === "" || msg === "") { return alert("ID and Message required."); }
-
-            var result = await apiRequest("/api/admin/manual-dm", "POST", { discordId: id, content: msg });
-            if (result.success === true)
-            {
-                alert("Handshake complete. Thread initialized.");
-                document.getElementById("manual-discord-id").value = "";
-                document.getElementById("manual-message-body").value = "";
-            }
-        }
-
-        async function generateSecureInvite(sid, bid)
-        {
-            var result = await apiRequest("/api/admin/create-invite", "POST", { serverId: sid, botId: bid });
-            if (result.url !== undefined) { prompt("Secure Guild Access Link:", result.url); }
-        }
-
-        async function notifyGuildOwner(sid, bid)
-        {
-            var message = prompt("Enter administrative notice for Guild Owner:");
-            if (message !== null && message !== "")
-            {
-                var result = await apiRequest("/api/admin/dm-owner", "POST", { serverId: sid, botId: bid, message: message });
-                if (result.success === true) { alert("Notice delivered."); }
-            }
-        }
-
-        async function ejectFleetBot(sid, bid)
-        {
-            var confirmed = confirm("FORCE EJECT: Remove bot from this community host?");
-            if (confirmed === true)
-            {
-                var result = await apiRequest("/api/admin/leave-server", "POST", { serverId: sid, botId: bid });
-                if (result.success === true) { refreshAllData(); }
-            }
-        }
-
-        async function executeGlobalBroadcast()
-        {
-            var text = document.getElementById("broadcast-message-field").value;
-            if (text === "") { return alert("Transmission body is empty."); }
-
-            var confirmed = confirm("⚠️ CONFIRM GLOBAL DISPATCH: Reach every community owner?");
-            if (confirmed === true)
-            {
-                var result = await apiRequest("/api/admin/bulk-message", "POST", { message: text });
-                alert("Dispatch sequence complete. Target reach: " + result.sentTo + " owners.");
-                document.getElementById("broadcast-message-field").value = "";
-            }
-        }
-
-        async function executeMacroCreation()
-        {
-            var t = document.getElementById("macro-title-input").value;
-            var c = document.getElementById("macro-content-input").value;
-            if (t === "" || c === "") { return alert("Fields required."); }
-
-            var result = await apiRequest("/api/admin/macros/add", "POST", { title: t, content: c });
-            if (result.success === true)
-            {
-                document.getElementById("macro-title-input").value = "";
-                document.getElementById("macro-content-input").value = "";
-                refreshAllData();
-            }
-        }
-
-        async function purgeMacroEntry(id)
-        {
-            var result = await apiRequest("/api/admin/macros/delete", "POST", { id: id });
-            if (result.success === true) { refreshAllData(); }
-        }
-
-        async function executeFaqCreation()
-        {
-            var q = document.getElementById("faq-question-input").value;
-            var a = document.getElementById("faq-answer-input").value;
-            if (q === "" || a === "") { return alert("Knowledge fields required."); }
-
-            var result = await apiRequest("/api/admin/faq/add", "POST", { question: q, answer: a });
-            if (result.success === true)
-            {
-                alert("FAQ Database Updated.");
-                document.getElementById("faq-question-input").value = "";
-                document.getElementById("faq-answer-input").value = "";
-            }
-        }
-
-        async function executeLicenseActivation()
-        {
-            var payload = {
-                license_key: document.getElementById("lic-key").value,
-                discord_id: document.getElementById("lic-discord-id").value,
-                instance_name: document.getElementById("lic-instance").value,
-                server_name: document.getElementById("lic-server-name").value,
-                server_id: document.getElementById("lic-server-id").value,
-                type: document.getElementById("lic-type").value,
-                duration: document.getElementById("lic-duration").value
-            };
-
-            if (payload.license_key === "" || payload.discord_id === "") { return alert("Identity data required."); }
-
-            var result = await apiRequest("/api/admin/license/activate", "POST", payload);
-            if (result.success === true)
-            {
-                alert("Provision successful. Client DM'd.");
-                document.getElementById("lic-key").value = "";
-                document.getElementById("lic-discord-id").value = "";
-            }
-            else 
-            {
-                alert("Activation Error: API Rejection.");
-            }
-        }
-
-        // Initialize aggregated refresh on load
-        refreshAllData();
+        // Boot engine
+        refreshUnifiedData();
     </script>
 </body>
 </html>
