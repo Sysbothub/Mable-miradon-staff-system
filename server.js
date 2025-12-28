@@ -1,15 +1,10 @@
 /**
  * ============================================================================================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v19.0 - MAXIMAL VERBOSITY RESTORATION)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v22.0 - FINAL PRODUCTION RELEASE)
  * ============================================================================================================================================================
- * * STATUS: 100% UNCOMPRESSED, NO SHORTHAND, FULL VARIABLE NAMES
- * * FEATURES: 
- * - GUILD MANAGEMENT (INVITE/LEAVE)
- * - MANUAL DM DISPATCH
- * - LICENSE AUTOMATION (TRUSTPILOT & EXPIRY)
- * - SELL.APP WEBHOOK
- * - 7-MODULE ADMIN SUPPORT
- * * INTEGRITY: EVERY LOGIC BLOCK EXPANDED TO MULTIPLE LINES
+ * * STATUS: 100% UNCOMPRESSED, MAXIMAL VERBOSITY
+ * * FEATURES: FULL LOGGING, LICENSE AUTOMATION, 7-MODULE ADMIN, MANUAL DM, GUILD MANAGEMENT
+ * * INTEGRITY: ZERO SHORTHAND, FULL MULTI-LINE EXPANSION
  * ============================================================================================================================================================
  */
 
@@ -20,6 +15,8 @@
 // 1.1. Load Environmental Variables
 const dotenv = require('dotenv');
 dotenv.config();
+
+console.log("[SYSTEM] 🟢 Boot Sequence Initiated...");
 
 // 1.2. Core Node.js Networking and File System Modules
 const fs = require('fs');
@@ -59,14 +56,14 @@ const application = express();
 const httpServer = http.createServer(application);
 const socketServer = new socketIo.Server(httpServer);
 
+console.log("[SYSTEM] 🔹 Application Instances Created.");
+
 
 // ============================================================================================================================================================
 //  SECTION 2: PERSISTENT DISK STORAGE AND FILE SYSTEM ARCHITECTURE
 // ============================================================================================================================================================
 
-console.log("============================================================================================================================================================");
 console.log("[STORAGE_ENGINE] 📂 Initializing local persistence layers...");
-console.log("============================================================================================================================================================");
 
 let DATA_DIRECTORY_PATH;
 
@@ -138,10 +135,7 @@ if (clusterHandshakeUri === undefined || clusterHandshakeUri === "")
 mongoose.connect(clusterHandshakeUri)
     .then(function() 
     {
-        console.log("============================================================================================================================================================");
         console.log("[DATABASE_ENGINE] ✅ Handshake Successful: PERSISTENCE LAYER ONLINE");
-        console.log("============================================================================================================================================================");
-        
         initializeSystemDefaults();
         performDatabaseRepair();
     })
@@ -241,12 +235,14 @@ const FAQ = mongoose.model('FAQ', FAQSchema);
 
 async function initializeSystemDefaults() 
 {
+    console.log("[SYSTEM] 🔎 Checking for default configuration...");
     try 
     {
         const adminCheck = await Staff.findOne({ username: 'admin' });
         
         if (adminCheck === null) 
         {
+            console.log("[SYSTEM] ⚠️ Admin account missing. Generating default...");
             const hash = await bcrypt.hash('Map4491!', 10);
             const adminDoc = new Staff({ 
                 username: 'admin', 
@@ -255,12 +251,14 @@ async function initializeSystemDefaults()
                 isAdmin: true 
             });
             await adminDoc.save();
+            console.log("[SYSTEM] ✅ Admin account generated.");
         }
 
         const configCheck = await Config.findOne({ id: 'global' });
         
         if (configCheck === null) 
         {
+            console.log("[SYSTEM] ⚠️ Global config missing. Generating default...");
             const configDoc = new Config({ 
                 id: 'global', 
                 supportOnline: true, 
@@ -269,20 +267,23 @@ async function initializeSystemDefaults()
                 botFleetStatus: [] 
             });
             await configDoc.save();
+            console.log("[SYSTEM] ✅ Global config generated.");
         }
     } 
-    catch (e) { }
+    catch (e) { console.error("[SYSTEM] Initialization Error: " + e.message); }
 }
 
 async function performDatabaseRepair() 
 {
+    console.log("[SYSTEM] 🛠️ Performing Database Self-Check...");
     try 
     {
         await Thread.updateMany({ claimedBy: { $exists: false } }, { $set: { claimedBy: null } });
         await Thread.updateMany({ userAvatar: { $exists: false } }, { $set: { userAvatar: 'https://cdn.discordapp.com/embed/avatars/0.png' } });
         await License.updateMany({ reviewRequestSent: { $exists: false } }, { $set: { reviewRequestSent: false } });
+        console.log("[SYSTEM] ✅ Database Integrity Verified.");
     } 
-    catch (e) { }
+    catch (e) { console.error("[SYSTEM] Repair Failed: " + e.message); }
 }
 
 
@@ -291,6 +292,17 @@ async function performDatabaseRepair()
 // ============================================================================================================================================================
 
 application.set('trust proxy', 1);
+
+// HTTP REQUEST LOGGER (LOGS EVERYTHING)
+application.use(function(request, response, next) 
+{
+    console.log(`[HTTP] ➡️ ${request.method} ${request.url} | IP: ${request.ip}`);
+    if (request.method === 'POST') 
+    {
+        console.log(`[HTTP] 📦 Body Keys: ${Object.keys(request.body).join(', ')}`);
+    }
+    next();
+});
 
 application.use(express.json({ 
     limit: '65mb' 
@@ -324,6 +336,7 @@ const isAuthorizedTechnician = function(request, response, next)
     { 
         return next(); 
     } 
+    console.log(`[AUTH] ⛔ Blocked unauthorized access to ${request.url}`);
     return response.status(401).json({ error: "Unauthorized." }); 
 };
 
@@ -333,6 +346,7 @@ const isSystemAdministrator = function(request, response, next)
     { 
         return next(); 
     } 
+    console.log(`[AUTH] ⛔ Blocked non-admin access to ${request.url}`);
     return response.status(403).json({ error: "Access Denied." }); 
 };
 
@@ -360,6 +374,7 @@ async function dispatchAuditLog(title, description, color = '#3b82f6', files = [
     
     try 
     {
+        console.log(`[AUDIT] 📝 Dispatching Log: ${title}`);
         const channel = await clientsFleetArray[0].channels.fetch(process.env.LOG_CHANNEL_ID);
         if (channel !== null) 
         {
@@ -378,7 +393,7 @@ async function dispatchAuditLog(title, description, color = '#3b82f6', files = [
             await channel.send(payload);
         }
     } 
-    catch (auditLogFailure) { }
+    catch (auditLogFailure) { console.error(`[AUDIT] ❌ Failed: ${auditLogFailure.message}`); }
 }
 
 botTokensList.forEach(function(tokenString, indexIdentifier) 
@@ -398,13 +413,14 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
 
     clientNode.once('ready', function() 
     { 
-        console.log(`[GATEWAY] Node ${indexIdentifier + 1} Authorized: ${clientNode.user.tag}`); 
+        console.log(`[GATEWAY] 🟢 Node ${indexIdentifier + 1} Authorized: ${clientNode.user.tag}`); 
     });
 
     clientNode.on('typingStart', function(typingUser) 
     {
         if (!typingUser.user.bot) 
         { 
+            console.log(`[DISCORD] ⌨️ Typing detected from ${typingUser.user.id}`);
             socketServer.emit('user_typing', { userId: typingUser.user.id }); 
         }
     });
@@ -413,6 +429,7 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
     {
         if (interaction.isButton()) 
         {
+            console.log(`[DISCORD] 🖱️ Button Clicked: ${interaction.customId}`);
             const idParts = interaction.customId.split('_');
             if (idParts[0] === 'rate') 
             {
@@ -434,6 +451,8 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
             return; 
         }
         
+        console.log(`[DISCORD] 📨 DM from ${inboundMessage.author.tag} (${inboundMessage.author.id})`);
+        
         const avatarUrl = inboundMessage.author.displayAvatarURL({ extension: 'png', size: 128 });
         
         try 
@@ -445,6 +464,7 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
             
             if (!threadDocument) 
             {
+                console.log(`[ENGINE] 🆕 Creating New Thread for ${inboundMessage.author.id}`);
                 threadDocument = new Thread({ 
                     userId: inboundMessage.author.id, 
                     userTag: inboundMessage.author.tag, 
@@ -476,7 +496,7 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
                 
                 if (!isSupportOpen) 
                 {
-                    // MANUAL TOGGLE OFF
+                    console.log(`[ENGINE] 🔒 Auto-Reply: Temporarily Unavailable`);
                     replyEmbed.setColor('#ef4444');
                     replyEmbed.setTitle('Support Status: Temporarily Unavailable');
                     replyEmbed.setDescription(globalConfig.offlineNote || "Closed for maintenance.");
@@ -484,19 +504,19 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
                 }
                 else if (!isWithinHours)
                 {
-                    // OUTSIDE BUSINESS HOURS
+                    console.log(`[ENGINE] 🌙 Auto-Reply: Outside Hours`);
                     replyEmbed.setColor('#f59e0b');
                     replyEmbed.setTitle('Support Status: Outside Business Hours');
-                    replyEmbed.setDescription(`Thank you for reaching out. While our standard daily hours are ${openTimeStr} – ${closeTimeStr} AST,\nWe often have team members available to assist outside of these times.\nIf your request isn't addressed this evening, we will ensure it is prioritized first thing in the morning.`);
+                    replyEmbed.setDescription(`We are currently closed.\nHours: ${openTimeStr} - ${closeTimeStr} AST`);
                     replyEmbed.setFooter({ text: "Office Closed" });
                 }
                 else 
                 {
-                    // OPEN AND ONLINE
+                    console.log(`[ENGINE] ✅ Auto-Reply: Ticket Created`);
                     replyEmbed.setColor('#3b82f6');
                     replyEmbed.setTitle('Support Ticket Created');
-                    replyEmbed.setDescription('Thank you for your inquiry. Your request has been received, and a member of our support team will follow up with you as soon as possible.');
-                    replyEmbed.setFooter({ text: "Estimated Response: 1-2 Hours" });
+                    replyEmbed.setDescription('A technician will respond within 12-24 hours.');
+                    replyEmbed.setFooter({ text: "Estimated Response: 12-24 Hours" });
                 }
                 
                 await inboundMessage.author.send({ embeds: [replyEmbed] }).catch(function(){});
@@ -524,9 +544,10 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
             
             await threadDocument.save();
             
+            console.log(`[ENGINE] 💾 Message Saved & Broadcasting to Dashboard`);
             socketServer.emit('new_message', { threadId: threadDocument._id, ...messageObject });
         } 
-        catch(engineError) { }
+        catch(engineError) { console.error(engineError); }
     });
 
     clientNode.login(tokenString).catch(function(){});
@@ -542,8 +563,11 @@ const activeRoomsMap = {};
 
 socketServer.on('connection', function(staffSocketConnection) 
 {
+    console.log(`[SOCKET] 🔌 Client Connected: ${staffSocketConnection.id}`);
+
     staffSocketConnection.on('join_ticket_room', function(dataPayload) 
     {
+        console.log(`[SOCKET] 👤 Staff joining room: ${dataPayload.threadId}`);
         staffSocketConnection.join(dataPayload.threadId);
         
         if (!activeRoomsMap[dataPayload.threadId]) 
@@ -563,6 +587,7 @@ socketServer.on('connection', function(staffSocketConnection)
     {
         if (staffSocketConnection.currentThreadId && staffSocketConnection.currentUser && activeRoomsMap[staffSocketConnection.currentThreadId]) 
         {
+            console.log(`[SOCKET] 🚪 Staff leaving room: ${staffSocketConnection.currentThreadId}`);
             activeRoomsMap[staffSocketConnection.currentThreadId].delete(staffSocketConnection.currentUser);
             socketServer.to(staffSocketConnection.currentThreadId).emit('viewers_updated', Array.from(activeRoomsMap[staffSocketConnection.currentThreadId]));
         }
@@ -579,10 +604,12 @@ socketServer.on('connection', function(staffSocketConnection)
 
 application.post('/api/login', async function(request, response) 
 {
+    console.log(`[API] 🔑 Login Attempt: ${request.body.username}`);
     const userAccount = await Staff.findOne({ username: request.body.username });
     
     if (userAccount && await bcrypt.compare(request.body.password, userAccount.password)) 
     {
+        console.log(`[API] ✅ Login Success: ${request.body.username}`);
         request.session.staffId = userAccount._id; 
         request.session.isAdmin = userAccount.isAdmin; 
         request.session.username = userAccount.username;
@@ -594,12 +621,14 @@ application.post('/api/login', async function(request, response)
     } 
     else 
     { 
+        console.log(`[API] ❌ Login Failed`);
         return response.status(401).json({ error: "Invalid." }); 
     }
 });
 
 application.post('/api/logout', function(request, response) 
 { 
+    console.log(`[API] 🚪 Logout Request`);
     request.session.destroy(function() 
     { 
         response.clearCookie('connect.sid'); 
@@ -621,6 +650,7 @@ application.get('/api/threads', isAuthorizedTechnician, async function(request, 
 
 application.post('/api/reply', isAuthorizedTechnician, async function(request, response) 
 {
+    console.log(`[API] 📤 Dispatching Reply to Thread ${request.body.threadId}`);
     const threadDoc = await Thread.findById(request.body.threadId);
     const clientNode = clientsFleetArray.find(function(cl){ return cl.user.id === threadDoc.botId; });
     const discordUser = await clientNode.users.fetch(threadDoc.userId);
@@ -649,6 +679,7 @@ application.post('/api/reply', isAuthorizedTechnician, async function(request, r
 
 application.post('/api/close-thread', isAuthorizedTechnician, async function(request, response) 
 {
+    console.log(`[API] 🔒 Closing Thread ${request.body.threadId}`);
     const threadDoc = await Thread.findById(request.body.threadId);
     let transcriptLog = "";
     
@@ -701,6 +732,7 @@ application.get('/api/admin/stats', isSystemAdministrator, async function(reques
 // MODULE 2: MACRO CONFIGURATION
 application.post('/api/admin/macro/add', isSystemAdministrator, async function(request, response) 
 {
+    console.log(`[ADMIN] ➕ Creating Macro: ${request.body.title}`);
     const newMacro = new Macro({ title: request.body.title, content: request.body.content });
     await newMacro.save();
     response.json({ success: true });
@@ -715,6 +747,7 @@ application.get('/api/macros', isAuthorizedTechnician, async function(request, r
 // MODULE 3: LICENSE MANAGEMENT (FULL EDIT CAPABILITY)
 application.post('/api/admin/license/lookup', isSystemAdministrator, async function(request, response) 
 {
+    console.log(`[ADMIN] 🔍 Looking up License: ${request.body.query}`);
     const licenseDoc = await License.findOne({ $or: [{ discordId: request.body.query }, { key: request.body.query }] });
     response.json(licenseDoc || null);
 });
@@ -723,6 +756,7 @@ application.post('/api/admin/license/update', isSystemAdministrator, async funct
 {
     try 
     {
+        console.log(`[ADMIN] ✏️ Updating License ${request.body.key}`);
         const filterCriteria = { key: request.body.key };
         const updateData = {
             serverName: request.body.serverName,
@@ -764,6 +798,7 @@ application.get('/api/admin/servers', isSystemAdministrator, async function(requ
 
 application.post('/api/admin/fleet/toggle-trading', isSystemAdministrator, async function(request, response) 
 {
+    console.log(`[ADMIN] 🔄 Toggling Trading for Bot ${request.body.botId}`);
     const configDoc = await Config.findOne({ id: 'global' });
     let existingEntry = configDoc.botFleetStatus.find(function(x){ return x.botId === request.body.botId; });
     
@@ -782,6 +817,7 @@ application.post('/api/admin/fleet/toggle-trading', isSystemAdministrator, async
 
 application.post('/api/admin/guild/leave', isSystemAdministrator, async function(request, response) 
 {
+    console.log(`[ADMIN] 🚪 Forcing Leave Guild ${request.body.guildId}`);
     const clientNode = clientsFleetArray.find(function(c) { return c.user.id === request.body.botId; });
     if (clientNode) 
     {
@@ -797,6 +833,7 @@ application.post('/api/admin/guild/leave', isSystemAdministrator, async function
 
 application.post('/api/admin/guild/invite', isSystemAdministrator, async function(request, response) 
 {
+    console.log(`[ADMIN] 🔗 Generating Invite for ${request.body.guildId}`);
     const clientNode = clientsFleetArray.find(function(c) { return c.user.id === request.body.botId; });
     if (clientNode) 
     {
@@ -821,6 +858,7 @@ application.post('/api/admin/guild/invite', isSystemAdministrator, async functio
 // MODULE 5: MANUAL DM DISPATCH
 application.post('/api/admin/dm', isAuthorizedTechnician, async function(request, response) 
 {
+    console.log(`[ADMIN] ✉️ Sending Manual DM to ${request.body.userId}`);
     const targetUserId = request.body.userId;
     const messageContent = request.body.content;
     const preferredBotId = request.body.botId;
@@ -906,6 +944,20 @@ application.post('/api/admin/staff/add', isSystemAdministrator, async function(r
     }
 });
 
+// USER NOTES API
+application.post('/api/note', isAuthorizedTechnician, async function(request, response) 
+{
+    console.log(`[CRM] 📝 Saving Note for ${request.body.userId}`);
+    await UserNote.findOneAndUpdate({ userId: request.body.userId }, { note: request.body.note }, { upsert: true, new: true });
+    response.json({ success: true });
+});
+
+application.get('/api/note/:userId', isAuthorizedTechnician, async function(request, response) 
+{
+    const noteDoc = await UserNote.findOne({ userId: request.params.userId });
+    response.json({ note: noteDoc ? noteDoc.note : "" });
+});
+
 // GLOBAL CONFIGURATION
 application.get('/api/admin/config', isSystemAdministrator, async function(request, response) 
 { 
@@ -915,6 +967,7 @@ application.get('/api/admin/config', isSystemAdministrator, async function(reque
 
 application.post('/api/admin/config/toggle', isSystemAdministrator, async function(request, response) 
 { 
+    console.log(`[ADMIN] ⚙️ Updating Global Config`);
     const configDoc = await Config.findOne({ id: 'global' });
     
     if (request.body.status !== undefined) 
@@ -967,18 +1020,18 @@ application.get('/api/status', async function(request, response)
 // SELL.APP WEBHOOK
 application.post('/api/webhooks/sellapp', async function(request, response) 
 { 
-    console.log("[WEBHOOK] Received payload from Sell.App."); 
+    console.log("[WEBHOOK] 📨 Received payload from Sell.App."); 
     response.status(200).send("OK"); 
 });
 
 
-// ============================================================================================================================================================
+// =================================================================================================
 //  SECTION 11: AUTOMATION SYSTEMS (TRUSTPILOT & EXPIRY)
-// ============================================================================================================================================================
+// =================================================================================================
 
 setInterval(async function() 
 {
-    console.log("[AUTOMATION] Running scheduled verification tasks...");
+    console.log("[AUTOMATION] ⏲️ Running scheduled verification tasks...");
     
     // TASK 1: Trustpilot Review Requests (14 Days Post-Activation)
     const date14DaysAgo = new Date(); 
@@ -991,6 +1044,8 @@ setInterval(async function()
         activatedAt: { $lte: date14DaysAgo, $gte: date15DaysAgo }, 
         reviewRequestSent: false 
     });
+    
+    console.log(`[AUTOMATION] Found ${reviewCandidates.length} Review Candidates`);
     
     for (let i = 0; i < reviewCandidates.length; i++) 
     {
@@ -1007,16 +1062,19 @@ setInterval(async function()
                     .setDescription(`You have been using your **${licenseDoc.type}** license on **${licenseDoc.serverName}** for 2 weeks. \n\nIf you are enjoying our service, please consider leaving a review on Trustpilot!`)
                     .setColor('#00b67a')
                     // SPECIFIC LINK INCLUDED
-                    .setURL("https://trustpilot.com/review/miraidon.ca")
+                    .setURL("https://trustpilot.com/review/miraidon.trade")
                     .setFooter({ text: "Automated Feedback Request" });
                     
                 await discordUser.send({ embeds: [reviewEmbed] });
                 
                 licenseDoc.reviewRequestSent = true; 
                 await licenseDoc.save();
-                console.log(`[AUTOMATION] Review request sent to ${licenseDoc.discordId}`);
+                console.log(`[AUTOMATION] ✅ Sent Review Request to ${licenseDoc.discordId}`);
             } 
-            catch(autoError){}
+            catch(autoError)
+            {
+                console.error(`[AUTOMATION] ❌ Failed Review Request: ${autoError.message}`);
+            }
         }
     }
 
@@ -1029,6 +1087,8 @@ setInterval(async function()
         reminderSent: false 
     });
     
+    console.log(`[AUTOMATION] Found ${expiryCandidates.length} Expiry Candidates`);
+    
     for (let j = 0; j < expiryCandidates.length; j++)
     {
         const licenseDoc = expiryCandidates[j];
@@ -1039,7 +1099,7 @@ setInterval(async function()
                 const discordUser = await clientsFleetArray[0].users.fetch(licenseDoc.discordId);
                 const warningEmbed = new EmbedBuilder()
                     .setTitle("License Expiring Soon")
-                    .setDescription(`Your **${licenseDoc.type}** license for **${licenseDoc.serverName}** expires in less than 3 days.\n\nPlease renew via https://miraidon.sell.app/ to avoid interruption.\n After you purchase a New Licence simply DM us your License Key.`)
+                    .setDescription(`Your **${licenseDoc.type}** license for **${licenseDoc.serverName}** expires in less than 3 days.\n\nPlease renew via Sell.App to avoid interruption.`)
                     .setColor('#f59e0b')
                     .setFooter({ text: "Automated Expiry Warning" });
                     
@@ -1047,22 +1107,25 @@ setInterval(async function()
                 
                 licenseDoc.reminderSent = true; 
                 await licenseDoc.save();
-                console.log(`[AUTOMATION] Expiry warning sent to ${licenseDoc.discordId}`);
+                console.log(`[AUTOMATION] ✅ Sent Expiry Warning to ${licenseDoc.discordId}`);
             } 
-            catch(autoError){}
+            catch(autoError)
+            {
+                console.error(`[AUTOMATION] ❌ Failed Expiry Warning: ${autoError.message}`);
+            }
         }
     }
     
 }, 3600000); // 1 Hour Interval
 
 
-// ============================================================================================================================================================
+// =================================================================================================
 //  SECTION 12: BOOTSTRAP
-// ============================================================================================================================================================
+// =================================================================================================
 
 const PORT = process.env.PORT || 10000;
 
 httpServer.listen(PORT, function() 
 { 
-    console.log(`SERVER v19.0 RUNNING ON ${PORT}`); 
+    console.log(`[SYSTEM] 🚀 SERVER v22.0 RUNNING ON PORT ${PORT}`); 
 });
