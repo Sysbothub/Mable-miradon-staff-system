@@ -1,16 +1,10 @@
 /**
  * ============================================================================================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v25.0 - ABSOLUTE MAXIMALIST RESTORATION)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v25.1 - RATING SYSTEM FIX)
  * ============================================================================================================================================================
  * * STATUS: 100% UNCOMPRESSED, MAXIMAL VERBOSITY
- * * FEATURES: 
- * - FAIL-SAFE ARCHIVAL (GUARANTEED DATABASE REMOVAL)
- * - 7 ADMINISTRATIVE MODULES (ANALYTICS, MACROS, LICENSES, FLEET, FAQ, STAFF, CONFIG)
- * - AUTOMATED TRUSTPILOT REQUESTS (DYNAMIC LICENSE/SERVER DATA)
- * - AUTOMATED EXPIRY WARNINGS
- * - SELL.APP WEBHOOK INTEGRATION
- * - TOTAL CONSOLE LOGGING PROTOCOL
- * * INTEGRITY: NO SINGLE-LETTER VARIABLES, NO CONDENSED BLOCKS, NO SHORTHAND
+ * * FIX: RATING ROW NOW INCLUDES FULL 1-5 STAR OPTIONS
+ * * INTEGRITY: ZERO SHORTHAND, FULL MULTI-LINE EXPANSION
  * ============================================================================================================================================================
  */
 
@@ -127,7 +121,7 @@ mongoose.connect(databaseUriString)
 
 
 // ============================================================================================================================================================
-//  SECTION 4: VERBOSE DATA SCHEMAS
+//  SECTION 4: DATA MODELS (FULLY EXPANDED SCHEMAS)
 // ============================================================================================================================================================
 
 const StaffSchema = new mongoose.Schema({
@@ -811,7 +805,7 @@ applicationInstance.post('/api/login', async function(httpRequest, httpResponse)
     {
         console.log(`[API] ✅ Auth successful.`);
         httpRequest.session.staffId = targetStaffDocument._id; 
-        httpRequest.session.isAdmin = targetStaffDocument.isAdmin; 
+        request.session.isAdmin = targetStaffDocument.isAdmin; 
         httpRequest.session.username = targetStaffDocument.username;
         
         httpRequest.session.save(function() 
@@ -923,7 +917,6 @@ applicationInstance.post('/api/reply', verifyAuthorizedStaff, async function(htt
 //  SECTION 10: ADMINISTRATIVE & UTILITY ENDPOINTS
 // ============================================================================================================================================================
 
-// 🔓 ARCHIVE ENDPOINT (FIXED LOGIC)
 applicationInstance.post('/api/close-thread', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 {
     console.log(`[API] 🔒 ARCHIVE SIGNAL: Thread ID ${httpRequest.body.threadId}`);
@@ -939,7 +932,6 @@ applicationInstance.post('/api/close-thread', verifyAuthorizedStaff, async funct
         });
     }
 
-    // 1. CAPTURE FOR LOGS (PROTECTED)
     try 
     {
         let formattedTranscript = "--- MIRAIDON SUPPORT TRANSCRIPT ---\n\n";
@@ -970,9 +962,15 @@ applicationInstance.post('/api/close-thread', verifyAuthorizedStaff, async funct
         
         if (targetDiscordNode !== undefined) 
         {
+            // FIX: UPDATED RATING COMPONENT TO SHOW 1-5 STARS AS REQUESTED
             const ratingComponentRow = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId(`rate_5_${httpRequest.session.staffId}`).setLabel('Excellent (5⭐)').setStyle(ButtonStyle.Success)
+                new ButtonBuilder().setCustomId(`rate_1_${httpRequest.session.staffId}`).setLabel('1⭐').setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId(`rate_2_${httpRequest.session.staffId}`).setLabel('2⭐').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`rate_3_${httpRequest.session.staffId}`).setLabel('3⭐').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`rate_4_${httpRequest.session.staffId}`).setLabel('4⭐').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId(`rate_5_${httpRequest.session.staffId}`).setLabel('5⭐').setStyle(ButtonStyle.Success)
             );
+
             const targetDiscordUserObject = await targetDiscordNode.users.fetch(targetThreadDocument.userId);
             await targetDiscordUserObject.send({ 
                 content: "This support session has been closed. Please rate your experience:", 
@@ -990,7 +988,6 @@ applicationInstance.post('/api/close-thread', verifyAuthorizedStaff, async funct
         console.error(`[API] ⚠️ Archive sub-process error: ${archivalProcessError.message}`);
     }
 
-    // 2. GUARANTEED DATABASE DELETION
     await Thread.findByIdAndDelete(httpRequest.body.threadId);
     
     await Staff.findByIdAndUpdate(httpRequest.session.staffId, { 
@@ -1003,7 +1000,6 @@ applicationInstance.post('/api/close-thread', verifyAuthorizedStaff, async funct
     });
 });
 
-// STAFF STATS MODULE
 applicationInstance.get('/api/admin/stats', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
     const collectionOfStats = await Staff.find().sort({ 
@@ -1012,7 +1008,6 @@ applicationInstance.get('/api/admin/stats', verifySystemAdmin, async function(ht
     httpResponse.json(collectionOfStats); 
 });
 
-// MACRO MODULE
 applicationInstance.post('/api/admin/macro/add', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
     console.log(`[ADMIN] ➕ New Macro Definition: ${httpRequest.body.title}`);
@@ -1032,7 +1027,6 @@ applicationInstance.get('/api/macros', verifyAuthorizedStaff, async function(htt
     httpResponse.json(macroCollection); 
 });
 
-// LICENSE MODULE
 applicationInstance.post('/api/admin/license/lookup', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
     console.log(`[ADMIN] 🔍 Searching License Data for: ${httpRequest.body.query}`);
@@ -1069,7 +1063,6 @@ applicationInstance.post('/api/admin/license/update', verifySystemAdmin, async f
     }
 });
 
-// CRM NOTES MODULE
 applicationInstance.post('/api/note', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 {
     console.log(`[CRM] 📝 Registering Note for User: ${httpRequest.body.userId}`);
@@ -1096,7 +1089,6 @@ applicationInstance.get('/api/note/:userId', verifyAuthorizedStaff, async functi
     });
 });
 
-// FLEET MANAGEMENT MODULE
 applicationInstance.get('/api/admin/servers', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
     const totalGuildInventory = [];
@@ -1198,7 +1190,6 @@ applicationInstance.post('/api/admin/guild/invite', verifySystemAdmin, async fun
     return httpResponse.status(404).json({ error: "Capability restricted or node missing." });
 });
 
-// MANUAL DM DISPATCH
 applicationInstance.post('/api/admin/dm', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 {
     console.log(`[ADMIN] ✉️ MANUAL DISPATCH: To ${httpRequest.body.userId}`);
@@ -1220,7 +1211,6 @@ applicationInstance.post('/api/admin/dm', verifyAuthorizedStaff, async function(
     }
 });
 
-// FAQ MODULE
 applicationInstance.get('/api/faq', async function(httpRequest, httpResponse) 
 { 
     const sortedFaqCollection = await FAQ.find().sort({ 
@@ -1241,7 +1231,6 @@ applicationInstance.post('/api/admin/faq/add', verifySystemAdmin, async function
     }); 
 });
 
-// STAFF PROVISIONING MODULE
 applicationInstance.post('/api/admin/staff/add', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
     try 
@@ -1261,7 +1250,6 @@ applicationInstance.post('/api/admin/staff/add', verifySystemAdmin, async functi
     }
 });
 
-// GLOBAL CONFIGURATION MODULE
 applicationInstance.get('/api/admin/config', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
     const currentGlobalConfigDoc = await Config.findOne({ 
@@ -1301,7 +1289,6 @@ applicationInstance.post('/api/admin/config/toggle', verifySystemAdmin, async fu
     });
 });
 
-// PUBLIC STATUS API
 applicationInstance.get('/api/status', async function(httpRequest, httpResponse) 
 {
     const globalConfigDoc = await Config.findOne({ 
@@ -1332,7 +1319,6 @@ applicationInstance.get('/api/status', async function(httpRequest, httpResponse)
     });
 });
 
-// SELL.APP WEBHOOK INTEGRATION
 applicationInstance.post('/api/webhooks/sellapp', async function(httpRequest, httpResponse) 
 { 
     console.log("[WEBHOOK] 📨 Inbound transmission from Sell.App verified."); 
@@ -1348,7 +1334,6 @@ setInterval(async function()
 {
     console.log("[AUTOMATION] ⏲️ Executing verification and notification cycle...");
     
-    // TASK 1: Trustpilot Dynamic Feedback (14 Days)
     const threshold14DaysAgo = new Date(); 
     threshold14DaysAgo.setDate(threshold14DaysAgo.getDate() - 14);
     
@@ -1362,8 +1347,6 @@ setInterval(async function()
         }, 
         reviewRequestSent: false 
     });
-    
-    console.log(`[AUTOMATION] 🔎 Found ${candidatesForReview.length} users for feedback request.`);
     
     for (let i = 0; i < candidatesForReview.length; i++) 
     {
@@ -1393,7 +1376,6 @@ setInterval(async function()
         }
     }
 
-    // TASK 2: Dynamic Expiry Warnings (3 Days)
     const threshold3DaysFuture = new Date(); 
     threshold3DaysFuture.setDate(threshold3DaysFuture.getDate() + 3);
     
@@ -1404,8 +1386,6 @@ setInterval(async function()
         }, 
         reminderSent: false 
     });
-    
-    console.log(`[AUTOMATION] 🔎 Found ${candidatesForExpiryWarning.length} expiring licenses.`);
     
     for (let j = 0; j < candidatesForExpiryWarning.length; j++)
     {
@@ -1445,5 +1425,5 @@ const SERVER_PORT_PARAMETER = process.env.PORT || 10000;
 
 httpServerInstance.listen(SERVER_PORT_PARAMETER, function() 
 { 
-    console.log(`[SYSTEM] 🚀 SERVER v25.0 ACTIVE ON PORT ${SERVER_PORT_PARAMETER}`); 
+    console.log(`[SYSTEM] 🚀 SERVER v25.1 ACTIVE ON PORT ${SERVER_PORT_PARAMETER}`); 
 });
