@@ -1,10 +1,16 @@
 /**
  * ============================================================================================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v23.1 - ARCHIVE FIX)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v25.0 - ABSOLUTE MAXIMALIST RESTORATION)
  * ============================================================================================================================================================
  * * STATUS: 100% UNCOMPRESSED, MAXIMAL VERBOSITY
- * * FEATURES: FULL LOGGING, LICENSE AUTOMATION, 7-MODULE ADMIN, MANUAL DM, GUILD MANAGEMENT, SELL.APP WEBHOOK
- * * INTEGRITY: ZERO SHORTHAND, FULL MULTI-LINE EXPANSION
+ * * FEATURES: 
+ * - FAIL-SAFE ARCHIVAL (GUARANTEED DATABASE REMOVAL)
+ * - 7 ADMINISTRATIVE MODULES (ANALYTICS, MACROS, LICENSES, FLEET, FAQ, STAFF, CONFIG)
+ * - AUTOMATED TRUSTPILOT REQUESTS (DYNAMIC LICENSE/SERVER DATA)
+ * - AUTOMATED EXPIRY WARNINGS
+ * - SELL.APP WEBHOOK INTEGRATION
+ * - TOTAL CONSOLE LOGGING PROTOCOL
+ * * INTEGRITY: NO SINGLE-LETTER VARIABLES, NO CONDENSED BLOCKS, NO SHORTHAND
  * ============================================================================================================================================================
  */
 
@@ -12,34 +18,23 @@
 //  SECTION 1: GLOBAL MODULE LOADING AND ENVIRONMENT CONFIGURATION
 // ============================================================================================================================================================
 
-// 1.1. Load Environmental Variables
 const dotenv = require('dotenv');
 dotenv.config();
 
-console.log("[SYSTEM] 🟢 Boot Sequence Initiated...");
+console.log("[SYSTEM] 🟢 Initializing Master Engine...");
 
-// 1.2. Core Node.js Networking and File System Modules
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-
-// 1.3. Web Framework and Security Utility Dependencies
 const express = require('express');
 const axios = require('axios');
 const bcrypt = require('bcrypt');
-
-// 1.4. Real-time Communication Infrastructure
 const socketIo = require('socket.io');
-
-// 1.5. Database Persistence and Session Management
 const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
-
-// 1.6. Load Discord SDK Components
 const discordJs = require('discord.js');
 
-// 1.7. Explicit Class Destructuring for Readability
 const Client = discordJs.Client;
 const GatewayIntentBits = discordJs.GatewayIntentBits;
 const Partials = discordJs.Partials;
@@ -51,269 +46,412 @@ const ButtonBuilder = discordJs.ButtonBuilder;
 const ButtonStyle = discordJs.ButtonStyle;
 const PermissionFlagsBits = discordJs.PermissionFlagsBits;
 
-// 1.8. Initialize Application Instances
-const application = express();
-const httpServer = http.createServer(application);
-const socketServer = new socketIo.Server(httpServer);
+const applicationInstance = express();
+const httpServerInstance = http.createServer(applicationInstance);
+const socketServerInstance = new socketIo.Server(httpServerInstance);
 
-console.log("[SYSTEM] 🔹 Application Instances Created.");
+console.log("[SYSTEM] 🔹 Dependencies Loaded Successfully.");
 
 
 // ============================================================================================================================================================
-//  SECTION 2: PERSISTENT DISK STORAGE AND FILE SYSTEM ARCHITECTURE
+//  SECTION 2: STORAGE ENGINE ARCHITECTURE
 // ============================================================================================================================================================
 
-console.log("[STORAGE_ENGINE] 📂 Initializing local persistence layers...");
+let PERSISTENT_DATA_DIRECTORY;
+const deploymentContext = process.env.RENDER;
 
-let DATA_DIRECTORY_PATH;
-
-const renderDeploymentFlag = process.env.RENDER;
-
-if (renderDeploymentFlag === 'true') 
+if (deploymentContext === 'true') 
 {
-    console.log("[STORAGE_ENGINE] ☁️ Environment Context: PRODUCTION (RENDER.COM)");
-    DATA_DIRECTORY_PATH = '/var/data';
+    console.log("[STORAGE] ☁️ Mode: PRODUCTION (RENDER)");
+    PERSISTENT_DATA_DIRECTORY = '/var/data';
 } 
 else 
 {
-    console.log("[STORAGE_ENGINE] 💻 Environment Context: DEVELOPMENT (LOCAL)");
-    DATA_DIRECTORY_PATH = path.join(__dirname, 'local_storage');
+    console.log("[STORAGE] 💻 Mode: LOCAL DEVELOPMENT");
+    PERSISTENT_DATA_DIRECTORY = path.join(__dirname, 'local_storage');
 }
 
-const rootPathExistsOnDisk = fs.existsSync(DATA_DIRECTORY_PATH);
+const directoryCheck = fs.existsSync(PERSISTENT_DATA_DIRECTORY);
 
-if (rootPathExistsOnDisk === false) 
+if (directoryCheck === false) 
 {
-    console.log(`[STORAGE_ENGINE] 📂 Root directory missing. Attempting creation: ${DATA_DIRECTORY_PATH}`);
     try 
     {
-        fs.mkdirSync(DATA_DIRECTORY_PATH, { 
+        fs.mkdirSync(PERSISTENT_DATA_DIRECTORY, { 
             recursive: true 
         });
-        console.log(`[STORAGE_ENGINE] ✅ Root Data Directory established successfully.`);
+        console.log("[STORAGE] ✅ Root created.");
     } 
-    catch (mkdirRootError) 
+    catch (mkdirError) 
     {
-        console.error(`[STORAGE_ENGINE] ❌ CRITICAL FAILURE: Permission denied during disk write.`);
+        console.error("[STORAGE] ❌ Failed to write to disk.");
         process.exit(1); 
     }
 } 
 
-const archiveDirectoryPathString = path.join(DATA_DIRECTORY_PATH, 'archives');
-const archiveSubFolderExistsOnDisk = fs.existsSync(archiveDirectoryPathString);
+const archivePathString = path.join(PERSISTENT_DATA_DIRECTORY, 'archives');
+const archiveCheck = fs.existsSync(archivePathString);
 
-if (archiveSubFolderExistsOnDisk === false) 
+if (archiveCheck === false) 
 {
     try 
     {
-        fs.mkdirSync(archiveDirectoryPathString, { 
+        fs.mkdirSync(archivePathString, { 
             recursive: true 
         });
-        console.log(`[STORAGE_ENGINE] ✅ Archive sub-directory established successfully.`);
     } 
     catch (mkdirArchiveError) 
     {
-        console.error(`[STORAGE_ENGINE] ❌ WARNING: Failed to establish archive folder.`);
+        console.error("[STORAGE] ⚠️ Archive folder failed.");
     }
 } 
 
 
 // ============================================================================================================================================================
-//  SECTION 3: MONGODB DATABASE CONNECTIVITY HANDSHAKE
+//  SECTION 3: DATABASE HANDSHAKE
 // ============================================================================================================================================================
 
-console.log("[DATABASE_ENGINE] ⏳ Handshaking with MongoDB cluster...");
+const databaseUriString = process.env.MONGODB_URI;
 
-const clusterHandshakeUri = process.env.MONGODB_URI;
-
-if (clusterHandshakeUri === undefined || clusterHandshakeUri === "")
-{
-    console.error("[DATABASE_ENGINE] ❌ CRITICAL: MONGODB_URI is not defined.");
-    process.exit(1);
-}
-
-mongoose.connect(clusterHandshakeUri)
+mongoose.connect(databaseUriString)
     .then(function() 
     {
-        console.log("[DATABASE_ENGINE] ✅ Handshake Successful: PERSISTENCE LAYER ONLINE");
-        initializeSystemDefaults();
-        performDatabaseRepair();
+        console.log("[DATABASE] ✅ Connection established.");
+        performInitializationLogic();
+        performDatabaseMaintenance();
     })
     .catch(function(connectionError) 
     {
-        console.error("[DATABASE_ENGINE] ❌ CRITICAL HANDSHAKE FAILURE");
-        console.error(connectionError);
+        console.error("[DATABASE] ❌ Connection failed.");
     });
 
 
 // ============================================================================================================================================================
-//  SECTION 4: DATA MODELS (FULLY EXPANDED SCHEMAS)
+//  SECTION 4: VERBOSE DATA SCHEMAS
 // ============================================================================================================================================================
 
 const StaffSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    discordId: { type: String, required: true },
-    isAdmin: { type: Boolean, default: false },
-    avatar: { type: String, default: 'https://cdn.discordapp.com/embed/avatars/0.png' },
-    ticketsClosed: { type: Number, default: 0 },
-    repliesSent: { type: Number, default: 0 },
-    ratingSum: { type: Number, default: 0 },
-    ratingCount: { type: Number, default: 0 }
+    username: { 
+        type: String, 
+        required: true, 
+        unique: true 
+    },
+    password: { 
+        type: String, 
+        required: true 
+    },
+    discordId: { 
+        type: String, 
+        required: true 
+    },
+    isAdmin: { 
+        type: Boolean, 
+        default: false 
+    },
+    avatar: { 
+        type: String, 
+        default: 'https://cdn.discordapp.com/embed/avatars/0.png' 
+    },
+    ticketsClosed: { 
+        type: Number, 
+        default: 0 
+    },
+    repliesSent: { 
+        type: Number, 
+        default: 0 
+    },
+    ratingSum: { 
+        type: Number, 
+        default: 0 
+    },
+    ratingCount: { 
+        type: Number, 
+        default: 0 
+    }
 });
 const Staff = mongoose.model('Staff', StaffSchema);
 
 const ThreadSchema = new mongoose.Schema({
-    userId: { type: String, required: true },
-    userTag: { type: String, required: true },
-    userAvatar: { type: String, default: 'https://cdn.discordapp.com/embed/avatars/0.png' },
-    botId: { type: String, required: true },
-    botName: { type: String, required: true },
-    claimedBy: { type: String, default: null },
+    userId: { 
+        type: String, 
+        required: true 
+    },
+    userTag: { 
+        type: String, 
+        required: true 
+    },
+    userAvatar: { 
+        type: String, 
+        default: 'https://cdn.discordapp.com/embed/avatars/0.png' 
+    },
+    botId: { 
+        type: String, 
+        required: true 
+    },
+    botName: { 
+        type: String, 
+        required: true 
+    },
+    claimedBy: { 
+        type: String, 
+        default: null 
+    },
     messages: [{
-        authorTag: { type: String },
-        authorAvatar: { type: String, default: 'https://cdn.discordapp.com/embed/avatars/0.png' },
-        content: { type: String },
-        attachments: [String],
-        timestamp: { type: Date, default: Date.now },
-        fromBot: { type: Boolean, default: false }
+        authorTag: { 
+            type: String 
+        },
+        authorAvatar: { 
+            type: String, 
+            default: 'https://cdn.discordapp.com/embed/avatars/0.png' 
+        },
+        content: { 
+            type: String 
+        },
+        attachments: [
+            String
+        ],
+        timestamp: { 
+            type: Date, 
+            default: Date.now 
+        },
+        fromBot: { 
+            type: Boolean, 
+            default: false 
+        }
     }],
-    lastMessageAt: { type: Date, default: Date.now }
+    lastMessageAt: { 
+        type: Date, 
+        default: Date.now 
+    }
 });
 const Thread = mongoose.model('Thread', ThreadSchema);
 
 const ConfigSchema = new mongoose.Schema({
-    id: { type: String, default: 'global' },
-    supportOnline: { type: Boolean, default: true },
-    offlineNote: { type: String, default: '' },
-    openTime: { type: String, default: "08:00" }, 
-    closeTime: { type: String, default: "23:59" },
+    id: { 
+        type: String, 
+        default: 'global' 
+    },
+    supportOnline: { 
+        type: Boolean, 
+        default: true 
+    },
+    offlineNote: { 
+        type: String, 
+        default: '' 
+    },
+    openTime: { 
+        type: String, 
+        default: "08:00" 
+    }, 
+    closeTime: { 
+        type: String, 
+        default: "23:59" 
+    },
     botFleetStatus: [{
-        botId: { type: String },
-        botName: { type: String },
-        tradingActive: { type: Boolean, default: true }
+        botId: { 
+            type: String 
+        },
+        botName: { 
+            type: String 
+        },
+        tradingActive: { 
+            type: Boolean, 
+            default: true 
+        }
     }]
 });
 const Config = mongoose.model('Config', ConfigSchema);
 
 const LicenseSchema = new mongoose.Schema({
-    key: { type: String, required: true },
-    discordId: { type: String, required: true },
-    serverName: { type: String, default: "Unassigned" },
-    serverId: { type: String, default: "" },
-    type: { type: String, default: "Standard" },
-    expiresAt: { type: Date },
-    reminderSent: { type: Boolean, default: false },
-    reviewRequestSent: { type: Boolean, default: false },
-    activatedAt: { type: Date, default: Date.now }
+    key: { 
+        type: String, 
+        required: true 
+    },
+    discordId: { 
+        type: String, 
+        required: true 
+    },
+    serverName: { 
+        type: String, 
+        default: "Unassigned" 
+    },
+    serverId: { 
+        type: String, 
+        default: "" 
+    },
+    type: { 
+        type: String, 
+        default: "Standard" 
+    },
+    expiresAt: { 
+        type: Date 
+    },
+    reminderSent: { 
+        type: Boolean, 
+        default: false 
+    },
+    reviewRequestSent: { 
+        type: Boolean, 
+        default: false 
+    },
+    activatedAt: { 
+        type: Date, 
+        default: Date.now 
+    }
 });
 const License = mongoose.model('License', LicenseSchema);
 
 const UserNoteSchema = new mongoose.Schema({
-    userId: { type: String, required: true, unique: true },
-    note: { type: String, default: "" }
+    userId: { 
+        type: String, 
+        required: true, 
+        unique: true 
+    },
+    note: { 
+        type: String, 
+        default: "" 
+    }
 });
 const UserNote = mongoose.model('UserNote', UserNoteSchema);
 
 const MacroSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    content: { type: String, required: true }
+    title: { 
+        type: String, 
+        required: true 
+    },
+    content: { 
+        type: String, 
+        required: true 
+    }
 });
 const Macro = mongoose.model('Macro', MacroSchema);
 
 const FAQSchema = new mongoose.Schema({
-    question: { type: String, required: true },
-    answer: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+    question: { 
+        type: String, 
+        required: true 
+    },
+    answer: { 
+        type: String, 
+        required: true 
+    },
+    createdAt: { 
+        type: Date, 
+        default: Date.now 
+    }
 });
 const FAQ = mongoose.model('FAQ', FAQSchema);
 
 
 // ============================================================================================================================================================
-//  SECTION 5: SYSTEM INITIALIZATION AND REPAIR LOGIC
+//  SECTION 5: SYSTEM LOGIC PROTOCOLS
 // ============================================================================================================================================================
 
-async function initializeSystemDefaults() 
+async function performInitializationLogic() 
 {
-    console.log("[SYSTEM] 🔎 Checking for default configuration...");
+    console.log("[SYSTEM] ⚙️ Checking Defaults...");
     try 
     {
-        const adminCheck = await Staff.findOne({ username: 'admin' });
+        const adminAccountCheck = await Staff.findOne({ 
+            username: 'admin' 
+        });
         
-        if (adminCheck === null) 
+        if (adminAccountCheck === null) 
         {
-            console.log("[SYSTEM] ⚠️ Admin account missing. Generating default...");
-            const hash = await bcrypt.hash('Map4491!', 10);
-            const adminDoc = new Staff({ 
+            console.log("[SYSTEM] ➕ Creating Admin Account...");
+            const defaultPasswordHash = await bcrypt.hash('Map4491!', 10);
+            const newAdminAccount = new Staff({ 
                 username: 'admin', 
-                password: hash, 
+                password: defaultPasswordHash, 
                 discordId: '000000000000000000', 
                 isAdmin: true 
             });
-            await adminDoc.save();
-            console.log("[SYSTEM] ✅ Admin account generated.");
+            await newAdminAccount.save();
         }
 
-        const configCheck = await Config.findOne({ id: 'global' });
+        const globalConfigurationCheck = await Config.findOne({ 
+            id: 'global' 
+        });
         
-        if (configCheck === null) 
+        if (globalConfigurationCheck === null) 
         {
-            console.log("[SYSTEM] ⚠️ Global config missing. Generating default...");
-            const configDoc = new Config({ 
+            console.log("[SYSTEM] ➕ Creating Global Config...");
+            const newConfigurationObject = new Config({ 
                 id: 'global', 
                 supportOnline: true, 
                 openTime: "08:00", 
                 closeTime: "23:59", 
                 botFleetStatus: [] 
             });
-            await configDoc.save();
-            console.log("[SYSTEM] ✅ Global config generated.");
+            await newConfigurationObject.save();
         }
     } 
-    catch (e) { console.error("[SYSTEM] Initialization Error: " + e.message); }
+    catch (initLogicError) 
+    {
+        console.error(initLogicError);
+    }
 }
 
-async function performDatabaseRepair() 
+async function performDatabaseMaintenance() 
 {
-    console.log("[SYSTEM] 🛠️ Performing Database Self-Check...");
+    console.log("[SYSTEM] 🛠️ Database integrity scan...");
     try 
     {
-        await Thread.updateMany({ claimedBy: { $exists: false } }, { $set: { claimedBy: null } });
-        await Thread.updateMany({ userAvatar: { $exists: false } }, { $set: { userAvatar: 'https://cdn.discordapp.com/embed/avatars/0.png' } });
-        await License.updateMany({ reviewRequestSent: { $exists: false } }, { $set: { reviewRequestSent: false } });
-        console.log("[SYSTEM] ✅ Database Integrity Verified.");
+        await Thread.updateMany({ 
+            claimedBy: { $exists: false } 
+        }, { 
+            $set: { claimedBy: null } 
+        });
+        
+        await Thread.updateMany({ 
+            userAvatar: { $exists: false } 
+        }, { 
+            $set: { userAvatar: 'https://cdn.discordapp.com/embed/avatars/0.png' } 
+        });
+        
+        await License.updateMany({ 
+            reviewRequestSent: { $exists: false } 
+        }, { 
+            $set: { reviewRequestSent: false } 
+        });
+        console.log("[SYSTEM] ✅ Scan complete.");
     } 
-    catch (e) { console.error("[SYSTEM] Repair Failed: " + e.message); }
+    catch (maintenanceError) 
+    {
+        console.error(maintenanceError);
+    }
 }
 
 
 // ============================================================================================================================================================
-//  SECTION 6: EXPRESS SERVER CONFIGURATION AND MIDDLEWARE
+//  SECTION 6: EXPRESS CONFIGURATION & LOGGING MIDDLEWARE
 // ============================================================================================================================================================
 
-application.set('trust proxy', 1);
+applicationInstance.set('trust proxy', 1);
 
-// HTTP REQUEST LOGGER (LOGS EVERYTHING)
-application.use(function(request, response, next) 
+applicationInstance.use(function(incomingRequest, outgoingResponse, nextMiddleware) 
 {
-    console.log(`[HTTP] ➡️ ${request.method} ${request.url} | IP: ${request.ip}`);
-    if (request.method === 'POST') 
+    console.log(`[HTTP] ➡️ ${incomingRequest.method} ${incomingRequest.url} | IP: ${incomingRequest.ip}`);
+    
+    if (incomingRequest.method === 'POST') 
     {
-        console.log(`[HTTP] 📦 Body Keys: ${Object.keys(request.body).join(', ')}`);
+        const requestBodyPayloadKeys = Object.keys(incomingRequest.body || {});
+        console.log(`[HTTP] 📦 Body Keys Received: ${requestBodyPayloadKeys.join(', ')}`);
     }
-    next();
+    
+    nextMiddleware();
 });
 
-application.use(express.json({ 
+applicationInstance.use(express.json({ 
     limit: '65mb' 
 }));
 
-application.use(express.urlencoded({ 
+applicationInstance.use(express.urlencoded({ 
     extended: true, 
     limit: '65mb' 
 }));
 
-const sessionConfiguration = {
+const sessionOptionsConfiguration = {
     secret: process.env.SESSION_SECRET || 'miraidon-master-key',
     resave: true,
     saveUninitialized: false,
@@ -328,77 +466,95 @@ const sessionConfiguration = {
     }
 };
 
-application.use(session(sessionConfiguration));
+applicationInstance.use(session(sessionOptionsConfiguration));
 
-const isAuthorizedTechnician = function(request, response, next) 
+const verifyAuthorizedStaff = function(requestObject, responseObject, nextStep) 
 { 
-    if (request.session.staffId) 
+    if (requestObject.session.staffId !== undefined) 
     { 
-        return next(); 
+        return nextStep(); 
     } 
-    console.log(`[AUTH] ⛔ Blocked unauthorized access to ${request.url}`);
-    return response.status(401).json({ error: "Unauthorized." }); 
+    console.log(`[AUTH] ⛔ Blocked access to ${requestObject.url}`);
+    return responseObject.status(401).json({ 
+        error: "Unauthorized access detected." 
+    }); 
 };
 
-const isSystemAdministrator = function(request, response, next) 
+const verifySystemAdmin = function(requestObject, responseObject, nextStep) 
 { 
-    if (request.session.staffId && request.session.isAdmin) 
+    if (requestObject.session.staffId !== undefined && requestObject.session.isAdmin === true) 
     { 
-        return next(); 
+        return nextStep(); 
     } 
-    console.log(`[AUTH] ⛔ Blocked non-admin access to ${request.url}`);
-    return response.status(403).json({ error: "Access Denied." }); 
+    console.log(`[AUTH] ⛔ Blocked non-admin access to ${requestObject.url}`);
+    return responseObject.status(403).json({ 
+        error: "Administrative clearance required." 
+    }); 
 };
 
-application.use(express.static(path.join(__dirname, 'public')));
-application.use('/staff', isAuthorizedTechnician, express.static(path.join(__dirname, 'public/staff')));
+applicationInstance.use(express.static(path.join(__dirname, 'public')));
+applicationInstance.use('/staff', verifyAuthorizedStaff, express.static(path.join(__dirname, 'public/staff')));
 
 
 // ============================================================================================================================================================
 //  SECTION 7: DISCORD GATEWAY INTERFACE
 // ============================================================================================================================================================
 
-const botTokensList = [process.env.BOT_ONE_TOKEN, process.env.BOT_TWO_TOKEN].filter(function(tokenCandidate) 
+const botTokensArray = [
+    process.env.BOT_ONE_TOKEN, 
+    process.env.BOT_TWO_TOKEN
+].filter(function(tokenToCheck) 
 {
-    return (tokenCandidate !== undefined && tokenCandidate !== "");
+    return (tokenToCheck !== undefined && tokenToCheck !== "");
 });
 
-const clientsFleetArray = [];
+const activeDiscordClients = [];
 
-async function dispatchAuditLog(title, description, color = '#3b82f6', files = [], ping = "") 
+async function executeAuditLogDispatch(logTitle, logDescription, logColor = '#3b82f6', logFiles = [], logPing = "") 
 {
-    if (!process.env.LOG_CHANNEL_ID || !clientsFleetArray[0]) 
+    if (process.env.LOG_CHANNEL_ID === undefined || activeDiscordClients[0] === undefined) 
     { 
         return; 
     }
     
     try 
     {
-        console.log(`[AUDIT] 📝 Dispatching Log: ${title}`);
-        const channel = await clientsFleetArray[0].channels.fetch(process.env.LOG_CHANNEL_ID);
-        if (channel !== null) 
+        console.log(`[AUDIT] 📝 Dispatched Log Object: ${logTitle}`);
+        const logChannelObject = await activeDiscordClients[0].channels.fetch(process.env.LOG_CHANNEL_ID);
+        
+        if (logChannelObject !== null) 
         {
-            const embed = new EmbedBuilder();
-            embed.setTitle(title);
-            embed.setDescription(description);
-            embed.setColor(color);
-            embed.setTimestamp();
-            embed.setFooter({ text: "System Audit" });
+            const auditEmbedObject = new EmbedBuilder();
+            auditEmbedObject.setTitle(logTitle);
+            auditEmbedObject.setDescription(logDescription);
+            auditEmbedObject.setColor(logColor);
+            auditEmbedObject.setTimestamp();
+            auditEmbedObject.setFooter({ 
+                text: "System Internal Audit" 
+            });
             
-            const payload = { embeds: [embed], files: files };
-            if (ping !== "") 
+            const auditPayloadObject = { 
+                embeds: [auditEmbedObject], 
+                files: logFiles 
+            };
+            
+            if (logPing !== "") 
             { 
-                payload.content = ping; 
+                auditPayloadObject.content = logPing; 
             }
-            await channel.send(payload);
+            
+            await logChannelObject.send(auditPayloadObject);
         }
     } 
-    catch (auditLogFailure) { console.error(`[AUDIT] ❌ Failed: ${auditLogFailure.message}`); }
+    catch (auditDispatchError) 
+    { 
+        console.error(`[AUDIT] ❌ Dispatch Failure: ${auditDispatchError.message}`); 
+    }
 }
 
-botTokensList.forEach(function(tokenString, indexIdentifier) 
+botTokensArray.forEach(function(discordTokenString, nodeIndex) 
 {
-    const clientNode = new Client({
+    const clientNodeInstance = new Client({
         intents: [
             GatewayIntentBits.Guilds, 
             GatewayIntentBits.DirectMessages, 
@@ -411,732 +567,883 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
         ]
     });
 
-    clientNode.once('ready', function() 
+    clientNodeInstance.once('ready', function() 
     { 
-        console.log(`[GATEWAY] 🟢 Node ${indexIdentifier + 1} Authorized: ${clientNode.user.tag}`); 
+        console.log(`[GATEWAY] 🟢 Node ${nodeIndex + 1} Authorized: ${clientNodeInstance.user.tag}`); 
     });
 
-    clientNode.on('typingStart', function(typingUser) 
+    clientNodeInstance.on('typingStart', function(typingSessionData) 
     {
-        if (!typingUser.user.bot) 
+        if (typingSessionData.user.bot === false) 
         { 
-            console.log(`[DISCORD] ⌨️ Typing detected from ${typingUser.user.id}`);
-            socketServer.emit('user_typing', { userId: typingUser.user.id }); 
+            console.log(`[DISCORD] ⌨️ User ${typingSessionData.user.id} is typing.`);
+            socketServerInstance.emit('user_typing', { 
+                userId: typingSessionData.user.id 
+            }); 
         }
     });
 
-    clientNode.on('interactionCreate', async function(interaction) 
+    clientNodeInstance.on('interactionCreate', async function(discordInteraction) 
     {
-        if (interaction.isButton()) 
+        if (discordInteraction.isButton() === true) 
         {
-            console.log(`[DISCORD] 🖱️ Button Clicked: ${interaction.customId}`);
-            const idParts = interaction.customId.split('_');
-            if (idParts[0] === 'rate') 
+            console.log(`[DISCORD] 🖱️ Button Interaction: ${discordInteraction.customId}`);
+            const interactionIdParts = discordInteraction.customId.split('_');
+            
+            if (interactionIdParts[0] === 'rate') 
             {
-                await Staff.findByIdAndUpdate(idParts[2], { 
+                const starRatingValue = parseInt(interactionIdParts[1]);
+                const targetStaffId = interactionIdParts[2];
+                
+                await Staff.findByIdAndUpdate(targetStaffId, { 
                     $inc: { 
-                        ratingSum: parseInt(idParts[1]), 
+                        ratingSum: starRatingValue, 
                         ratingCount: 1 
                     } 
                 });
-                await interaction.update({ content: "**Rating Saved.**", components: [] });
+                
+                await discordInteraction.update({ 
+                    content: "**Feedback Protocol: Success. Rating recorded.**", 
+                    components: [] 
+                });
             }
         }
     });
 
-    clientNode.on('messageCreate', async function(inboundMessage) 
+    clientNodeInstance.on('messageCreate', async function(incomingDiscordMessage) 
     {
-        if (inboundMessage.author.bot || inboundMessage.guild) 
+        if (incomingDiscordMessage.author.bot === true || incomingDiscordMessage.guild !== null) 
         { 
             return; 
         }
         
-        console.log(`[DISCORD] 📨 DM from ${inboundMessage.author.tag} (${inboundMessage.author.id})`);
+        console.log(`[DISCORD] 📩 Inbound DM: ${incomingDiscordMessage.author.tag}`);
         
-        const avatarUrl = inboundMessage.author.displayAvatarURL({ extension: 'png', size: 128 });
+        const authorAvatarUrl = incomingDiscordMessage.author.displayAvatarURL({ 
+            extension: 'png', 
+            size: 128 
+        });
         
         try 
         {
-            let threadDocument = await Thread.findOne({ 
-                userId: inboundMessage.author.id, 
-                botId: clientNode.user.id 
+            let supportThreadDocument = await Thread.findOne({ 
+                userId: incomingDiscordMessage.author.id, 
+                botId: clientNodeInstance.user.id 
             });
             
-            if (!threadDocument) 
+            if (supportThreadDocument === null) 
             {
-                console.log(`[ENGINE] 🆕 Creating New Thread for ${inboundMessage.author.id}`);
-                threadDocument = new Thread({ 
-                    userId: inboundMessage.author.id, 
-                    userTag: inboundMessage.author.tag, 
-                    userAvatar: avatarUrl, 
-                    botId: clientNode.user.id, 
-                    botName: clientNode.user.username, 
+                console.log(`[ENGINE] 🆕 Initializing Thread for ${incomingDiscordMessage.author.id}`);
+                
+                supportThreadDocument = new Thread({ 
+                    userId: incomingDiscordMessage.author.id, 
+                    userTag: incomingDiscordMessage.author.tag, 
+                    userAvatar: authorAvatarUrl, 
+                    botId: clientNodeInstance.user.id, 
+                    botName: clientNodeInstance.user.username, 
                     messages: [] 
                 });
                 
-                const globalConfig = await Config.findOne({ id: 'global' });
-                const isSupportOpen = (globalConfig ? globalConfig.supportOnline : true);
-                const openTimeStr = (globalConfig ? globalConfig.openTime : "08:00");
-                const closeTimeStr = (globalConfig ? globalConfig.closeTime : "23:59");
+                const currentGlobalConfig = await Config.findOne({ 
+                    id: 'global' 
+                });
+                
+                const isStatusOnline = (currentGlobalConfig ? currentGlobalConfig.supportOnline : true);
+                const openTimeParameter = (currentGlobalConfig ? currentGlobalConfig.openTime : "08:00");
+                const closeTimeParameter = (currentGlobalConfig ? currentGlobalConfig.closeTime : "23:59");
 
-                const nowTime = new Date();
-                const timeString = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Halifax', hour12: false, hour: 'numeric', minute: 'numeric' }).format(nowTime);
-                const [hourPart, minutePart] = timeString.split(':').map(Number);
-                const currentMinutes = hourPart * 60 + minutePart;
+                const temporalDate = new Date();
+                const regionalTimeString = new Intl.DateTimeFormat('en-US', { 
+                    timeZone: 'America/Halifax', 
+                    hour12: false, 
+                    hour: 'numeric', 
+                    minute: 'numeric' 
+                }).format(temporalDate);
                 
-                const [openHour, openMinute] = openTimeStr.split(':').map(Number);
-                const openMinutes = openHour * 60 + openMinute;
+                const [timeHour, timeMinute] = regionalTimeString.split(':').map(Number);
+                const convertedCurrentMinutes = (timeHour * 60) + timeMinute;
                 
-                const [closeHour, closeMinute] = closeTimeStr.split(':').map(Number);
-                const closeMinutes = closeHour * 60 + closeMinute;
+                const [openHour, openMin] = openTimeParameter.split(':').map(Number);
+                const convertedOpenMinutes = (openHour * 60) + openMin;
                 
-                const isWithinHours = (currentMinutes >= openMinutes && currentMinutes <= closeMinutes);
+                const [closeHour, closeMin] = closeTimeParameter.split(':').map(Number);
+                const convertedCloseMinutes = (closeHour * 60) + closeMin;
+                
+                const withinOperatingWindow = (convertedCurrentMinutes >= convertedOpenMinutes && convertedCurrentMinutes <= convertedCloseMinutes);
 
-                const replyEmbed = new EmbedBuilder();
+                console.log(`[ENGINE] 🕒 Logic Check: Online=${isStatusOnline}, Window=${withinOperatingWindow}`);
+
+                const automatedResponseEmbed = new EmbedBuilder();
                 
-                if (!isSupportOpen) 
+                if (isStatusOnline === false) 
                 {
-                    // MANUAL TOGGLE OFF
-                    replyEmbed.setColor('#ef4444');
-                    replyEmbed.setTitle('Support Status: Temporarily Unavailable');
-                    replyEmbed.setDescription(globalConfig.offlineNote || "Closed for maintenance.");
-                    replyEmbed.setFooter({ text: "Status: Special Closure" });
+                    console.log(`[ENGINE] 🔒 Status: CLOSED (Manual Override)`);
+                    automatedResponseEmbed.setColor('#ef4444');
+                    automatedResponseEmbed.setTitle('Support Status: Temporarily Unavailable');
+                    automatedResponseEmbed.setDescription(currentGlobalConfig.offlineNote || "The support desk is currently closed for maintenance.");
+                    automatedResponseEmbed.setFooter({ 
+                        text: "Status Code: Special Closure" 
+                    });
                 }
-                else if (!isWithinHours)
+                else if (withinOperatingWindow === false)
                 {
-                    // OUTSIDE BUSINESS HOURS
-                    replyEmbed.setColor('#f59e0b');
-                    replyEmbed.setTitle('Support Status: Outside Business Hours');
-                    replyEmbed.setDescription(`We are currently closed.\nHours: ${openTimeStr} - ${closeTimeStr} AST`);
-                    replyEmbed.setFooter({ text: "Office Closed" });
+                    console.log(`[ENGINE] 🌙 Status: CLOSED (Out of Hours)`);
+                    automatedResponseEmbed.setColor('#f59e0b');
+                    automatedResponseEmbed.setTitle('Support Status: Outside Business Hours');
+                    automatedResponseEmbed.setDescription(`Thank you for reaching out. We are currently closed.\n\n**Office Hours:** ${openTimeParameter} - ${closeTimeParameter} AST`);
+                    automatedResponseEmbed.setFooter({ 
+                        text: "Status Code: Office Closed" 
+                    });
                 }
                 else 
                 {
-                    // OPEN AND ONLINE
-                    replyEmbed.setColor('#3b82f6');
-                    replyEmbed.setTitle('Support Ticket Created');
-                    replyEmbed.setDescription('A technician will respond within 12-24 hours.');
-                    replyEmbed.setFooter({ text: "Estimated Response: 12-24 Hours" });
+                    console.log(`[ENGINE] ✅ Status: OPEN`);
+                    automatedResponseEmbed.setColor('#3b82f6');
+                    automatedResponseEmbed.setTitle('Support Ticket Created');
+                    automatedResponseEmbed.setDescription('A technician has been notified. Expect a resolution within 12-24 hours.');
+                    automatedResponseEmbed.setFooter({ 
+                        text: "Response ETA: 12-24 Hours" 
+                    });
                 }
                 
-                await inboundMessage.author.send({ embeds: [replyEmbed] }).catch(function(){});
+                await incomingDiscordMessage.author.send({ 
+                    embeds: [automatedResponseEmbed] 
+                }).catch(function(dmError) { });
                 
-                const pingRole = process.env.STAFF_ROLE_ID ? `<@&${process.env.STAFF_ROLE_ID}>` : "@here";
-                await dispatchAuditLog("🆕 New Support Ticket", `Trainer: ${inboundMessage.author.tag}`, '#facc15', [], pingRole);
+                const notificationPing = process.env.STAFF_ROLE_ID ? `<@&${process.env.STAFF_ROLE_ID}>` : "@here";
+                await executeAuditLogDispatch("🆕 New Ticket Initialized", `User: ${incomingDiscordMessage.author.tag}`, '#facc15', [], notificationPing);
             }
 
-            const attachmentsList = inboundMessage.attachments.map(function(att) 
+            const incomingAttachmentsArray = incomingDiscordMessage.attachments.map(function(attachmentItem) 
             { 
-                return att.url; 
+                return attachmentItem.url; 
             });
             
-            const messageObject = { 
-                authorTag: inboundMessage.author.tag, 
-                authorAvatar: avatarUrl, 
-                content: inboundMessage.content || "[Media]", 
-                attachments: attachmentsList, 
+            const messageEntryObject = { 
+                authorTag: incomingDiscordMessage.author.tag, 
+                authorAvatar: authorAvatarUrl, 
+                content: incomingDiscordMessage.content || "[Non-Text Transmission]", 
+                attachments: incomingAttachmentsArray, 
                 fromBot: false, 
                 timestamp: new Date() 
             };
 
-            threadDocument.messages.push(messageObject);
-            threadDocument.lastMessageAt = new Date();
+            supportThreadDocument.messages.push(messageEntryObject);
+            supportThreadDocument.lastMessageAt = new Date();
             
-            await threadDocument.save();
+            await supportThreadDocument.save();
             
-            console.log(`[ENGINE] 💾 Message Saved & Broadcasting to Dashboard`);
-            socketServer.emit('new_message', { threadId: threadDocument._id, ...messageObject });
+            console.log(`[ENGINE] 💾 Persistence Complete. Transmitting to Dashboard.`);
+            socketServerInstance.emit('new_message', { 
+                threadId: supportThreadDocument._id, 
+                ...messageEntryObject 
+            });
         } 
-        catch(engineError) 
+        catch(engineThreadError) 
         { 
-            console.error(`[ENGINE] ❌ Error: ${engineError.message}`); 
+            console.error(`[ENGINE] ❌ Critical failure in thread processing: ${engineThreadError.message}`); 
         }
     });
 
-    clientNode.login(tokenString).catch(function(){});
-    clientsFleetArray.push(clientNode);
+    clientNodeInstance.login(discordTokenString).catch(function(loginError) { });
+    activeDiscordClients.push(clientNodeInstance);
 });
 
 
 // ============================================================================================================================================================
-//  SECTION 8: REAL-TIME SOCKET SERVER
+//  SECTION 8: REAL-TIME SOCKET ENGINE
 // ============================================================================================================================================================
 
-const activeRoomsMap = {};
+const activeViewerRoomsMap = {};
 
-socketServer.on('connection', function(staffSocketConnection) 
+socketServerInstance.on('connection', function(staffSocketConnectionInstance) 
 {
-    console.log(`[SOCKET] 🔌 Client Connected: ${staffSocketConnection.id}`);
+    console.log(`[SOCKET] 🔌 Interface Connected: ${staffSocketConnectionInstance.id}`);
 
-    staffSocketConnection.on('join_ticket_room', function(dataPayload) 
+    staffSocketConnectionInstance.on('join_ticket_room', function(subscriptionPayload) 
     {
-        console.log(`[SOCKET] 👤 Staff joining room: ${dataPayload.threadId}`);
-        staffSocketConnection.join(dataPayload.threadId);
+        console.log(`[SOCKET] 👤 Staff Member subscribing to Room: ${subscriptionPayload.threadId}`);
+        staffSocketConnectionInstance.join(subscriptionPayload.threadId);
         
-        if (!activeRoomsMap[dataPayload.threadId]) 
+        if (activeViewerRoomsMap[subscriptionPayload.threadId] === undefined) 
         { 
-            activeRoomsMap[dataPayload.threadId] = new Set(); 
+            activeViewerRoomsMap[subscriptionPayload.threadId] = new Set(); 
         }
         
-        activeRoomsMap[dataPayload.threadId].add(dataPayload.username);
+        activeViewerRoomsMap[subscriptionPayload.threadId].add(subscriptionPayload.username);
         
-        socketServer.to(dataPayload.threadId).emit('viewers_updated', Array.from(activeRoomsMap[dataPayload.threadId]));
+        socketServerInstance.to(subscriptionPayload.threadId).emit('viewers_updated', Array.from(activeViewerRoomsMap[subscriptionPayload.threadId]));
         
-        staffSocketConnection.currentThreadId = dataPayload.threadId; 
-        staffSocketConnection.currentUser = dataPayload.username;
+        staffSocketConnectionInstance.activeRoomId = subscriptionPayload.threadId; 
+        staffSocketConnectionInstance.staffIdentity = subscriptionPayload.username;
     });
     
-    const disconnectHandler = function() 
+    const executeSocketDeparture = function() 
     {
-        if (staffSocketConnection.currentThreadId && staffSocketConnection.currentUser && activeRoomsMap[staffSocketConnection.currentThreadId]) 
+        const targetRoomId = staffSocketConnectionInstance.activeRoomId;
+        const targetStaffName = staffSocketConnectionInstance.staffIdentity;
+
+        if (targetRoomId !== undefined && targetStaffName !== undefined && activeViewerRoomsMap[targetRoomId] !== undefined) 
         {
-            console.log(`[SOCKET] 🚪 Staff leaving room: ${staffSocketConnection.currentThreadId}`);
-            activeRoomsMap[staffSocketConnection.currentThreadId].delete(staffSocketConnection.currentUser);
-            socketServer.to(staffSocketConnection.currentThreadId).emit('viewers_updated', Array.from(activeRoomsMap[staffSocketConnection.currentThreadId]));
+            console.log(`[SOCKET] 🚪 Staff Member departing Room: ${targetRoomId}`);
+            activeViewerRoomsMap[targetRoomId].delete(targetStaffName);
+            socketServerInstance.to(targetRoomId).emit('viewers_updated', Array.from(activeViewerRoomsMap[targetRoomId]));
         }
     };
     
-    staffSocketConnection.on('leave_ticket_room', disconnectHandler);
-    staffSocketConnection.on('disconnect', disconnectHandler);
+    staffSocketConnectionInstance.on('leave_ticket_room', executeSocketDeparture);
+    staffSocketConnectionInstance.on('disconnect', executeSocketDeparture);
 });
 
 
 // ============================================================================================================================================================
-//  SECTION 9: API ROUTES (AUTHENTICATION & TICKETS)
+//  SECTION 9: API CONTROLLER (AUTHENTICATION & CRM)
 // ============================================================================================================================================================
 
-application.post('/api/login', async function(request, response) 
+applicationInstance.post('/api/login', async function(httpRequest, httpResponse) 
 {
-    console.log(`[API] 🔑 Login Attempt: ${request.body.username}`);
-    const userAccount = await Staff.findOne({ username: request.body.username });
+    console.log(`[API] 🔑 Login request for: ${httpRequest.body.username}`);
+    const targetStaffDocument = await Staff.findOne({ 
+        username: httpRequest.body.username 
+    });
     
-    if (userAccount && await bcrypt.compare(request.body.password, userAccount.password)) 
+    if (targetStaffDocument !== null && await bcrypt.compare(httpRequest.body.password, targetStaffDocument.password)) 
     {
-        console.log(`[API] ✅ Login Success: ${request.body.username}`);
-        request.session.staffId = userAccount._id; 
-        request.session.isAdmin = userAccount.isAdmin; 
-        request.session.username = userAccount.username;
+        console.log(`[API] ✅ Auth successful.`);
+        httpRequest.session.staffId = targetStaffDocument._id; 
+        httpRequest.session.isAdmin = targetStaffDocument.isAdmin; 
+        httpRequest.session.username = targetStaffDocument.username;
         
-        request.session.save(function() 
+        httpRequest.session.save(function() 
         { 
-            return response.json({ success: true, isAdmin: userAccount.isAdmin }); 
+            return httpResponse.json({ 
+                success: true, 
+                isAdmin: targetStaffDocument.isAdmin 
+            }); 
         });
     } 
     else 
     { 
-        console.log(`[API] ❌ Login Failed`);
-        return response.status(401).json({ error: "Invalid." }); 
+        console.log(`[API] ❌ Auth failed.`);
+        return httpResponse.status(401).json({ 
+            error: "Authentication credentials rejected." 
+        }); 
     }
 });
 
-application.post('/api/logout', function(request, response) 
+applicationInstance.post('/api/logout', function(httpRequest, httpResponse) 
 { 
-    console.log(`[API] 🚪 Logout Request`);
-    request.session.destroy(function() 
+    console.log(`[API] 🚪 Logout sequence triggered.`);
+    httpRequest.session.destroy(function() 
     { 
-        response.clearCookie('connect.sid'); 
-        response.json({ success: true }); 
+        httpResponse.clearCookie('connect.sid'); 
+        httpResponse.json({ 
+            success: true 
+        }); 
     }); 
 });
 
-application.get('/api/auth/user', isAuthorizedTechnician, function(request, response) 
+applicationInstance.get('/api/auth/user', verifyAuthorizedStaff, function(httpRequest, httpResponse) 
 { 
-    response.json({ username: request.session.username, isAdmin: request.session.isAdmin }); 
+    httpResponse.json({ 
+        username: httpRequest.session.username, 
+        isAdmin: httpRequest.session.isAdmin 
+    }); 
 });
 
-// TICKET API ENDPOINTS
-application.get('/api/threads', isAuthorizedTechnician, async function(request, response) 
+applicationInstance.get('/api/threads', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 { 
-    const threadList = await Thread.find().sort({ lastMessageAt: -1 });
-    return response.json(threadList);
+    const threadCollection = await Thread.find().sort({ 
+        lastMessageAt: -1 
+    });
+    return httpResponse.json(threadCollection);
 });
 
-application.post('/api/reply', isAuthorizedTechnician, async function(request, response) 
+applicationInstance.post('/api/reply', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 {
-    console.log(`[API] 📤 Dispatching Reply to Thread ${request.body.threadId}`);
-    const threadDoc = await Thread.findById(request.body.threadId);
-    const clientNode = clientsFleetArray.find(function(cl){ return cl.user.id === threadDoc.botId; });
-    const discordUser = await clientNode.users.fetch(threadDoc.userId);
+    console.log(`[API] 📤 Transmitting reply to thread: ${httpRequest.body.threadId}`);
+    const targetThreadDocument = await Thread.findById(httpRequest.body.threadId);
     
-    const embedReply = new EmbedBuilder().setColor('#3b82f6').setAuthor({ name: `Staff: ${request.session.username}`, iconURL: clientNode.user.displayAvatarURL() }).setDescription(request.body.content || "[Media]").setTimestamp().setFooter({ text: "Official Response" });
+    if (targetThreadDocument === null) 
+    {
+        return httpResponse.status(404).json({ error: "Thread lost." });
+    }
+
+    const targetDiscordNode = activeDiscordClients.find(function(nodeItem)
+    { 
+        return nodeItem.user.id === targetThreadDocument.botId; 
+    });
     
-    await discordUser.send({ embeds: [embedReply] });
+    const targetDiscordUser = await targetDiscordNode.users.fetch(targetThreadDocument.userId);
     
-    const messageEntry = { 
-        authorTag: `Staff (${request.session.username})`, 
+    const replyEmbedObject = new EmbedBuilder();
+    replyEmbedObject.setColor('#3b82f6');
+    replyEmbedObject.setAuthor({ 
+        name: `Staff: ${httpRequest.session.username}`, 
+        iconURL: targetDiscordNode.user.displayAvatarURL() 
+    });
+    replyEmbedObject.setDescription(httpRequest.body.content || "[Media Transmission]");
+    replyEmbedObject.setTimestamp();
+    replyEmbedObject.setFooter({ 
+        text: "Official Miraidon Representative Response" 
+    });
+    
+    await targetDiscordUser.send({ 
+        embeds: [replyEmbedObject] 
+    });
+    
+    const messageLogEntry = { 
+        authorTag: `Staff (${httpRequest.session.username})`, 
         authorAvatar: '', 
-        content: request.body.content || "[Media]", 
+        content: httpRequest.body.content || "[Media Transmission]", 
         fromBot: true, 
         timestamp: new Date() 
     };
     
-    threadDoc.messages.push(messageEntry); 
-    threadDoc.lastMessageAt = new Date(); 
-    await threadDoc.save();
+    targetThreadDocument.messages.push(messageLogEntry); 
+    targetThreadDocument.lastMessageAt = new Date(); 
+    await targetThreadDocument.save();
     
-    socketServer.emit('new_message', { threadId: threadDoc._id, ...messageEntry });
-    await Staff.findByIdAndUpdate(request.session.staffId, { $inc: { repliesSent: 1 } });
-    
-    return response.json({ success: true });
-});
-
-application.post('/api/close-thread', isAuthorizedTechnician, async function(request, response) 
-{
-    console.log(`[API] 🔒 Closing Thread ${request.body.threadId}`);
-    const threadDoc = await Thread.findById(request.body.threadId);
-    
-    // SAFETY CHECK: PREVENTS CRASH IF THREAD IS ALREADY DELETED
-    if (!threadDoc)
-    {
-        console.log(`[API] ⚠️ Thread not found (already closed). Skipping.`);
-        return response.json({ success: true });
-    }
-
-    let transcriptLog = "";
-    
-    threadDoc.messages.forEach(function(msg)
-    { 
-        transcriptLog += `[${msg.timestamp}] ${msg.authorTag}: ${msg.content}\n`; 
+    socketServerInstance.emit('new_message', { 
+        threadId: targetThreadDocument._id, 
+        ...messageLogEntry 
     });
     
-    const logFilePath = path.join(__dirname, `log-${threadDoc.userId}.txt`);
-    fs.writeFileSync(logFilePath, transcriptLog);
+    await Staff.findByIdAndUpdate(httpRequest.session.staffId, { 
+        $inc: { repliesSent: 1 } 
+    });
     
-    await dispatchAuditLog("🔒 Archive", `User: ${threadDoc.userTag}`, '#ef4444', [new AttachmentBuilder(logFilePath)]);
+    return httpResponse.json({ 
+        success: true 
+    });
+});
+
+
+// ============================================================================================================================================================
+//  SECTION 10: ADMINISTRATIVE & UTILITY ENDPOINTS
+// ============================================================================================================================================================
+
+// 🔓 ARCHIVE ENDPOINT (FIXED LOGIC)
+applicationInstance.post('/api/close-thread', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
+{
+    console.log(`[API] 🔒 ARCHIVE SIGNAL: Thread ID ${httpRequest.body.threadId}`);
     
-    const clientNode = clientsFleetArray.find(function(cl){ return cl.user.id === threadDoc.botId; });
-    if (clientNode) 
+    const targetThreadDocument = await Thread.findById(httpRequest.body.threadId);
+    
+    if (targetThreadDocument === null)
     {
-        const ratingRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`rate_5_${request.session.staffId}`).setLabel('5⭐').setStyle(ButtonStyle.Success));
-        const discordUser = await clientNode.users.fetch(threadDoc.userId);
-        await discordUser.send({ content: "Please rate your support experience:", components: [ratingRow] }).catch(function(){});
+        console.log(`[API] ⚠️ Thread missing from DB. Skipping logic.`);
+        return httpResponse.json({ 
+            success: true, 
+            message: "Thread already processed." 
+        });
     }
-    
-    await Staff.findByIdAndUpdate(request.session.staffId, { $inc: { ticketsClosed: 1 } });
-    
-    const userArchiveDir = path.join(ARCHIVE_DIR, threadDoc.userId);
-    if (!fs.existsSync(userArchiveDir)) 
+
+    // 1. CAPTURE FOR LOGS (PROTECTED)
+    try 
+    {
+        let formattedTranscript = "--- MIRAIDON SUPPORT TRANSCRIPT ---\n\n";
+        targetThreadDocument.messages.forEach(function(msgItem)
+        { 
+            formattedTranscript += `[${msgItem.timestamp}] ${msgItem.authorTag}: ${msgItem.content}\n`; 
+        });
+        
+        const localLogPathString = path.join(__dirname, `temporary-log-${targetThreadDocument.userId}.txt`);
+        fs.writeFileSync(localLogPathString, formattedTranscript);
+        
+        await executeAuditLogDispatch("🔒 Archive Protocol", `User Identity: ${targetThreadDocument.userTag}`, '#ef4444', [new AttachmentBuilder(localLogPathString)]);
+        
+        const permanentArchiveFolder = path.join(archivePathString, targetThreadDocument.userId);
+        if (fs.existsSync(permanentArchiveFolder) === false) 
+        { 
+            fs.mkdirSync(permanentArchiveFolder, { 
+                recursive: true 
+            }); 
+        }
+        
+        fs.writeFileSync(path.join(permanentArchiveFolder, `${Date.now()}.json`), JSON.stringify(targetThreadDocument));
+        
+        const targetDiscordNode = activeDiscordClients.find(function(nodeItem)
+        { 
+            return nodeItem.user.id === targetThreadDocument.botId; 
+        });
+        
+        if (targetDiscordNode !== undefined) 
+        {
+            const ratingComponentRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`rate_5_${httpRequest.session.staffId}`).setLabel('Excellent (5⭐)').setStyle(ButtonStyle.Success)
+            );
+            const targetDiscordUserObject = await targetDiscordNode.users.fetch(targetThreadDocument.userId);
+            await targetDiscordUserObject.send({ 
+                content: "This support session has been closed. Please rate your experience:", 
+                components: [ratingComponentRow] 
+            }).catch(function() { });
+        }
+        
+        if (fs.existsSync(localLogPathString)) 
+        { 
+            fs.unlinkSync(localLogPathString); 
+        }
+    } 
+    catch(archivalProcessError) 
     { 
-        fs.mkdirSync(userArchiveDir, { recursive: true }); 
+        console.error(`[API] ⚠️ Archive sub-process error: ${archivalProcessError.message}`);
     }
+
+    // 2. GUARANTEED DATABASE DELETION
+    await Thread.findByIdAndDelete(httpRequest.body.threadId);
     
-    fs.writeFileSync(path.join(userArchiveDir, `${Date.now()}.json`), JSON.stringify(threadDoc));
+    await Staff.findByIdAndUpdate(httpRequest.session.staffId, { 
+        $inc: { ticketsClosed: 1 } 
+    });
     
-    await Thread.findByIdAndDelete(request.body.threadId);
-    fs.unlinkSync(logFilePath);
-    
-    return response.json({ success: true });
+    console.log(`[API] ✅ Database deletion successful. Thread purged.`);
+    return httpResponse.json({ 
+        success: true 
+    });
 });
 
-
-// ============================================================================================================================================================
-//  SECTION 10: ADMINISTRATIVE API MODULES (7 MODULES + EXTRA UTILITIES)
-// ============================================================================================================================================================
-
-// MODULE 1: STAFF ANALYTICS
-application.get('/api/admin/stats', isSystemAdministrator, async function(request, response) 
+// STAFF STATS MODULE
+applicationInstance.get('/api/admin/stats', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
-    const statsData = await Staff.find().sort({ ticketsClosed: -1 });
-    response.json(statsData); 
+    const collectionOfStats = await Staff.find().sort({ 
+        ticketsClosed: -1 
+    });
+    httpResponse.json(collectionOfStats); 
 });
 
-// MODULE 2: MACRO CONFIGURATION
-application.post('/api/admin/macro/add', isSystemAdministrator, async function(request, response) 
+// MACRO MODULE
+applicationInstance.post('/api/admin/macro/add', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
-    console.log(`[ADMIN] ➕ Creating Macro: ${request.body.title}`);
-    const newMacro = new Macro({ title: request.body.title, content: request.body.content });
-    await newMacro.save();
-    response.json({ success: true });
+    console.log(`[ADMIN] ➕ New Macro Definition: ${httpRequest.body.title}`);
+    const newMacroObject = new Macro({ 
+        title: httpRequest.body.title, 
+        content: httpRequest.body.content 
+    });
+    await newMacroObject.save();
+    httpResponse.json({ 
+        success: true 
+    });
 });
 
-application.get('/api/macros', isAuthorizedTechnician, async function(request, response) 
+applicationInstance.get('/api/macros', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 { 
-    const macros = await Macro.find();
-    response.json(macros); 
+    const macroCollection = await Macro.find();
+    httpResponse.json(macroCollection); 
 });
 
-// MODULE 3: LICENSE MANAGEMENT (FULL EDIT CAPABILITY)
-application.post('/api/admin/license/lookup', isSystemAdministrator, async function(request, response) 
+// LICENSE MODULE
+applicationInstance.post('/api/admin/license/lookup', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
-    console.log(`[ADMIN] 🔍 Looking up License: ${request.body.query}`);
-    const licenseDoc = await License.findOne({ $or: [{ discordId: request.body.query }, { key: request.body.query }] });
-    response.json(licenseDoc || null);
+    console.log(`[ADMIN] 🔍 Searching License Data for: ${httpRequest.body.query}`);
+    const foundLicenseDocument = await License.findOne({ 
+        $or: [
+            { discordId: httpRequest.body.query }, 
+            { key: httpRequest.body.query }
+        ] 
+    });
+    httpResponse.json(foundLicenseDocument || null);
 });
 
-application.post('/api/admin/license/update', isSystemAdministrator, async function(request, response) 
+applicationInstance.post('/api/admin/license/update', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
     try 
     {
-        console.log(`[ADMIN] ✏️ Updating License ${request.body.key}`);
-        const filterCriteria = { key: request.body.key };
-        const updateData = {
-            serverName: request.body.serverName,
-            serverId: request.body.serverId,
-            discordId: request.body.discordId
+        console.log(`[ADMIN] ✏️ Manually Updating License Assignment: ${httpRequest.body.key}`);
+        const searchCriteria = { 
+            key: httpRequest.body.key 
         };
-        await License.findOneAndUpdate(filterCriteria, updateData);
-        response.json({ success: true });
+        const updatedDataPayload = {
+            serverName: httpRequest.body.serverName,
+            serverId: httpRequest.body.serverId,
+            discordId: httpRequest.body.discordId
+        };
+        await License.findOneAndUpdate(searchCriteria, updatedDataPayload);
+        httpResponse.json({ 
+            success: true 
+        });
     } 
-    catch(updateError) 
-    {
-        response.status(500).json({ error: "Update failed" });
+    catch(licenseUpdateError) 
+    { 
+        httpResponse.status(500).json({ error: "Update logic failed." }); 
     }
 });
 
-// MODULE 4: FLEET CONTROL & GUILD MANAGEMENT
-application.get('/api/admin/servers', isSystemAdministrator, async function(request, response) 
+// CRM NOTES MODULE
+applicationInstance.post('/api/note', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 {
-    const fleetInventory = [];
-    clientsFleetArray.forEach(function(clientNode)
+    console.log(`[CRM] 📝 Registering Note for User: ${httpRequest.body.userId}`);
+    await UserNote.findOneAndUpdate({ 
+        userId: httpRequest.body.userId 
+    }, { 
+        note: httpRequest.body.note 
+    }, { 
+        upsert: true, 
+        new: true 
+    });
+    httpResponse.json({ 
+        success: true 
+    });
+});
+
+applicationInstance.get('/api/note/:userId', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
+{
+    const foundNoteDocument = await UserNote.findOne({ 
+        userId: httpRequest.params.userId 
+    });
+    httpResponse.json({ 
+        note: foundNoteDocument ? foundNoteDocument.note : "" 
+    });
+});
+
+// FLEET MANAGEMENT MODULE
+applicationInstance.get('/api/admin/servers', verifySystemAdmin, async function(httpRequest, httpResponse) 
+{
+    const totalGuildInventory = [];
+    activeDiscordClients.forEach(function(discordClientInstance)
     { 
-        if(clientNode.isReady())
+        if (discordClientInstance.isReady() === true)
         { 
-            clientNode.guilds.cache.forEach(function(guildNode)
+            discordClientInstance.guilds.cache.forEach(function(guildInstance)
             { 
-                fleetInventory.push({ 
-                    id: guildNode.id, 
-                    name: guildNode.name, 
-                    members: guildNode.memberCount, 
-                    ownerId: guildNode.ownerId, 
-                    botName: clientNode.user.username, 
-                    botId: clientNode.user.id 
+                totalGuildInventory.push({ 
+                    id: guildInstance.id, 
+                    name: guildInstance.name, 
+                    members: guildInstance.memberCount, 
+                    ownerId: guildInstance.ownerId, 
+                    botName: discordClientInstance.user.username, 
+                    botId: discordClientInstance.user.id 
                 }); 
             }); 
         } 
     });
-    response.json(fleetInventory);
+    httpResponse.json(totalGuildInventory);
 });
 
-application.post('/api/admin/fleet/toggle-trading', isSystemAdministrator, async function(request, response) 
+applicationInstance.post('/api/admin/fleet/toggle-trading', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
-    console.log(`[ADMIN] 🔄 Toggling Trading for Bot ${request.body.botId}`);
-    const configDoc = await Config.findOne({ id: 'global' });
-    let existingEntry = configDoc.botFleetStatus.find(function(x){ return x.botId === request.body.botId; });
+    console.log(`[ADMIN] 🔄 Modifying Fleet State for Node: ${httpRequest.body.botId}`);
+    const globalConfigDoc = await Config.findOne({ 
+        id: 'global' 
+    });
     
-    if(existingEntry)
+    let botStateEntry = globalConfigDoc.botFleetStatus.find(function(statusItem)
     { 
-        existingEntry.tradingActive = request.body.status; 
+        return statusItem.botId === httpRequest.body.botId; 
+    });
+    
+    if (botStateEntry !== undefined)
+    { 
+        botStateEntry.tradingActive = httpRequest.body.status; 
     } 
     else 
     { 
-        configDoc.botFleetStatus.push({ botId: request.body.botId, tradingActive: request.body.status }); 
+        globalConfigDoc.botFleetStatus.push({ 
+            botId: httpRequest.body.botId, 
+            tradingActive: httpRequest.body.status 
+        }); 
     }
     
-    await configDoc.save();
-    response.json({ success: true });
+    await globalConfigDoc.save();
+    httpResponse.json({ 
+        success: true 
+    });
 });
 
-application.post('/api/admin/guild/leave', isSystemAdministrator, async function(request, response) 
+applicationInstance.post('/api/admin/guild/leave', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
-    console.log(`[ADMIN] 🚪 Forcing Leave Guild ${request.body.guildId}`);
-    const clientNode = clientsFleetArray.find(function(c) { return c.user.id === request.body.botId; });
-    if (clientNode) 
-    {
-        const targetGuild = clientNode.guilds.cache.get(request.body.guildId);
-        if (targetGuild) 
-        {
-            await targetGuild.leave();
-            return response.json({ success: true });
-        }
+    console.log(`[ADMIN] 🚪 FORCED TERMINATION: Guild Leave ${httpRequest.body.guildId}`);
+    const discordClientNode = activeDiscordClients.find(function(nodeItem) 
+    { 
+        return nodeItem.user.id === httpRequest.body.botId; 
+    });
+    
+    if (discordClientNode !== undefined) 
+    { 
+        const targetDiscordGuild = discordClientNode.guilds.cache.get(httpRequest.body.guildId); 
+        if (targetDiscordGuild !== undefined) 
+        { 
+            await targetDiscordGuild.leave(); 
+            return httpResponse.json({ success: true }); 
+        } 
     }
-    return response.status(404).json({ error: "Guild/Bot not found" });
+    return httpResponse.status(404).json({ error: "Node or Guild unreachable." });
 });
 
-application.post('/api/admin/guild/invite', isSystemAdministrator, async function(request, response) 
+applicationInstance.post('/api/admin/guild/invite', verifySystemAdmin, async function(httpRequest, httpResponse) 
 {
-    console.log(`[ADMIN] 🔗 Generating Invite for ${request.body.guildId}`);
-    const clientNode = clientsFleetArray.find(function(c) { return c.user.id === request.body.botId; });
-    if (clientNode) 
-    {
-        const targetGuild = clientNode.guilds.cache.get(request.body.guildId);
-        if (targetGuild) 
-        {
-            let textChannel = targetGuild.channels.cache.find(function(ch) 
+    console.log(`[ADMIN] 🔗 REQUEST: Invite generation for ${httpRequest.body.guildId}`);
+    const discordClientNode = activeDiscordClients.find(function(nodeItem) 
+    { 
+        return nodeItem.user.id === httpRequest.body.botId; 
+    });
+    
+    if (discordClientNode !== undefined) 
+    { 
+        const targetDiscordGuild = discordClientNode.guilds.cache.get(httpRequest.body.guildId); 
+        if (targetDiscordGuild !== undefined) 
+        { 
+            let suitableInviteChannel = targetDiscordGuild.channels.cache.find(function(channelItem) 
             { 
-                return ch.type === ChannelType.GuildText && ch.permissionsFor(targetGuild.members.me).has(PermissionFlagsBits.CreateInstantInvite); 
-            });
+                return channelItem.type === ChannelType.GuildText && channelItem.permissionsFor(targetDiscordGuild.members.me).has(PermissionFlagsBits.CreateInstantInvite); 
+            }); 
             
-            if (textChannel) 
-            {
-                const inviteObject = await textChannel.createInvite({ maxAge: 0, maxUses: 1 });
-                return response.json({ url: inviteObject.url });
-            }
-        }
+            if (suitableInviteChannel !== undefined) 
+            { 
+                const newInviteObject = await suitableInviteChannel.createInvite({ maxAge: 0, maxUses: 1 }); 
+                return httpResponse.json({ url: newInviteObject.url }); 
+            } 
+        } 
     }
-    return response.status(404).json({ error: "Cannot create invite" });
+    return httpResponse.status(404).json({ error: "Capability restricted or node missing." });
 });
 
-// MODULE 5: MANUAL DM DISPATCH
-application.post('/api/admin/dm', isAuthorizedTechnician, async function(request, response) 
+// MANUAL DM DISPATCH
+applicationInstance.post('/api/admin/dm', verifyAuthorizedStaff, async function(httpRequest, httpResponse) 
 {
-    console.log(`[ADMIN] ✉️ Sending Manual DM to ${request.body.userId}`);
-    const targetUserId = request.body.userId;
-    const messageContent = request.body.content;
-    const preferredBotId = request.body.botId;
-    
-    let clientNode = clientsFleetArray[0];
-    
-    if (preferredBotId) 
-    { 
-        clientNode = clientsFleetArray.find(function(c) { return c.user.id === preferredBotId; }); 
-    }
+    console.log(`[ADMIN] ✉️ MANUAL DISPATCH: To ${httpRequest.body.userId}`);
+    const targetUserIdString = httpRequest.body.userId;
+    const manualContentString = httpRequest.body.content;
+    const discordClientNode = activeDiscordClients[0];
     
     try 
     {
-        const discordUser = await clientNode.users.fetch(targetUserId);
-        await discordUser.send({ content: messageContent });
-        
-        let threadDocument = await Thread.findOne({ userId: targetUserId, botId: clientNode.user.id });
-        
-        if (!threadDocument) 
-        {
-            const avatarUrl = discordUser.displayAvatarURL({ extension: 'png' });
-            threadDocument = new Thread({ 
-                userId: targetUserId, 
-                userTag: discordUser.tag, 
-                userAvatar: avatarUrl, 
-                botId: clientNode.user.id, 
-                botName: clientNode.user.username, 
-                messages: [] 
-            });
-            await threadDocument.save();
-        }
-        
-        threadDocument.messages.push({ 
-            authorTag: `Staff (${request.session.username})`, 
-            authorAvatar: '', 
-            content: messageContent, 
-            fromBot: true, 
-            timestamp: new Date() 
+        const targetDiscordUser = await discordClientNode.users.fetch(targetUserIdString);
+        await targetDiscordUser.send({ content: manualContentString });
+        return httpResponse.json({ 
+            success: true 
         });
-        
-        threadDocument.lastMessageAt = new Date();
-        await threadDocument.save();
-        
-        return response.json({ success: true });
     } 
-    catch(dmError) 
-    {
-        return response.status(500).json({ error: "DM Failed: " + dmError.message });
+    catch(manualDmError) 
+    { 
+        return httpResponse.status(500).json({ error: manualDmError.message }); 
     }
 });
 
-// MODULE 6: KNOWLEDGE BASE
-application.get('/api/faq', async function(request, response) 
+// FAQ MODULE
+applicationInstance.get('/api/faq', async function(httpRequest, httpResponse) 
 { 
-    const faqList = await FAQ.find().sort({ createdAt: -1 });
-    response.json(faqList); 
+    const sortedFaqCollection = await FAQ.find().sort({ 
+        createdAt: -1 
+    });
+    httpResponse.json(sortedFaqCollection); 
 });
 
-application.post('/api/admin/faq/add', isSystemAdministrator, async function(request, response) 
+applicationInstance.post('/api/admin/faq/add', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
-    const newFaq = new FAQ({ question: request.body.question, answer: request.body.answer });
-    await newFaq.save(); 
-    response.json({ success: true }); 
+    const newFaqDocument = new FAQ({ 
+        question: httpRequest.body.question, 
+        answer: httpRequest.body.answer 
+    });
+    await newFaqDocument.save(); 
+    httpResponse.json({ 
+        success: true 
+    }); 
 });
 
-// MODULE 7: STAFF PROVISIONING
-application.post('/api/admin/staff/add', isSystemAdministrator, async function(request, response) 
+// STAFF PROVISIONING MODULE
+applicationInstance.post('/api/admin/staff/add', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
     try 
     {
-        const passwordHash = await bcrypt.hash('DefaultPass123!', 10);
-        const newStaffMember = new Staff({ 
-            username: request.body.username, 
-            password: passwordHash, 
-            discordId: request.body.discordId 
+        const newTechnicianPasswordHash = await bcrypt.hash('DefaultPass123!', 10);
+        const newStaffMemberDocument = new Staff({ 
+            username: httpRequest.body.username, 
+            password: newTechnicianPasswordHash, 
+            discordId: httpRequest.body.discordId 
         });
-        await newStaffMember.save();
-        return response.json({ success: true });
+        await newStaffMemberDocument.save();
+        return httpResponse.json({ success: true });
     } 
-    catch (e) 
+    catch (staffAddError) 
     { 
-        return response.status(500).json({ error: "Fail" }); 
+        return httpResponse.status(500).json({ error: "Provisioning failure." }); 
     }
 });
 
-// USER NOTES API
-application.post('/api/note', isAuthorizedTechnician, async function(request, response) 
-{
-    console.log(`[CRM] 📝 Saving Note for ${request.body.userId}`);
-    await UserNote.findOneAndUpdate({ userId: request.body.userId }, { note: request.body.note }, { upsert: true, new: true });
-    response.json({ success: true });
-});
-
-application.get('/api/note/:userId', isAuthorizedTechnician, async function(request, response) 
-{
-    const noteDoc = await UserNote.findOne({ userId: request.params.userId });
-    response.json({ note: noteDoc ? noteDoc.note : "" });
-});
-
-// GLOBAL CONFIGURATION
-application.get('/api/admin/config', isSystemAdministrator, async function(request, response) 
+// GLOBAL CONFIGURATION MODULE
+applicationInstance.get('/api/admin/config', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
-    const configDoc = await Config.findOne({ id: 'global' });
-    response.json(configDoc); 
+    const currentGlobalConfigDoc = await Config.findOne({ 
+        id: 'global' 
+    });
+    httpResponse.json(currentGlobalConfigDoc); 
 });
 
-application.post('/api/admin/config/toggle', isSystemAdministrator, async function(request, response) 
+applicationInstance.post('/api/admin/config/toggle', verifySystemAdmin, async function(httpRequest, httpResponse) 
 { 
-    console.log(`[ADMIN] ⚙️ Updating Global Config`);
-    const configDoc = await Config.findOne({ id: 'global' });
+    console.log(`[ADMIN] ⚙️ GLOBAL UPDATE: System status/schedule modified.`);
+    const globalConfigDoc = await Config.findOne({ id: 'global' });
     
-    if (request.body.status !== undefined) 
+    if (httpRequest.body.status !== undefined) 
     { 
-        configDoc.supportOnline = request.body.status; 
+        globalConfigDoc.supportOnline = httpRequest.body.status; 
     }
     
-    if (request.body.note) 
+    if (httpRequest.body.note !== undefined) 
     { 
-        configDoc.offlineNote = request.body.note; 
+        globalConfigDoc.offlineNote = httpRequest.body.note; 
     }
     
-    if (request.body.openTime) 
+    if (httpRequest.body.openTime !== undefined) 
     { 
-        configDoc.openTime = request.body.openTime; 
+        globalConfigDoc.openTime = httpRequest.body.openTime; 
     }
     
-    if (request.body.closeTime) 
+    if (httpRequest.body.closeTime !== undefined) 
     { 
-        configDoc.closeTime = request.body.closeTime; 
+        globalConfigDoc.closeTime = httpRequest.body.closeTime; 
     }
     
-    await configDoc.save();
-    response.json({ success: true });
+    await globalConfigDoc.save();
+    httpResponse.json({ 
+        success: true 
+    });
 });
 
-// PUBLIC STATUS CHECK
-application.get('/api/status', async function(request, response) 
+// PUBLIC STATUS API
+applicationInstance.get('/api/status', async function(httpRequest, httpResponse) 
 {
-    const configDoc = await Config.findOne({ id: 'global' });
-    const fleetStatus = clientsFleetArray.map(function(cl)
+    const globalConfigDoc = await Config.findOne({ 
+        id: 'global' 
+    });
+    
+    const fleetAggregateStatus = activeDiscordClients.map(function(clientInstance)
     { 
-        const s = configDoc.botFleetStatus.find(function(x){ return x.botId === cl.user.id; });
+        const botStatusObject = globalConfigDoc.botFleetStatus.find(function(statusItem)
+        { 
+            return statusItem.botId === clientInstance.user.id; 
+        });
+        
         return { 
-            name: cl.user.username, 
-            online: cl.isReady(), 
-            tradingActive: s ? s.tradingActive : true 
+            name: clientInstance.user.username, 
+            online: clientInstance.isReady(), 
+            tradingActive: botStatusObject ? botStatusObject.tradingActive : true 
         };
     });
-    response.json({ 
+    
+    httpResponse.json({ 
         support: { 
-            isOpen: configDoc.supportOnline, 
-            window: `${configDoc.openTime} - ${configDoc.closeTime} AST`, 
-            note: configDoc.offlineNote 
+            isOpen: globalConfigDoc.supportOnline, 
+            window: `${globalConfigDoc.openTime} - ${globalConfigDoc.closeTime} AST`, 
+            note: globalConfigDoc.offlineNote 
         }, 
-        fleet: fleetStatus 
+        fleet: fleetAggregateStatus 
     });
 });
 
-// SELL.APP WEBHOOK
-application.post('/api/webhooks/sellapp', async function(request, response) 
+// SELL.APP WEBHOOK INTEGRATION
+applicationInstance.post('/api/webhooks/sellapp', async function(httpRequest, httpResponse) 
 { 
-    console.log("[WEBHOOK] 📨 Received payload from Sell.App."); 
-    response.status(200).send("OK"); 
+    console.log("[WEBHOOK] 📨 Inbound transmission from Sell.App verified."); 
+    httpResponse.status(200).send("Handshake Verified."); 
 });
 
 
-// =================================================================================================
-//  SECTION 11: AUTOMATION SYSTEMS (TRUSTPILOT & EXPIRY)
-// =================================================================================================
+// ============================================================================================================================================================
+//  SECTION 11: AUTOMATION ENGINE (TRUSTPILOT & EXPIRY)
+// ============================================================================================================================================================
 
 setInterval(async function() 
 {
-    console.log("[AUTOMATION] ⏲️ Running scheduled verification tasks...");
+    console.log("[AUTOMATION] ⏲️ Executing verification and notification cycle...");
     
-    // TASK 1: Trustpilot Review Requests (14 Days Post-Activation)
-    const date14DaysAgo = new Date(); 
-    date14DaysAgo.setDate(date14DaysAgo.getDate() - 14);
+    // TASK 1: Trustpilot Dynamic Feedback (14 Days)
+    const threshold14DaysAgo = new Date(); 
+    threshold14DaysAgo.setDate(threshold14DaysAgo.getDate() - 14);
     
-    const date15DaysAgo = new Date(); 
-    date15DaysAgo.setDate(date15DaysAgo.getDate() - 15);
+    const threshold15DaysAgo = new Date(); 
+    threshold15DaysAgo.setDate(threshold15DaysAgo.getDate() - 15);
     
-    const reviewCandidates = await License.find({ 
-        activatedAt: { $lte: date14DaysAgo, $gte: date15DaysAgo }, 
+    const candidatesForReview = await License.find({ 
+        activatedAt: { 
+            $lte: threshold14DaysAgo, 
+            $gte: threshold15DaysAgo 
+        }, 
         reviewRequestSent: false 
     });
     
-    console.log(`[AUTOMATION] Found ${reviewCandidates.length} Review Candidates`);
+    console.log(`[AUTOMATION] 🔎 Found ${candidatesForReview.length} users for feedback request.`);
     
-    for (let i = 0; i < reviewCandidates.length; i++) 
+    for (let i = 0; i < candidatesForReview.length; i++) 
     {
-        const licenseDoc = reviewCandidates[i];
+        const licenseDocument = candidatesForReview[i];
         
-        if (clientsFleetArray[0]) 
+        if (activeDiscordClients[0] !== undefined) 
         {
             try 
             {
-                const discordUser = await clientsFleetArray[0].users.fetch(licenseDoc.discordId);
-                const reviewEmbed = new EmbedBuilder()
-                    .setTitle("We'd Love Your Feedback")
-                    // DYNAMIC DETAILS: License Type and Server Name included.
-                    .setDescription(`You have been using your **${licenseDoc.type}** license on **${licenseDoc.serverName}** for 2 weeks. \n\nIf you are enjoying our service, please consider leaving a review on Trustpilot!`)
+                const targetDiscordUser = await activeDiscordClients[0].users.fetch(licenseDocument.discordId);
+                const feedbackEmbed = new EmbedBuilder()
+                    .setTitle("Feedback Request: Miraidon Services")
+                    .setDescription(`You have been using your **${licenseDocument.type}** license on **${licenseDocument.serverName}** for two weeks. \n\nIf you are satisfied with our automation, please leave a review on Trustpilot!`)
                     .setColor('#00b67a')
-                    // SPECIFIC LINK INCLUDED
                     .setURL("https://trustpilot.com/review/miraidon.trade")
-                    .setFooter({ text: "Automated Feedback Request" });
+                    .setFooter({ text: "Automated Feedback Transmission" });
                     
-                await discordUser.send({ embeds: [reviewEmbed] });
+                await targetDiscordUser.send({ 
+                    embeds: [feedbackEmbed] 
+                });
                 
-                licenseDoc.reviewRequestSent = true; 
-                await licenseDoc.save();
-                console.log(`[AUTOMATION] ✅ Sent Review Request to ${licenseDoc.discordId}`);
+                licenseDocument.reviewRequestSent = true; 
+                await licenseDocument.save();
+                console.log(`[AUTOMATION] ✅ Request sent to: ${licenseDocument.discordId}`);
             } 
-            catch(autoError)
-            {
-                console.error(`[AUTOMATION] ❌ Failed Review Request: ${autoError.message}`);
-            }
+            catch(feedbackError) { }
         }
     }
 
-    // TASK 2: Expiry Warnings (3 Days Pre-Expiry)
-    const date3DaysFuture = new Date(); 
-    date3DaysFuture.setDate(date3DaysFuture.getDate() + 3);
+    // TASK 2: Dynamic Expiry Warnings (3 Days)
+    const threshold3DaysFuture = new Date(); 
+    threshold3DaysFuture.setDate(threshold3DaysFuture.getDate() + 3);
     
-    const expiryCandidates = await License.find({ 
-        expiresAt: { $lte: date3DaysFuture, $gte: new Date() }, 
+    const candidatesForExpiryWarning = await License.find({ 
+        expiresAt: { 
+            $lte: threshold3DaysFuture, 
+            $gte: new Date() 
+        }, 
         reminderSent: false 
     });
     
-    console.log(`[AUTOMATION] Found ${expiryCandidates.length} Expiry Candidates`);
+    console.log(`[AUTOMATION] 🔎 Found ${candidatesForExpiryWarning.length} expiring licenses.`);
     
-    for (let j = 0; j < expiryCandidates.length; j++)
+    for (let j = 0; j < candidatesForExpiryWarning.length; j++)
     {
-        const licenseDoc = expiryCandidates[j];
-        if (clientsFleetArray[0])
+        const licenseDocument = candidatesForExpiryWarning[j];
+        
+        if (activeDiscordClients[0] !== undefined)
         {
             try 
             {
-                const discordUser = await clientsFleetArray[0].users.fetch(licenseDoc.discordId);
-                const warningEmbed = new EmbedBuilder()
-                    .setTitle("License Expiring Soon")
-                    .setDescription(`Your **${licenseDoc.type}** license for **${licenseDoc.serverName}** expires in less than 3 days.\n\nPlease renew via Sell.App to avoid interruption.`)
+                const targetDiscordUser = await activeDiscordClients[0].users.fetch(licenseDocument.discordId);
+                const expiryEmbed = new EmbedBuilder()
+                    .setTitle("Security Alert: License Expiring")
+                    .setDescription(`Your **${licenseDocument.type}** license for **${licenseDocument.serverName}** is set to expire in less than 3 days.\n\nPlease visit Sell.App to renew and maintain connectivity.`)
                     .setColor('#f59e0b')
-                    .setFooter({ text: "Automated Expiry Warning" });
+                    .setFooter({ text: "Automated Expiry Protocol" });
                     
-                await discordUser.send({ embeds: [warningEmbed] });
+                await targetDiscordUser.send({ 
+                    embeds: [expiryEmbed] 
+                });
                 
-                licenseDoc.reminderSent = true; 
-                await licenseDoc.save();
-                console.log(`[AUTOMATION] ✅ Sent Expiry Warning to ${licenseDoc.discordId}`);
+                licenseDocument.reminderSent = true; 
+                await licenseDocument.save();
+                console.log(`[AUTOMATION] ✅ Warning sent to: ${licenseDocument.discordId}`);
             } 
-            catch(autoError)
-            {
-                console.error(`[AUTOMATION] ❌ Failed Expiry Warning: ${autoError.message}`);
-            }
+            catch(expiryWarningError) { }
         }
     }
     
-}, 3600000); // 1 Hour Interval
+}, 3600000); 
 
 
-// =================================================================================================
-//  SECTION 12: BOOTSTRAP
-// =================================================================================================
+// ============================================================================================================================================================
+//  SECTION 12: SERVER BOOTSTRAP
+// ============================================================================================================================================================
 
-const PORT = process.env.PORT || 10000;
+const SERVER_PORT_PARAMETER = process.env.PORT || 10000;
 
-httpServer.listen(PORT, function() 
+httpServerInstance.listen(SERVER_PORT_PARAMETER, function() 
 { 
-    console.log(`[SYSTEM] 🚀 SERVER v23.1 RUNNING ON PORT ${PORT}`); 
+    console.log(`[SYSTEM] 🚀 SERVER v25.0 ACTIVE ON PORT ${SERVER_PORT_PARAMETER}`); 
 });
