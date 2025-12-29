@@ -1,9 +1,9 @@
 /**
  * ============================================================================================================================================================
- * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v22.0 - FINAL PRODUCTION RELEASE)
+ * MIRAIDON TRADE SERVICES - MASTER SERVER ENGINE (v23.1 - ARCHIVE FIX)
  * ============================================================================================================================================================
  * * STATUS: 100% UNCOMPRESSED, MAXIMAL VERBOSITY
- * * FEATURES: FULL LOGGING, LICENSE AUTOMATION, 7-MODULE ADMIN, MANUAL DM, GUILD MANAGEMENT
+ * * FEATURES: FULL LOGGING, LICENSE AUTOMATION, 7-MODULE ADMIN, MANUAL DM, GUILD MANAGEMENT, SELL.APP WEBHOOK
  * * INTEGRITY: ZERO SHORTHAND, FULL MULTI-LINE EXPANSION
  * ============================================================================================================================================================
  */
@@ -496,7 +496,7 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
                 
                 if (!isSupportOpen) 
                 {
-                    console.log(`[ENGINE] 🔒 Auto-Reply: Temporarily Unavailable`);
+                    // MANUAL TOGGLE OFF
                     replyEmbed.setColor('#ef4444');
                     replyEmbed.setTitle('Support Status: Temporarily Unavailable');
                     replyEmbed.setDescription(globalConfig.offlineNote || "Closed for maintenance.");
@@ -504,19 +504,19 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
                 }
                 else if (!isWithinHours)
                 {
-                    console.log(`[ENGINE] 🌙 Auto-Reply: Outside Hours`);
+                    // OUTSIDE BUSINESS HOURS
                     replyEmbed.setColor('#f59e0b');
                     replyEmbed.setTitle('Support Status: Outside Business Hours');
-                    replyEmbed.setDescription(`Thank you for reaching out. While our standard daily hours are ${openTimeStr} – ${closeTimeStr} AST,\nWe often have team members available to assist outside of these times. \nIf your request isn't addressed this evening, we will ensure it is prioritized first thing in the morning.`);
+                    replyEmbed.setDescription(`We are currently closed.\nHours: ${openTimeStr} - ${closeTimeStr} AST`);
                     replyEmbed.setFooter({ text: "Office Closed" });
                 }
                 else 
                 {
-                    console.log(`[ENGINE] ✅ Auto-Reply: Ticket Created`);
+                    // OPEN AND ONLINE
                     replyEmbed.setColor('#3b82f6');
                     replyEmbed.setTitle('Support Ticket Created');
-                    replyEmbed.setDescription('Thank you for your inquiry. Your request has been received, and a member of our support team will follow up with you as soon as possible.');
-                    replyEmbed.setFooter({ text: "Estimated Response: 1-2 Hours" });
+                    replyEmbed.setDescription('A technician will respond within 12-24 hours.');
+                    replyEmbed.setFooter({ text: "Estimated Response: 12-24 Hours" });
                 }
                 
                 await inboundMessage.author.send({ embeds: [replyEmbed] }).catch(function(){});
@@ -547,7 +547,10 @@ botTokensList.forEach(function(tokenString, indexIdentifier)
             console.log(`[ENGINE] 💾 Message Saved & Broadcasting to Dashboard`);
             socketServer.emit('new_message', { threadId: threadDocument._id, ...messageObject });
         } 
-        catch(engineError) { console.error(engineError); }
+        catch(engineError) 
+        { 
+            console.error(`[ENGINE] ❌ Error: ${engineError.message}`); 
+        }
     });
 
     clientNode.login(tokenString).catch(function(){});
@@ -681,6 +684,14 @@ application.post('/api/close-thread', isAuthorizedTechnician, async function(req
 {
     console.log(`[API] 🔒 Closing Thread ${request.body.threadId}`);
     const threadDoc = await Thread.findById(request.body.threadId);
+    
+    // SAFETY CHECK: PREVENTS CRASH IF THREAD IS ALREADY DELETED
+    if (!threadDoc)
+    {
+        console.log(`[API] ⚠️ Thread not found (already closed). Skipping.`);
+        return response.json({ success: true });
+    }
+
     let transcriptLog = "";
     
     threadDoc.messages.forEach(function(msg)
@@ -1127,5 +1138,5 @@ const PORT = process.env.PORT || 10000;
 
 httpServer.listen(PORT, function() 
 { 
-    console.log(`[SYSTEM] 🚀 SERVER v22.0 RUNNING ON PORT ${PORT}`); 
+    console.log(`[SYSTEM] 🚀 SERVER v23.1 RUNNING ON PORT ${PORT}`); 
 });
