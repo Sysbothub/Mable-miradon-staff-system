@@ -5,31 +5,25 @@
     <title>Miraidon Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { background: #020617; color: white; font-family: monospace; }
-        .glass { background: rgba(15, 23, 42, 0.95); border: 1px solid #1e293b; }
-        .av { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #334155; }
-    </style>
+    <style>body{background:#020617;color:white;font-family:monospace;} .glass{background:rgba(15,23,42,0.95);border:1px solid #1e293b;} .av{width:32px;height:32px;border-radius:50%;border:1px solid #334155;}</style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
     <header class="h-14 glass flex items-center justify-between px-6 shrink-0 z-30">
         <span class="font-black text-blue-500 uppercase tracking-tighter">Miraidon Terminal</span>
         <div class="flex gap-4">
             <a href="/staff/admin.html" class="text-xs text-amber-500 border border-amber-900 px-3 py-1 rounded">ADMIN</a>
-            <button onclick="logoutSequence()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded">LOGOUT</button>
+            <button onclick="out()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded">LOGOUT</button>
         </div>
     </header>
-
     <div class="flex-1 flex overflow-hidden">
         <aside class="w-80 glass border-r border-slate-800 flex flex-col z-20">
             <div class="p-3 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase">Inbox</div>
             <div id="list" class="flex-1 overflow-y-auto p-2"></div>
         </aside>
-
         <main class="flex-1 flex flex-col bg-slate-950 relative z-10">
             <div class="h-12 glass border-b border-slate-800 flex items-center justify-between px-4">
                 <div id="tag" class="text-sm font-bold uppercase">Ready</div>
-                <button onclick="archive()" class="text-[10px] bg-red-900/20 text-red-500 border border-red-900 px-3 py-1 rounded">ARCHIVE</button>
+                <button onclick="arch()" class="text-[10px] bg-red-900/20 text-red-500 border border-red-900 px-3 py-1 rounded">ARCHIVE</button>
             </div>
             <div id="chat" class="flex-1 overflow-y-auto p-4 space-y-6"></div>
             <div class="p-4 glass border-t border-slate-800 flex gap-3">
@@ -37,79 +31,120 @@
                 <button onclick="send()" class="bg-blue-600 px-6 rounded-lg font-black text-xs uppercase">Dispatch</button>
             </div>
         </main>
-
         <aside class="w-80 glass border-l border-slate-800 flex flex-col p-5 z-20">
             <div class="text-[10px] font-bold text-slate-500 uppercase mb-4">Intel</div>
-            <textarea id="note" class="w-full h-40 bg-slate-900 border border-slate-800 p-3 text-xs rounded-xl"></textarea>
+            <textarea id="note" onblur="saveNote()" class="w-full h-40 bg-slate-900 border border-slate-800 p-3 text-xs rounded-xl"></textarea>
+            <div id="macro-list" class="mt-4 space-y-2"></div>
         </aside>
     </div>
-
     <script>
-        var socket = io();
-        var activeId = null;
+        var socket = io(); 
+        var activeId = null; 
+        var activeUserId = null;
         var threads = {};
 
-        async function init() 
-        {
-            var res = await fetch("/api/threads");
+        async function init() {
+            var res = await fetch("/api/threads"); 
             var data = await res.json();
-            var el = document.getElementById("list");
+            var el = document.getElementById("list"); 
             el.innerHTML = "";
-            for (var i = 0; i < data.length; i++)
-            {
-                var t = data[i];
+            for (var i=0; i<data.length; i++) {
+                var t = data[i]; 
                 threads[t._id] = t;
                 var d = document.createElement("div");
                 d.className = "p-3 border-b border-slate-800 cursor-pointer hover:bg-slate-900";
                 d.innerHTML = '<div class="flex gap-3 items-center"><img src="'+t.userAvatar+'" class="av"><div><div class="text-xs font-bold">'+t.userTag+'</div><div class="text-[9px] text-slate-500">'+t.botName+'</div></div></div>';
-                d.onclick = (function(id, tag){ return function(){ select(id, tag); }; })(t._id, t.userTag);
+                d.onclick = (function(id, tag, uid){ return function(){ sel(id, tag, uid); }; })(t._id, t.userTag, t.userId);
                 el.appendChild(d);
             }
+            loadMacros();
         }
 
-        function select(id, tag) 
-        {
-            activeId = id;
-            document.getElementById("tag").innerText = tag;
-            socket.emit("join_ticket_room", { threadId: id });
+        async function sel(id, tag, uid) { 
+            activeId = id; 
+            activeUserId = uid;
+            document.getElementById("tag").innerText = tag; 
+            socket.emit("join_ticket_room", { threadId: id }); 
             render();
+            
+            const noteRes = await fetch("/api/note/" + uid);
+            const noteData = await noteRes.json();
+            document.getElementById("note").value = noteData.note;
         }
 
-        function render() 
-        {
-            var el = document.getElementById("chat");
-            el.innerHTML = "";
-            var t = threads[activeId];
+        async function saveNote() {
+            if(!activeUserId) return;
+            await fetch("/api/note", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({ userId: activeUserId, note: document.getElementById("note").value })
+            });
+        }
+
+        function render() {
+            var el = document.getElementById("chat"); 
+            el.innerHTML = ""; 
+            var t = threads[activeId]; 
             if (!t) return;
-            for (var i = 0; i < t.messages.length; i++)
-            {
-                var m = t.messages[i];
-                var d = document.createElement("div");
-                d.className = "flex " + (m.fromBot ? "justify-end" : "justify-start");
-                d.innerHTML = '<div class="px-4 py-2 rounded-2xl text-xs ' + (m.fromBot ? "bg-blue-600" : "bg-slate-800") + '">' + m.content + '</div>';
+            for (var i=0; i<t.messages.length; i++) {
+                var m = t.messages[i]; 
+                var d = document.createElement("div"); 
+                d.className = "flex "+(m.fromBot?"justify-end":"justify-start");
+                d.innerHTML = '<div class="px-4 py-2 rounded-2xl text-xs '+(m.fromBot?"bg-blue-600":"bg-slate-800")+'">'+m.content+'</div>';
                 el.appendChild(d);
             }
             el.scrollTop = el.scrollHeight;
         }
 
-        async function send() 
-        {
-            var v = document.getElementById("msg").value;
-            if (!activeId || !v) return;
-            await fetch("/api/reply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ threadId: activeId, content: v }) });
-            document.getElementById("msg").value = "";
+        async function send() { 
+            var v = document.getElementById("msg").value; 
+            if (!activeId || !v) return; 
+            await fetch("/api/reply", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ threadId: activeId, content: v }) }); 
+            document.getElementById("msg").value = ""; 
         }
 
-        socket.on("new_message", function(p) {
-            if (threads[p.threadId]) { threads[p.threadId].messages.push(p); if (activeId === p.threadId) render(); }
-            else { init(); }
+        async function arch() { 
+            if (!activeId) return; 
+            if(confirm("Archive?")) { 
+                await fetch("/api/close-thread", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ threadId: activeId }) }); 
+                
+                // VISUAL RESET
+                document.getElementById("chat").innerHTML = "";
+                document.getElementById("tag").innerText = "Ready";
+                document.getElementById("note").value = "";
+                
+                activeId = null; 
+                activeUserId = null;
+                init(); 
+            } 
+        }
+
+        async function out() { 
+            await fetch("/api/logout", { method: "POST" }); 
+            window.location.href = "/login.html"; 
+        }
+
+        async function loadMacros() {
+            const res = await fetch("/api/macros"); 
+            const data = await res.json();
+            const el = document.getElementById("macro-list"); 
+            el.innerHTML = "<div class='text-[10px] uppercase font-bold text-slate-500 mb-2'>Macros</div>";
+            for (var i=0; i<data.length; i++) {
+                var b = document.createElement("button"); 
+                b.className = "w-full text-left text-[10px] p-2 bg-slate-900 border border-slate-800 rounded hover:bg-slate-800";
+                b.innerText = data[i].title; 
+                b.onclick = (function(c){ return function(){ document.getElementById("msg").value = c; }; })(data[i].content);
+                el.appendChild(b);
+            }
+        }
+
+        socket.on("new_message", function(p) { 
+            if(threads[p.threadId]) { 
+                threads[p.threadId].messages.push(p); 
+                if(activeId===p.threadId) render(); 
+            } 
+            else { init(); } 
         });
-
-        async function logoutSequence()
-        {
-            await fetch("/api/logout", { method: "POST" });
-            window.location.href = "/login.html";
-        }
 
         init();
     </script>
