@@ -17,7 +17,7 @@
             for (var i=0; i<data.length; i++) {
                 var d = document.createElement("div"); d.className = "item";
                 d.innerHTML = '<div class="font-bold uppercase mb-2 text-lg cursor-pointer" onclick="t(this)">'+data[i].question+'</div><div class="text-slate-400 text-sm hidden">'+data[i].answer+'</div>';
-                l.appendChild(d);
+                list.appendChild(d);
             }
         }
         function t(el) { var a = el.nextElementSibling; if (a.classList.contains("hidden")) { a.classList.remove("hidden"); } else { a.classList.add("hidden"); } }
