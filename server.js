@@ -805,7 +805,7 @@ applicationInstance.post('/api/login', async function(httpRequest, httpResponse)
     {
         console.log(`[API] ✅ Auth successful.`);
         httpRequest.session.staffId = targetStaffDocument._id; 
-        request.session.isAdmin = targetStaffDocument.isAdmin; 
+        httpRequest.session.isAdmin = targetStaffDocument.isAdmin; 
         httpRequest.session.username = targetStaffDocument.username;
         
         httpRequest.session.save(function() 
